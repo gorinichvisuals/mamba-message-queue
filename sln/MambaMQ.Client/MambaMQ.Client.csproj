@@ -6,4 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\MambaMQ.Protocol\MambaMQ.Protocol.csproj" />
+    </ItemGroup>
+
 </Project>
