@@ -1,0 +1,86 @@
+﻿namespace MambaMQ.Protocol.Serialization.Commands;
+
+public static class CommandDecoder
+{
+    public static ICommand Decode(FrameType type, ReadOnlySpan<byte> buffer)
+    {
+        return type switch
+        {
+            FrameType.Publish => DecodePublish(buffer),
+            FrameType.Subscribe => DecodeSubscribe(buffer),
+            FrameType.Delete => DecodeDelete(buffer),
+
+            _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
+        };
+    }
+
+    private static PublishCommand DecodePublish(ReadOnlySpan<byte> buffer)
+    {
+        string queueName = DecodeQueueName(buffer, out int offset);
+
+        Message message = MessageDecoder.Decode(buffer[offset..]);
+
+        return new PublishCommand(queueName, message);
+    }
+
+    private static SubscribeCommand DecodeSubscribe(ReadOnlySpan<byte> buffer)
+    {
+        string queueName = DecodeQueueName(buffer, out int offset);
+
+        ValidateAutoAcknowledge(buffer, offset);
+
+        bool autoAcknowledge = buffer[offset] != 0;
+
+        return new SubscribeCommand(queueName);
+    }
+
+    private static DeleteCommand DecodeDelete(ReadOnlySpan<byte> buffer)
+    {
+        string queueName = DecodeQueueName(buffer, out int offset);
+
+        ValidateMessageId(buffer, offset);
+
+        Guid messageId = new(buffer.Slice(offset, CommandConstants.MessageIdSize));
+
+        return new DeleteCommand(queueName, messageId);
+    }
+
+    private static string DecodeQueueName(ReadOnlySpan<byte> buffer, out int offset)
+    {
+        ValidateQueueNameLength(buffer);
+
+        int queueNameLength = BinaryPrimitives.ReadInt32BigEndian(buffer[..CommandConstants.QueueNameLengthSize]);
+
+        if (queueNameLength is 0)
+            throw new InvalidDataException("Invalid queue name length.");
+
+        offset = CommandConstants.QueueNameLengthSize + queueNameLength;
+
+        return buffer.Length < offset 
+            ? throw new InvalidDataException("Command does not contain complete queue name.") 
+            : Encoding.UTF8.GetString(buffer.Slice(CommandConstants.QueueNameLengthSize, queueNameLength));
+    }
+
+    private static void ValidateQueueNameLength(
+        ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.Length < CommandConstants.QueueNameLengthSize)
+            throw new InvalidDataException("Command does not contain queue name length.");
+    }
+
+    private static void ValidateAutoAcknowledge(
+        ReadOnlySpan<byte> buffer,
+        int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.AutoAcknowledgeSize)
+            throw new InvalidDataException("Subscribe command does not contain AutoAcknowledge.");
+    }
+
+    private static void ValidateMessageId(
+        ReadOnlySpan<byte> buffer,
+        int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.MessageIdSize)
+            throw new InvalidDataException("Command does not contain MessageId.");
+    }
+}
