@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/sln/">
+    <Project Path="sln/MambaMQ.Client/MambaMQ.Client.csproj" />
+    <Project Path="sln/MambaMQ.Protocol/MambaMQ.Protocol.csproj" />
+    <Project Path="sln/MambaMQ.Server/MambaMQ.Server.csproj" />
+  </Folder>
+</Solution>

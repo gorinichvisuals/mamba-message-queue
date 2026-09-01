@@ -1,0 +1,1 @@
+﻿Console.WriteLine("Mamba Message Queue Server");
