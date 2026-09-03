@@ -8,7 +8,8 @@ public sealed class Frame(FrameType type, ReadOnlyMemory<byte> payload)
 
 public enum FrameType : byte
 {
-    Publish = 1,
-    Subscribe = 2,
-    Delete = 3
+    PublishMessage = 1,
+    SubscribeQueue = 2,
+    DeleteMessage = 3,
+    GetMessage = 4,
 }

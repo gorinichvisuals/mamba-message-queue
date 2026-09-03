@@ -2,39 +2,44 @@
 
 public static class CommandDecoder
 {
-    public static ICommand Decode(FrameType type, ReadOnlySpan<byte> buffer)
+    public static ICommand Decode(FrameType type, ReadOnlySpan<byte> buffer, TimeSpan ttl)
     {
         return type switch
         {
-            FrameType.Publish => DecodePublish(buffer),
-            FrameType.Subscribe => DecodeSubscribe(buffer),
-            FrameType.Delete => DecodeDelete(buffer),
+            FrameType.PublishMessage => DecodePublish(buffer,ttl),
+            FrameType.SubscribeQueue => DecodeSubscribe(buffer),
+            FrameType.DeleteMessage => DecodeDelete(buffer),
 
             _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
         };
     }
 
-    private static PublishCommand DecodePublish(ReadOnlySpan<byte> buffer)
+    private static PublishMessageCommand DecodePublish(ReadOnlySpan<byte> buffer, TimeSpan ttl)
     {
         string queueName = DecodeQueueName(buffer, out int offset);
 
-        Message message = MessageDecoder.Decode(buffer[offset..]);
+        MambaMessage mambaMessage = MessageDecoder.Decode(buffer[offset..], ttl);
 
-        return new PublishCommand(queueName, message);
+        return new PublishMessageCommand(queueName, mambaMessage);
     }
 
-    private static SubscribeCommand DecodeSubscribe(ReadOnlySpan<byte> buffer)
+    private static SubscribeQueueCommand DecodeSubscribe(ReadOnlySpan<byte> buffer)
     {
         string queueName = DecodeQueueName(buffer, out int offset);
 
         ValidateAutoAcknowledge(buffer, offset);
 
-        bool autoAcknowledge = buffer[offset] != 0;
+        byte autoAcknowledgeValue = buffer[offset];
 
-        return new SubscribeCommand(queueName);
+        if (autoAcknowledgeValue is not 0 and not 1)
+            throw new InvalidDataException("Subscribe command contains invalid AutoAcknowledge value.");
+
+        bool autoAcknowledge = autoAcknowledgeValue is 1;
+
+        return new SubscribeQueueCommand(queueName, autoAcknowledge);
     }
 
-    private static DeleteCommand DecodeDelete(ReadOnlySpan<byte> buffer)
+    private static DeleteMessageCommand DecodeDelete(ReadOnlySpan<byte> buffer)
     {
         string queueName = DecodeQueueName(buffer, out int offset);
 
@@ -42,7 +47,7 @@ public static class CommandDecoder
 
         Guid messageId = new(buffer.Slice(offset, CommandConstants.MessageIdSize));
 
-        return new DeleteCommand(queueName, messageId);
+        return new DeleteMessageCommand(queueName, messageId);
     }
 
     private static string DecodeQueueName(ReadOnlySpan<byte> buffer, out int offset)
@@ -60,25 +65,20 @@ public static class CommandDecoder
             ? throw new InvalidDataException("Command does not contain complete queue name.") 
             : Encoding.UTF8.GetString(buffer.Slice(CommandConstants.QueueNameLengthSize, queueNameLength));
     }
-
-    private static void ValidateQueueNameLength(
-        ReadOnlySpan<byte> buffer)
+    
+    private static void ValidateQueueNameLength(ReadOnlySpan<byte> buffer)
     {
         if (buffer.Length < CommandConstants.QueueNameLengthSize)
             throw new InvalidDataException("Command does not contain queue name length.");
     }
 
-    private static void ValidateAutoAcknowledge(
-        ReadOnlySpan<byte> buffer,
-        int offset)
+    private static void ValidateAutoAcknowledge(ReadOnlySpan<byte> buffer, int offset)
     {
         if (buffer.Length < offset + CommandConstants.AutoAcknowledgeSize)
             throw new InvalidDataException("Subscribe command does not contain AutoAcknowledge.");
     }
 
-    private static void ValidateMessageId(
-        ReadOnlySpan<byte> buffer,
-        int offset)
+    private static void ValidateMessageId(ReadOnlySpan<byte> buffer, int offset)
     {
         if (buffer.Length < offset + CommandConstants.MessageIdSize)
             throw new InvalidDataException("Command does not contain MessageId.");

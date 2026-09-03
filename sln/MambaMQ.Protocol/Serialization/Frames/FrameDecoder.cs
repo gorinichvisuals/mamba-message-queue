@@ -28,11 +28,11 @@ public static class FrameDecoder
 
     private static void ValidateMagic(ReadOnlySpan<byte> buffer)
     {
-        uint magic = BinaryPrimitives.ReadUInt32BigEndian(
+        ushort magic = BinaryPrimitives.ReadUInt16BigEndian(
             buffer.Slice(
-                FrameConstants.MagicOffset, 
+                FrameConstants.MagicOffset,
                 FrameConstants.MagicSize));
-        
+
         if (magic is not FrameConstants.Magic)
             throw new InvalidDataException("Invalid frame magic.");
     }
