@@ -6,18 +6,18 @@ public static class CommandEncoder
     {
         return command.Type switch
         {
-            FrameType.Publish => EncodePublish((PublishCommand)command),
-            FrameType.Subscribe => EncodeSubscribe((SubscribeCommand)command),
-            FrameType.Delete => EncodeDelete((DeleteCommand)command),
+            FrameType.PublishMessage => EncodePublishMessage((PublishMessageCommand)command),
+            FrameType.SubscribeQueue => EncodeSubscribeQueue((SubscribeQueueCommand)command),
+            FrameType.DeleteMessage => EncodeDeleteMessage((DeleteMessageCommand)command),
 
             _ => throw new ArgumentException($"Unsupported command type: {command.Type}.", nameof(command))
         };
     }
     
-    private static byte[] EncodePublish(PublishCommand command)
+    private static byte[] EncodePublishMessage(PublishMessageCommand messageCommand)
     {
-        byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
-        byte[] message = MessageEncoder.Encode(command.Message);
+        byte[] queueName = Encoding.UTF8.GetBytes(messageCommand.QueueName);
+        byte[] message = MessageEncoder.Encode(messageCommand.MambaMessage);
 
         int offset = CommandConstants.QueueNameLengthSize;
 
@@ -34,24 +34,30 @@ public static class CommandEncoder
         return buffer;
     }
 
-    private static byte[] EncodeSubscribe(SubscribeCommand command)
+    private static byte[] EncodeSubscribeQueue(SubscribeQueueCommand queueCommand)
     {
-        byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
+        byte[] queueName = Encoding.UTF8.GetBytes(queueCommand.QueueName);
 
         int offset = CommandConstants.QueueNameLengthSize;
 
-        byte[] buffer = new byte[offset + queueName.Length];
+        byte[] buffer = new byte[offset + queueName.Length + CommandConstants.AutoAcknowledgeSize];
 
         Span<byte> span = buffer;
 
         WriteQueueName(span, queueName);
 
+        offset += queueName.Length;
+
+        span[offset] = queueCommand.AutoAcknowledge 
+            ? (byte)1 
+            : (byte)0;
+
         return buffer;
     }
 
-    private static byte[] EncodeDelete(DeleteCommand command)
+    private static byte[] EncodeDeleteMessage(DeleteMessageCommand messageCommand)
     {
-        byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
+        byte[] queueName = Encoding.UTF8.GetBytes(messageCommand.QueueName);
 
         int offset = CommandConstants.QueueNameLengthSize;
 
@@ -63,14 +69,12 @@ public static class CommandEncoder
 
         offset += queueName.Length;
 
-        command.MessageId.TryWriteBytes(span[offset..]);
+        messageCommand.MessageId.TryWriteBytes(span[offset..]);
 
         return buffer;
     }
 
-    private static void WriteQueueName(
-        Span<byte> buffer,
-        byte[] queueName)
+    private static void WriteQueueName(Span<byte> buffer, byte[] queueName)
     {
         BinaryPrimitives.WriteInt32BigEndian(buffer[..CommandConstants.QueueNameLengthSize], queueName.Length);
 

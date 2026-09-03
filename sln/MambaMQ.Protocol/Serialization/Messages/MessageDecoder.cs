@@ -1,8 +1,8 @@
 ﻿namespace MambaMQ.Protocol.Serialization.Messages;
 
-public class MessageDecoder
+public static class MessageDecoder
 {
-    public static Message Decode(ReadOnlySpan<byte> buffer)
+    public static MambaMessage Decode(ReadOnlySpan<byte> buffer, TimeSpan ttl)
     {
         Validate(buffer);
 
@@ -11,13 +11,15 @@ public class MessageDecoder
         int bodyLength = DecodeBodyLength(buffer);
         ReadOnlyMemory<byte> body = DecodePayload(buffer, bodyLength);
 
-        return new Message( messageId, receivedAt, body);
+        return new MambaMessage(messageId, receivedAt, body, ttl);
     }
 
     private static void Validate(ReadOnlySpan<byte> buffer)
     {
         if (buffer.Length < MessageConstants.HeaderSize)
-            throw new ArgumentException("Message data is too short.", nameof(buffer));
+            throw new ArgumentException(
+                "Message data is too short.",
+                nameof(buffer));
     }
 
     private static Guid DecodeMessageId(ReadOnlySpan<byte> buffer)
@@ -30,7 +32,8 @@ public class MessageDecoder
                 MessageConstants.MessageIdSize,
                 MessageConstants.ReceivedAtSize));
 
-        return new DateTimeOffset(new DateTime(utcTicks, DateTimeKind.Utc));
+        return new DateTimeOffset(
+            new DateTime(utcTicks, DateTimeKind.Utc));
     }
 
     private static int DecodeBodyLength(ReadOnlySpan<byte> buffer)
@@ -41,14 +44,20 @@ public class MessageDecoder
                 MessageConstants.BodyLengthSize));
 
         if (bodyLength < 0)
-            throw new ArgumentException("Invalid payload length.", nameof(buffer));
+            throw new ArgumentException(
+                "Invalid payload length.",
+                nameof(buffer));
 
-        return buffer.Length != MessageConstants.HeaderSize + bodyLength 
-            ? throw new ArgumentException("Message data has an invalid payload length.", nameof(buffer)) 
+        return buffer.Length != MessageConstants.HeaderSize + bodyLength
+            ? throw new ArgumentException(
+                "Message data has an invalid payload length.",
+                nameof(buffer))
             : bodyLength;
     }
 
-    private static ReadOnlyMemory<byte> DecodePayload(ReadOnlySpan<byte> buffer, int bodyLength)
+    private static ReadOnlyMemory<byte> DecodePayload(
+        ReadOnlySpan<byte> buffer,
+        int bodyLength)
         => buffer
             .Slice(MessageConstants.HeaderSize, bodyLength)
             .ToArray();
