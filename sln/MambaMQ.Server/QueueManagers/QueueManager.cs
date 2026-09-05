@@ -14,11 +14,11 @@ internal sealed class QueueManager : IQueueManager
         return Task.CompletedTask;
     }
 
-    public IAsyncEnumerable<MessageDelivery> SubscribeQueueAsync(string queueName, bool autoAcknowledge, Guid connectionId, CancellationToken cancellationToken = default)
+    public Task SubscribeQueueAsync(string queueName, bool autoAcknowledge, IClientConnection connection, CancellationToken cancellationToken = default)
     {
         MambaQueue queue = GetOrCreateQueue(queueName);
 
-        return queue.SubscribeAsync(autoAcknowledge, connectionId, cancellationToken);
+        return ConsumeAsync(queue, autoAcknowledge, connection, cancellationToken);
     }
 
     public Task DeleteMessageAsync(string queueName, Guid messageId, CancellationToken cancellationToken = default)
@@ -31,8 +31,17 @@ internal sealed class QueueManager : IQueueManager
         return Task.CompletedTask;
     }
     
-    public int RemoveExpiredMessages(DateTimeOffset now)
-        => _queues.Values.Sum(queue => queue.RemoveExpiredMessages(now));
+    private static async Task ConsumeAsync(MambaQueue queue, bool autoAcknowledge, IClientConnection connection, CancellationToken cancellationToken)
+    {
+        await foreach (MessageDelivery delivery in queue.SubscribeAsync(autoAcknowledge, connection.Id, cancellationToken))
+        {
+            byte[] payload = MessageEncoder.Encode(delivery.Message);
+
+            Frame frame = new(FrameType.GetMessage, payload);
+
+            await connection.SendAsync(frame, cancellationToken);
+        }
+    }
     
     private MambaQueue GetOrCreateQueue(string queueName)
     {

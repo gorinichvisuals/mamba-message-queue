@@ -17,5 +17,5 @@ public static class FrameConstants
     public const int PayloadLengthOffset = FrameTypeOffset + FrameTypeSize;
     
     public const int HeaderSize = MagicSize + VersionSize + FrameTypeSize + PayloadLengthSize;
-    public const int MaxPayloadSize = 1 * 1024 * 1024;
+    public const int MaxPayloadSize = 16 * 1024 * 1024;
 }

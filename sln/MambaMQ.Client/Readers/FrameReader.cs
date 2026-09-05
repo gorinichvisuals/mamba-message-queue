@@ -1,8 +1,8 @@
-﻿namespace MambaMQ.Client.Reader;
+﻿namespace MambaMQ.Client.Readers;
 
 internal static class FrameReader
 {
-    public static async Task<Frame> ReadAsync(IConnection connection, CancellationToken cancellationToken = default)
+    public static async Task<Frame> ReadAsync(IConnection connection, int maxMessageSizeInKilobytes, CancellationToken cancellationToken = default)
     {
         byte[] header = new byte[FrameConstants.HeaderSize];
 
@@ -12,6 +12,12 @@ internal static class FrameReader
             header.AsSpan(
                 FrameConstants.PayloadLengthOffset,
                 FrameConstants.PayloadLengthSize));
+
+        if (payloadLength < 0)
+            throw new InvalidDataException("Invalid payload length.");
+
+        if (payloadLength > maxMessageSizeInKilobytes)
+            throw new InvalidDataException($"Payload is too large. Maximum size is {maxMessageSizeInKilobytes} bytes.");
 
         byte[] buffer = new byte[FrameConstants.HeaderSize + payloadLength];
 

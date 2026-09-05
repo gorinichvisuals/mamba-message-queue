@@ -2,11 +2,11 @@
 
 public static class CommandDecoder
 {
-    public static ICommand Decode(FrameType type, ReadOnlySpan<byte> buffer, TimeSpan ttl)
+    public static ICommand Decode(FrameType type, ReadOnlySpan<byte> buffer)
     {
         return type switch
         {
-            FrameType.PublishMessage => DecodePublish(buffer,ttl),
+            FrameType.PublishMessage => DecodePublish(buffer),
             FrameType.SubscribeQueue => DecodeSubscribe(buffer),
             FrameType.DeleteMessage => DecodeDelete(buffer),
 
@@ -14,11 +14,11 @@ public static class CommandDecoder
         };
     }
 
-    private static PublishMessageCommand DecodePublish(ReadOnlySpan<byte> buffer, TimeSpan ttl)
+    private static PublishMessageCommand DecodePublish(ReadOnlySpan<byte> buffer)
     {
         string queueName = DecodeQueueName(buffer, out int offset);
 
-        MambaMessage mambaMessage = MessageDecoder.Decode(buffer[offset..], ttl);
+        MambaMessage mambaMessage = MessageDecoder.Decode(buffer[offset..]);
 
         return new PublishMessageCommand(queueName, mambaMessage);
     }
