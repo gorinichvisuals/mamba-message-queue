@@ -1,3 +1,3 @@
 ﻿namespace MambaMQ.Server.Helpers;
 
-public readonly record struct QueueId(Guid Value);
+public readonly record struct QueueId(int Value);

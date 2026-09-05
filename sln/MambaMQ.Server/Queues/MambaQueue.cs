@@ -2,7 +2,8 @@
 
 public sealed class MambaQueue(string queueName)
 {
-    public QueueId Id { get; } = new QueueId(Guid.CreateVersion7());
+    private static int _nextId = 1;
+    public QueueId Id { get; } = new QueueId(Interlocked.Increment(ref _nextId));
     public string Name { get; } = queueName;
 
     private readonly Dictionary<Guid, MambaMessage> _messages = [];
@@ -50,19 +51,6 @@ public sealed class MambaQueue(string queueName)
         
         RemoveFromAvailable(messageId);
         RemoveFromInFlight(messageId);
-    }
-    
-    public int RemoveExpiredMessages(DateTimeOffset now)
-    {
-        Guid[] expiredMessageIds = _messages
-            .Where(x => x.Value.ExpiresAt <= now)
-            .Select(x => x.Key)
-            .ToArray();
-
-        foreach (Guid messageId in expiredMessageIds)
-            DeleteMessage(messageId);
-
-        return expiredMessageIds.Length;
     }
     
     private void RemoveFromAvailable(Guid messageId)

@@ -40,9 +40,9 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            Frame frame = await FrameReader.ReadAsync(_connection, cancellationToken);
+            Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInKilobytes, cancellationToken);
 
-            MambaMessage message = MessageDecoder.Decode(frame.Payload.Span, _options.MessageTtl);
+            MambaMessage message = MessageDecoder.Decode(frame.Payload.Span);
 
             yield return message;
         }

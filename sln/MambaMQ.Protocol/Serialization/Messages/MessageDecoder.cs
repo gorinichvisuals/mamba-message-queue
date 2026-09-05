@@ -2,7 +2,7 @@
 
 public static class MessageDecoder
 {
-    public static MambaMessage Decode(ReadOnlySpan<byte> buffer, TimeSpan ttl)
+    public static MambaMessage Decode(ReadOnlySpan<byte> buffer)
     {
         Validate(buffer);
 
@@ -11,7 +11,7 @@ public static class MessageDecoder
         int bodyLength = DecodeBodyLength(buffer);
         ReadOnlyMemory<byte> body = DecodePayload(buffer, bodyLength);
 
-        return new MambaMessage(messageId, receivedAt, body, ttl);
+        return new MambaMessage(messageId, receivedAt, body);
     }
 
     private static void Validate(ReadOnlySpan<byte> buffer)

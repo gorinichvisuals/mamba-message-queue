@@ -20,7 +20,7 @@ internal sealed class MambaServer(ICommandDispatcher dispatcher, IOptions<MambaS
 
     private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
     {
-        await using ClientConnection connection = new ClientConnection(client, dispatcher, options.Value);
+        await using ClientConnection connection = new ClientConnection(client, dispatcher, options.Value.MaxMessageSizeInKilobytes);
         
         await connection.RunAsync(cancellationToken);
     }

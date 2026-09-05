@@ -5,7 +5,7 @@ global using System.Net.Sockets;
 global using System.Buffers.Binary;
 global using System.Runtime.CompilerServices;
 
-global using MambaMQ.Client.Reader;
+global using MambaMQ.Client.Readers;
 global using MambaMQ.Client.Options;
 global using MambaMQ.Client.Connection;
 
