@@ -3,79 +3,76 @@
 public sealed class MambaQueue(string queueName)
 {
     private static int _nextId = 1;
+    private long _nextDeliveryId = 1;
+    
     public QueueId Id { get; } = new QueueId(Interlocked.Increment(ref _nextId));
     public string Name { get; } = queueName;
-
-    private readonly Dictionary<Guid, MambaMessage> _messages = [];
-    private readonly Queue<Guid> _available = [];
-    private readonly Dictionary<DeliveryId, Delivery> _inFlight = [];
     
+    private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
+    private readonly ConcurrentQueue<Guid> _available = [];
+    
+    private readonly ConcurrentDictionary<DeliveryId, Delivery> _inFlight = [];
+    private readonly ConcurrentDictionary<Guid, DeliveryId> _deliveryByMessage = [];
+
     private readonly SemaphoreSlim _messageAvailable = new(0);
     
     public void PublishMessage(MambaMessage message)
     {
-        _messages.Add(message.MessageId, message);
+        if(!_messages.TryAdd(message.MessageId, message))
+            throw new InvalidOperationException($"Message '{message.MessageId}' already exists.");
+        
         _available.Enqueue(message.MessageId);
         
         _messageAvailable.Release();
     }
     
-    public async IAsyncEnumerable<MessageDelivery> SubscribeAsync(bool autoAcknowledge, Guid connectionId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<MessageDelivery> SubscribeAsync(
+        bool autoAcknowledge, Guid connectionId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             await _messageAvailable.WaitAsync(cancellationToken);
 
-            Guid messageId = _available.Dequeue();
+            if (!_available.TryDequeue(out Guid messageId))
+                continue;
 
-            MambaMessage message = _messages[messageId];
+            if (!_messages.TryGetValue(messageId, out MambaMessage? message))
+                continue;
 
-            DeliveryId deliveryId = new(Guid.CreateVersion7());
-
-            Delivery delivery = new(deliveryId, message.MessageId, connectionId);
-
-            if (autoAcknowledge)
-                DeleteMessage(messageId);
-            else
-                _inFlight.Add(deliveryId, delivery);
-
-            yield return new MessageDelivery(message, deliveryId);
+            yield return CreateDelivery(message, autoAcknowledge, connectionId);
         }
     }
-
+    
     public void DeleteMessage(Guid messageId)
     {
-        bool removed = _messages.Remove(messageId);
+        _messages.TryRemove(messageId, out _);
 
-        if (!removed) return;
-        
-        RemoveFromAvailable(messageId);
-        RemoveFromInFlight(messageId);
+        if (_deliveryByMessage.TryRemove(messageId, out DeliveryId deliveryId))
+            _inFlight.TryRemove(deliveryId, out _);
     }
     
-    private void RemoveFromAvailable(Guid messageId)
+    private MessageDelivery CreateDelivery(MambaMessage message, bool autoAcknowledge, Guid connectionId)
     {
-        if (_available.Count is 0)
-            return;
+        DeliveryId deliveryId = new(Interlocked.Increment(ref _nextDeliveryId));
 
-        Guid[] remaining = _available
-            .Where(id => id != messageId)
-            .ToArray();
-        
-        _available.Clear();
-        
-        foreach (Guid id in remaining)
-            _available.Enqueue(id);
+        Delivery delivery = new(deliveryId, message.MessageId, connectionId);
+
+        if (autoAcknowledge)
+            DeleteMessage(message.MessageId);
+        else
+            TrackDelivery(delivery);
+
+        return new MessageDelivery(message, deliveryId);
     }
     
-    private void RemoveFromInFlight(Guid messageId)
+    private void TrackDelivery(Delivery delivery)
     {
-        DeliveryId[] deliveries = _inFlight
-            .Where(x => x.Value.MessageId == messageId)
-            .Select(x => x.Key)
-            .ToArray();
+        if (!_inFlight.TryAdd(delivery.DeliveryId, delivery))
+            throw new InvalidOperationException($"Delivery '{delivery.DeliveryId}' already exists.");
 
-        foreach (DeliveryId deliveryId in deliveries)
-            _inFlight.Remove(deliveryId);
+        if (_deliveryByMessage.TryAdd(delivery.MessageId, delivery.DeliveryId)) return;
+            _inFlight.TryRemove(delivery.DeliveryId, out _);
+
+        throw new InvalidOperationException($"Message '{delivery.MessageId}' is already in flight.");
     }
 }
