@@ -13,21 +13,34 @@ public static class CommandEncoder
             _ => throw new ArgumentException($"Unsupported command type: {command.Type}.", nameof(command))
         };
     }
-    
+
     private static byte[] EncodePublishMessage(PublishMessageCommand messageCommand)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(messageCommand.QueueName);
-        byte[] message = MessageEncoder.Encode(messageCommand.MambaMessage);
 
+        byte[] message = MessageEncoder.Encode(messageCommand.MambaMessage);
+        
         int offset = CommandConstants.QueueNameLengthSize;
 
-        byte[] buffer = new byte[ offset + queueName.Length + message.Length];
+        byte[] buffer = new byte[offset + queueName.Length + CommandConstants.IsDurableSize + CommandConstants.PersistMessagesSize + message.Length];
 
         Span<byte> span = buffer;
 
         WriteQueueName(span, queueName);
 
         offset += queueName.Length;
+
+        span[offset] = messageCommand.IsDurable 
+                ? (byte)1 
+                : (byte)0;
+
+        offset += CommandConstants.IsDurableSize;
+
+        span[offset] = messageCommand.PersistMessages 
+                ? (byte)1 
+                : (byte)0;
+
+        offset += CommandConstants.PersistMessagesSize;
 
         message.CopyTo(span[offset..]);
 
@@ -40,7 +53,7 @@ public static class CommandEncoder
 
         int offset = CommandConstants.QueueNameLengthSize;
 
-        byte[] buffer = new byte[offset + queueName.Length + CommandConstants.AutoAcknowledgeSize];
+        byte[] buffer = new byte[offset + queueName.Length + CommandConstants.IsDurableSize + CommandConstants.PersistMessagesSize];
 
         Span<byte> span = buffer;
 
@@ -48,7 +61,13 @@ public static class CommandEncoder
 
         offset += queueName.Length;
 
-        span[offset] = queueCommand.AutoAcknowledge 
+        span[offset] = queueCommand.IsDurable 
+            ? (byte)1 
+            : (byte)0;
+
+        offset += CommandConstants.IsDurableSize;
+
+        span[offset] = queueCommand.PersistMessages 
             ? (byte)1 
             : (byte)0;
 
@@ -62,7 +81,7 @@ public static class CommandEncoder
         int offset = CommandConstants.QueueNameLengthSize;
 
         byte[] buffer = new byte[offset + queueName.Length + CommandConstants.MessageIdSize];
-
+        
         Span<byte> span = buffer;
 
         WriteQueueName(span, queueName);

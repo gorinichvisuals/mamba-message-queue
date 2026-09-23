@@ -4,5 +4,6 @@ public static class CommandConstants
 {
     public const int QueueNameLengthSize = 4;
     public const int MessageIdSize = 16;
-    public const int AutoAcknowledgeSize = 1;
+    public const int IsDurableSize = sizeof(byte);
+    public const int PersistMessagesSize = sizeof(byte);
 }

@@ -6,7 +6,7 @@ public sealed class MambaMessage(ReadOnlyMemory<byte> body)
     public DateTimeOffset ReceivedAt { get; } = DateTimeOffset.UtcNow;
     public ReadOnlyMemory<byte> Body { get; } = body;
 
-    internal MambaMessage(
+    public MambaMessage(
         Guid messageId, 
         DateTimeOffset receivedAt, 
         ReadOnlyMemory<byte> body) 

@@ -17,30 +17,41 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         _options = options;
     }
 
-    public async Task PublishAsync<T>(string queueName, T message, CancellationToken cancellationToken = default)
+    public async Task PublishAsync<T>(
+        string queueName, 
+        T message, 
+        bool isDurable = true, 
+        bool persistMessages = false,
+        CancellationToken cancellationToken = default)
     {
+        ValidateQueueOptions(isDurable, persistMessages);
         await EnsureConnectedAsync(cancellationToken);
         
         byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
 
         MambaMessage mambaMessage = new(body);
 
-        PublishMessageCommand command = new(queueName, mambaMessage);
+        PublishMessageCommand command = new(queueName, isDurable, persistMessages, mambaMessage);
 
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async IAsyncEnumerable<MambaMessage> SubscribeAsync(string queueName, bool autoAcknowledge = true, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<MambaMessage> SubscribeAsync(
+        string queueName, 
+        bool isDurable = true, 
+        bool persistMessages = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        ValidateQueueOptions(isDurable, persistMessages);
         await EnsureConnectedAsync(cancellationToken);
         
-        SubscribeQueueCommand command = new(queueName, autoAcknowledge);
+        SubscribeQueueCommand command = new(queueName, isDurable, persistMessages);
 
         await SendCommandAsync(command, cancellationToken);
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInKilobytes, cancellationToken);
+            Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
 
             MambaMessage message = MessageDecoder.Decode(frame.Payload.Span);
 
@@ -48,7 +59,10 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         }
     }
 
-    public async Task DeleteMessageAsync(string queueName, Guid messageId, CancellationToken cancellationToken = default)
+    public async Task DeleteMessageAsync(
+        string queueName, 
+        Guid messageId, 
+        CancellationToken cancellationToken = default)
     {
         DeleteMessageCommand command = new(queueName, messageId);
 
@@ -71,5 +85,11 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         return _connection.SendAsync(buffer, cancellationToken);
     }
 
+    private static void ValidateQueueOptions(bool isDurable, bool persistMessages)
+    {
+        if (!isDurable && persistMessages)
+            throw new ArgumentException("PersistMessages cannot be enabled for a non-durable queue.");
+    }
+    
     public ValueTask DisposeAsync() => _connection.DisposeAsync();
 }

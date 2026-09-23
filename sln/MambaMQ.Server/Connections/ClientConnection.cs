@@ -3,7 +3,7 @@
 internal sealed class ClientConnection(
     TcpClient client, 
     ICommandDispatcher dispatcher,
-    int maxMessageSizeInKilobytes) : IClientConnection, IAsyncDisposable
+    int maxMessageSizeInBytes) : IClientConnection, IAsyncDisposable
 {
     public Guid Id { get; } = Guid.CreateVersion7();
 
@@ -20,7 +20,7 @@ internal sealed class ClientConnection(
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                Frame frame = await FrameReader.ReadFrameAsync(_stream, maxMessageSizeInKilobytes, cancellationToken);
+                Frame frame = await FrameReader.ReadFrameAsync(_stream, maxMessageSizeInBytes, cancellationToken);
 
                 ICommand command = CommandDecoder.Decode(frame.Type, frame.Payload.Span);
 
@@ -33,10 +33,10 @@ internal sealed class ClientConnection(
         {
         }
         catch (IOException)
-        {
+        { 
         }
         catch (Exception)
-        {
+        { 
         }
         finally
         {
@@ -51,7 +51,7 @@ internal sealed class ClientConnection(
             throw new InvalidOperationException("Connection has not been started.");
 
         byte[] buffer = FrameEncoder.Encode(frame);
-
+        
         await _writeLock.WaitAsync(cancellationToken);
 
         try

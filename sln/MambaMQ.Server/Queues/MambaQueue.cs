@@ -1,13 +1,14 @@
 ﻿namespace MambaMQ.Server.Queues;
 
-public sealed class MambaQueue(string queueName)
+public sealed class MambaQueue(Guid queueId, string queueName, bool isDurable, bool persistMessages)
 {
-    private static int _nextId = 1;
     private long _nextDeliveryId = 1;
     
-    public QueueId Id { get; } = new QueueId(Interlocked.Increment(ref _nextId));
+    public Guid Id { get; } = queueId;
     public string Name { get; } = queueName;
-    
+    public bool IsDurable { get; } = isDurable;
+    public bool PersistMessages { get; }  = persistMessages;
+
     private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
     private readonly ConcurrentQueue<Guid> _available = [];
     
@@ -27,7 +28,8 @@ public sealed class MambaQueue(string queueName)
     }
     
     public async IAsyncEnumerable<MessageDelivery> SubscribeAsync(
-        bool autoAcknowledge, Guid connectionId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        Guid connectionId,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -39,7 +41,7 @@ public sealed class MambaQueue(string queueName)
             if (!_messages.TryGetValue(messageId, out MambaMessage? message))
                 continue;
 
-            yield return CreateDelivery(message, autoAcknowledge, connectionId);
+            yield return CreateDelivery(message, connectionId);
         }
     }
     
@@ -51,16 +53,15 @@ public sealed class MambaQueue(string queueName)
             _inFlight.TryRemove(deliveryId, out _);
     }
     
-    private MessageDelivery CreateDelivery(MambaMessage message, bool autoAcknowledge, Guid connectionId)
+    private MessageDelivery CreateDelivery(
+        MambaMessage message, 
+        Guid connectionId)
     {
         DeliveryId deliveryId = new(Interlocked.Increment(ref _nextDeliveryId));
 
         Delivery delivery = new(deliveryId, message.MessageId, connectionId);
 
-        if (autoAcknowledge)
-            DeleteMessage(message.MessageId);
-        else
-            TrackDelivery(delivery);
+        TrackDelivery(delivery);
 
         return new MessageDelivery(message, deliveryId);
     }

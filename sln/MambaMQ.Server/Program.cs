@@ -1,10 +1,13 @@
 ﻿HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.Configure<MambaServerOptions>(
-    builder.Configuration.GetSection(nameof(MambaServerOptions)));
+builder.Services.Configure<MambaServerOptions>(builder.Configuration.GetSection(nameof(MambaServerOptions)));
+MambaServerOptions options = builder.Configuration.GetSection(nameof(MambaServerOptions)).Get<MambaServerOptions>()!;
+
+builder.Services.ConfigurePersistence(options.Storage.Path, options.Storage.SegmentSizeInBytes, options.Storage.MaxSegments);
 
 builder.Services.AddSingleton<IQueueManager, QueueManager>();
 builder.Services.AddSingleton<ICommandDispatcher, CommandDispatcher>();
+builder.Services.AddSingleton<IQueueRecoveryService, QueueRecoveryService>();
 
 builder.Services.AddSingleton<ICommandHandler<PublishMessageCommand>, PublishMessageCommandHandler>();
 builder.Services.AddSingleton<ICommandHandler<SubscribeQueueCommand>, SubscribeQueueCommandHandler>();
@@ -12,8 +15,8 @@ builder.Services.AddSingleton<ICommandHandler<DeleteMessageCommand>, DeleteMessa
 
 builder.Services.AddSingleton<MambaServer>();
 
-IHost app = builder.Build();
+using IHost host = builder.Build();
 
-MambaServer server = app.Services.GetRequiredService<MambaServer>();
+MambaServer server = host.Services.GetRequiredService<MambaServer>();
 
 await server.StartAsync();
