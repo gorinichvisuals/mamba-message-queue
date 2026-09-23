@@ -65,7 +65,7 @@ public static class FrameDecoder
         return payloadLength switch
         {
             < 0 => throw new InvalidDataException("Invalid payload length."),
-            > FrameConstants.MaxPayloadSize => throw new InvalidDataException("Payload is too large."),
+            > FrameConstants.MaxPayloadSizeInBytes => throw new InvalidDataException("Payload is too large."),
             _ => payloadLength
         };
     }

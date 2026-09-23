@@ -18,25 +18,38 @@ public static class CommandDecoder
     {
         string queueName = DecodeQueueName(buffer, out int offset);
 
+        ValidateIsDurable(buffer, offset);
+
+        bool isDurable = DecodeBoolean(buffer[offset], "Publish command contains invalid IsDurable value.");
+
+        offset += CommandConstants.IsDurableSize;
+
+        ValidatePersistMessages(buffer, offset);
+
+        bool persistMessages = DecodeBoolean(buffer[offset], "Publish command contains invalid PersistMessages value.");
+
+        offset += CommandConstants.PersistMessagesSize;
+
         MambaMessage mambaMessage = MessageDecoder.Decode(buffer[offset..]);
 
-        return new PublishMessageCommand(queueName, mambaMessage);
+        return new PublishMessageCommand(queueName, isDurable, persistMessages, mambaMessage);
     }
 
     private static SubscribeQueueCommand DecodeSubscribe(ReadOnlySpan<byte> buffer)
     {
         string queueName = DecodeQueueName(buffer, out int offset);
 
-        ValidateAutoAcknowledge(buffer, offset);
+        ValidateIsDurable(buffer, offset);
 
-        byte autoAcknowledgeValue = buffer[offset];
+        bool isDurable = DecodeBoolean(buffer[offset], "Subscribe command contains invalid IsDurable value.");
 
-        if (autoAcknowledgeValue is not 0 and not 1)
-            throw new InvalidDataException("Subscribe command contains invalid AutoAcknowledge value.");
+        offset += CommandConstants.IsDurableSize;
 
-        bool autoAcknowledge = autoAcknowledgeValue is 1;
+        ValidatePersistMessages(buffer, offset);
 
-        return new SubscribeQueueCommand(queueName, autoAcknowledge);
+        bool persistMessages = DecodeBoolean(buffer[offset], "Subscribe command contains invalid PersistMessages value.");
+
+        return new SubscribeQueueCommand(queueName, isDurable, persistMessages);
     }
 
     private static DeleteMessageCommand DecodeDelete(ReadOnlySpan<byte> buffer)
@@ -61,21 +74,35 @@ public static class CommandDecoder
 
         offset = CommandConstants.QueueNameLengthSize + queueNameLength;
 
-        return buffer.Length < offset 
-            ? throw new InvalidDataException("Command does not contain complete queue name.") 
+        return buffer.Length < offset
+            ? throw new InvalidDataException("Command does not contain complete queue name.")
             : Encoding.UTF8.GetString(buffer.Slice(CommandConstants.QueueNameLengthSize, queueNameLength));
     }
-    
+
+    private static bool DecodeBoolean(byte value, string errorMessage)
+    {
+        if (value is not 0 and not 1)
+            throw new InvalidDataException(errorMessage);
+
+        return value is 1;
+    }
+
     private static void ValidateQueueNameLength(ReadOnlySpan<byte> buffer)
     {
         if (buffer.Length < CommandConstants.QueueNameLengthSize)
             throw new InvalidDataException("Command does not contain queue name length.");
     }
 
-    private static void ValidateAutoAcknowledge(ReadOnlySpan<byte> buffer, int offset)
+    private static void ValidateIsDurable(ReadOnlySpan<byte> buffer, int offset)
     {
-        if (buffer.Length < offset + CommandConstants.AutoAcknowledgeSize)
-            throw new InvalidDataException("Subscribe command does not contain AutoAcknowledge.");
+        if (buffer.Length < offset + CommandConstants.IsDurableSize)
+            throw new InvalidDataException("Command does not contain IsDurable.");
+    }
+
+    private static void ValidatePersistMessages(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.PersistMessagesSize)
+            throw new InvalidDataException("Command does not contain PersistMessages.");
     }
 
     private static void ValidateMessageId(ReadOnlySpan<byte> buffer, int offset)

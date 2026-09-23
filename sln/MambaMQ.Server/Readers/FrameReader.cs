@@ -2,7 +2,7 @@
 
 public static class FrameReader
 {
-    public static async Task<Frame> ReadFrameAsync(NetworkStream stream, int maxMessageSizeInKilobytes, CancellationToken cancellationToken)
+    public static async Task<Frame> ReadFrameAsync(NetworkStream stream, int maxMessageSizeInBytes, CancellationToken cancellationToken)
     {
         byte[] header = new byte[FrameConstants.HeaderSize];
 
@@ -13,9 +13,9 @@ public static class FrameReader
         if (payloadLength < 0)
             throw new InvalidDataException("Invalid payload length.");
 
-        if (payloadLength > maxMessageSizeInKilobytes)
+        if (payloadLength > maxMessageSizeInBytes)
             throw new InvalidDataException(
-                $"Payload is too large. Maximum size is {maxMessageSizeInKilobytes} bytes.");
+                $"Payload is too large. Maximum size is {maxMessageSizeInBytes} bytes.");
 
         byte[] buffer = new byte[FrameConstants.HeaderSize + payloadLength];
 
