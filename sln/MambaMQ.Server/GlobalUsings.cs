@@ -15,6 +15,7 @@ global using MambaMQ.Server.Queues;
 global using MambaMQ.Server.Options;
 global using MambaMQ.Server.Helpers;
 global using MambaMQ.Server.Readers;
+global using MambaMQ.Server.Logging;
 global using MambaMQ.Server.Recovery;
 global using MambaMQ.Server.Handlers;
 global using MambaMQ.Server.Dispatchers;
@@ -31,6 +32,7 @@ global using MambaMQ.Protocol.Serialization.Commands;
 global using MambaMQ.Protocol.Serialization.Frames;
 global using MambaMQ.Protocol.Serialization.Messages;
 
+global using MambaMQ.Persistence.Enums;
 global using MambaMQ.Persistence.Models;
 global using MambaMQ.Persistence.Extensions;
 global using MambaMQ.Persistence.Services.Abstractions;

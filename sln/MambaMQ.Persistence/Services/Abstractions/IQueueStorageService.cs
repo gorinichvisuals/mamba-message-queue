@@ -7,7 +7,9 @@ public interface IQueueStorageService
     Task DeleteQueue(Guid queueId, CancellationToken cancellationToken = default);
     
     Task SaveMessage(Guid queueId, StoredMambaMessage message, CancellationToken cancellationToken = default);
-    Task DeleteMessage(Guid queueId, Guid messageId, CancellationToken cancellationToken = default);
+    Task MarkAsDeleteMessage(Guid queueId, Guid messageId, CancellationToken cancellationToken = default);
+    Task SaveLog(Guid queueId, StoredQueueLog log, CancellationToken cancellationToken = default);
     
-    Task Cleanup(CancellationToken cancellationToken = default);
+    Task CleanupMessages(CancellationToken cancellationToken = default);
+    Task CleanupLogs(CancellationToken cancellationToken = default);
 }

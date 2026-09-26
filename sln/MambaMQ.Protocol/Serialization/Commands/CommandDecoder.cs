@@ -6,6 +6,7 @@ public static class CommandDecoder
     {
         return type switch
         {
+            FrameType.CreateQueue => DecodeCreateQueue(buffer),
             FrameType.PublishMessage => DecodePublish(buffer),
             FrameType.SubscribeQueue => DecodeSubscribe(buffer),
             FrameType.DeleteMessage => DecodeDelete(buffer),
@@ -14,42 +15,72 @@ public static class CommandDecoder
         };
     }
 
+    private static CreateQueueCommand DecodeCreateQueue(ReadOnlySpan<byte> buffer)
+    {
+        string queueName = DecodeQueueName(buffer, out int offset);
+
+        ValidateIsDurable(buffer, offset);
+
+        bool isDurable = DecodeBoolean(buffer[offset], "Create queue command contains invalid IsDurable value.");
+
+        offset += CommandConstants.IsDurableSize;
+
+        ValidateMessageRetentionEnabled(buffer, offset);
+
+        bool messageRetentionEnabled = DecodeBoolean(buffer[offset], "Create queue command contains invalid MessageRetentionEnabled value.");
+
+        offset += CommandConstants.MessageRetentionEnabledSize;
+
+        ValidateMessageRetentionPeriod(buffer, offset);
+
+        long messageRetentionPeriodTicks = BinaryPrimitives.ReadInt64BigEndian(buffer.Slice(offset, CommandConstants.MessageRetentionPeriodSize));
+
+        TimeSpan messageRetentionPeriod = TimeSpan.FromTicks(messageRetentionPeriodTicks);
+
+        offset += CommandConstants.MessageRetentionPeriodSize;
+
+        ValidateLogsRetentionEnabled(buffer, offset);
+
+        bool logRetentionEnabled = DecodeBoolean(buffer[offset], "Create queue command contains invalid LogRetentionEnabled value.");
+
+        offset += CommandConstants.LogsRetentionEnabledSize;
+
+        ValidateLogLevel(buffer, offset);
+
+        byte logLevel = buffer[offset];
+
+        offset += CommandConstants.LogLevelSize;
+
+        ValidateLogsRetentionPeriod(buffer, offset);
+
+        long logRetentionPeriodTicks = BinaryPrimitives.ReadInt64BigEndian(buffer.Slice(offset, CommandConstants.LogsRetentionPeriodSize));
+
+        TimeSpan logRetentionPeriod = TimeSpan.FromTicks(logRetentionPeriodTicks);
+
+        return new CreateQueueCommand(
+            queueName,
+            isDurable,
+            messageRetentionEnabled,
+            messageRetentionPeriod,
+            logRetentionEnabled,
+            logLevel,
+            logRetentionPeriod);
+    }
+
     private static PublishMessageCommand DecodePublish(ReadOnlySpan<byte> buffer)
     {
         string queueName = DecodeQueueName(buffer, out int offset);
 
-        ValidateIsDurable(buffer, offset);
-
-        bool isDurable = DecodeBoolean(buffer[offset], "Publish command contains invalid IsDurable value.");
-
-        offset += CommandConstants.IsDurableSize;
-
-        ValidatePersistMessages(buffer, offset);
-
-        bool persistMessages = DecodeBoolean(buffer[offset], "Publish command contains invalid PersistMessages value.");
-
-        offset += CommandConstants.PersistMessagesSize;
-
         MambaMessage mambaMessage = MessageDecoder.Decode(buffer[offset..]);
 
-        return new PublishMessageCommand(queueName, isDurable, persistMessages, mambaMessage);
+        return new PublishMessageCommand(queueName, mambaMessage);
     }
 
     private static SubscribeQueueCommand DecodeSubscribe(ReadOnlySpan<byte> buffer)
     {
-        string queueName = DecodeQueueName(buffer, out int offset);
+        string queueName = DecodeQueueName(buffer, out _);
 
-        ValidateIsDurable(buffer, offset);
-
-        bool isDurable = DecodeBoolean(buffer[offset], "Subscribe command contains invalid IsDurable value.");
-
-        offset += CommandConstants.IsDurableSize;
-
-        ValidatePersistMessages(buffer, offset);
-
-        bool persistMessages = DecodeBoolean(buffer[offset], "Subscribe command contains invalid PersistMessages value.");
-
-        return new SubscribeQueueCommand(queueName, isDurable, persistMessages);
+        return new SubscribeQueueCommand(queueName);
     }
 
     private static DeleteMessageCommand DecodeDelete(ReadOnlySpan<byte> buffer)
@@ -99,15 +130,39 @@ public static class CommandDecoder
             throw new InvalidDataException("Command does not contain IsDurable.");
     }
 
-    private static void ValidatePersistMessages(ReadOnlySpan<byte> buffer, int offset)
+    private static void ValidateMessageRetentionEnabled(ReadOnlySpan<byte> buffer, int offset)
     {
-        if (buffer.Length < offset + CommandConstants.PersistMessagesSize)
-            throw new InvalidDataException("Command does not contain PersistMessages.");
+        if (buffer.Length < offset + CommandConstants.MessageRetentionEnabledSize)
+            throw new InvalidDataException("Command does not contain MessageRetentionEnabled.");
+    }
+
+    private static void ValidateMessageRetentionPeriod(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.MessageRetentionPeriodSize)
+            throw new InvalidDataException("Command does not contain MessageRetentionPeriod.");
+    }
+
+    private static void ValidateLogsRetentionEnabled(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.LogsRetentionEnabledSize)
+            throw new InvalidDataException("Command does not contain LogRetentionEnabled.");
+    }
+
+    private static void ValidateLogsRetentionPeriod(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.LogsRetentionPeriodSize)
+            throw new InvalidDataException("Command does not contain LogRetentionPeriod.");
     }
 
     private static void ValidateMessageId(ReadOnlySpan<byte> buffer, int offset)
     {
         if (buffer.Length < offset + CommandConstants.MessageIdSize)
             throw new InvalidDataException("Command does not contain MessageId.");
+    }
+
+    private static void ValidateLogLevel(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.LogLevelSize)
+            throw new InvalidDataException("Command does not contain LogLevel.");
     }
 }

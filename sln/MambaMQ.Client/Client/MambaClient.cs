@@ -17,35 +17,47 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         _options = options;
     }
 
+    public async Task CreateQueueAsync(QueueOptions queueOptions, CancellationToken cancellationToken = default)
+    {
+        ValidateQueueOptions(queueOptions);
+        
+        await EnsureConnectedAsync(cancellationToken);
+        
+        CreateQueueCommand command = new(
+            queueOptions.QueueName, 
+            queueOptions.IsDurable, 
+            queueOptions.MessageRetention.Enabled,
+            queueOptions.MessageRetention.RetentionPeriod,
+            queueOptions.LogRetention.Enabled,
+            (byte)queueOptions.LogRetention.LogLevel,
+            queueOptions.LogRetention.RetentionPeriod);
+        
+        await SendCommandAsync(command, cancellationToken);
+    }
+    
     public async Task PublishAsync<T>(
         string queueName, 
         T message, 
-        bool isDurable = true, 
-        bool persistMessages = false,
         CancellationToken cancellationToken = default)
     {
-        ValidateQueueOptions(isDurable, persistMessages);
         await EnsureConnectedAsync(cancellationToken);
         
         byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
 
         MambaMessage mambaMessage = new(body);
 
-        PublishMessageCommand command = new(queueName, isDurable, persistMessages, mambaMessage);
+        PublishMessageCommand command = new(queueName, mambaMessage);
 
         await SendCommandAsync(command, cancellationToken);
     }
 
     public async IAsyncEnumerable<MambaMessage> SubscribeAsync(
         string queueName, 
-        bool isDurable = true, 
-        bool persistMessages = false,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        ValidateQueueOptions(isDurable, persistMessages);
         await EnsureConnectedAsync(cancellationToken);
         
-        SubscribeQueueCommand command = new(queueName, isDurable, persistMessages);
+        SubscribeQueueCommand command = new(queueName);
 
         await SendCommandAsync(command, cancellationToken);
 
@@ -64,15 +76,15 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         Guid messageId, 
         CancellationToken cancellationToken = default)
     {
+        await EnsureConnectedAsync(cancellationToken);
+        
         DeleteMessageCommand command = new(queueName, messageId);
 
         await SendCommandAsync(command, cancellationToken);
     }
     
     private Task EnsureConnectedAsync(CancellationToken cancellationToken)
-    {
-        return _connectTask ??= _connection.ConnectAsync(_options.Host, _options.Port, cancellationToken);
-    }
+        => _connectTask ??= _connection.ConnectAsync(_options.Host, _options.Port, cancellationToken);
     
     private Task SendCommandAsync(ICommand command, CancellationToken cancellationToken)
     {
@@ -85,11 +97,20 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         return _connection.SendAsync(buffer, cancellationToken);
     }
 
-    private static void ValidateQueueOptions(bool isDurable, bool persistMessages)
+    private static void ValidateQueueOptions(QueueOptions queueOptions)
     {
-        if (!isDurable && persistMessages)
+        if (queueOptions is { IsDurable: false, MessageRetention.Enabled: true })
             throw new ArgumentException("PersistMessages cannot be enabled for a non-durable queue.");
+        
+        switch (queueOptions.LogRetention.Enabled)
+        {
+            case false when queueOptions.LogRetention.LogLevel is not QueueLogLevel.None:
+                throw new InvalidOperationException("LogLevel must be None when log retention is disabled.");
+            case true when queueOptions.LogRetention.LogLevel is QueueLogLevel.None:
+                throw new InvalidOperationException("LogLevel cannot be None when log retention is enabled.");
+        }
     }
     
-    public ValueTask DisposeAsync() => _connection.DisposeAsync();
+    public ValueTask DisposeAsync() 
+        => _connection.DisposeAsync();
 }

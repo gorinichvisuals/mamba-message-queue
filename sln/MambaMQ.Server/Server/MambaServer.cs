@@ -17,9 +17,10 @@ internal sealed class MambaServer(
         _tcpListener.Start();
         
         Task serverTask = AcceptClientsAsync(cancellationToken);
-        Task cleanupTask = RunCleanupAsync(cancellationToken);
-
-        await Task.WhenAll(serverTask, cleanupTask);
+        Task cleanupMessagesTask = RunMessagesCleanupAsync(cancellationToken);
+        Task cleanupLogsTask = RunLogsCleanupAsync(cancellationToken);
+        
+        await Task.WhenAll(serverTask, cleanupMessagesTask, cleanupLogsTask);
     }
 
     private async Task AcceptClientsAsync(CancellationToken cancellationToken)
@@ -32,12 +33,20 @@ internal sealed class MambaServer(
         }
     }
 
-    private async Task RunCleanupAsync(CancellationToken cancellationToken)
+    private async Task RunMessagesCleanupAsync(CancellationToken cancellationToken)
     {
-        using PeriodicTimer timer = new(options.Value.Storage.CleanupInterval);
+        using PeriodicTimer timer = new(options.Value.Storage.CleanupMessagesInterval);
 
         while (await timer.WaitForNextTickAsync(cancellationToken))
-            await queueStorage.Cleanup(cancellationToken);
+            await queueStorage.CleanupMessages(cancellationToken);
+    }
+
+    private async Task RunLogsCleanupAsync(CancellationToken cancellationToken)
+    {
+        using PeriodicTimer timer = new(options.Value.Storage.CleanupLogsInterval);
+        
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+            await queueStorage.CleanupLogs(cancellationToken);
     }
     
     private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)

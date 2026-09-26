@@ -2,9 +2,12 @@
 
 internal sealed partial class QueueStorageService(
     IFileStorageService fileStorage, 
-    int segmentSizeInBytes,
-    int maxSegments) : IQueueStorageService
+    int messageSegmentSizeInBytes,
+    int maxMessageSegments,
+    int logSegmentSizeInBytes) : IQueueStorageService
 {
+    private const byte StorageVersion = 1;
+
     public async Task SaveQueue(StoredMambaQueue storedQueue, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(storedQueue);
@@ -56,14 +59,39 @@ internal sealed partial class QueueStorageService(
                 currentSegmentSize = stream.Length;
             }
 
-            SetState(queueId, new QueueStorageState(currentSegment, currentSegmentSize));
-            
+            int currentLogSegment = 0;
+            long currentLogSegmentSize = 0;
+
+            IReadOnlyCollection<string> logFiles = await fileStorage.GetFiles(GetLogsPath(queueId), cancellationToken);
+
+            List<(int Number, string Path)> logSegments = logFiles
+                .Select(ParseSegment)
+                .Where(static segment => segment is not null)
+                .Select(static segment => segment!.Value)
+                .OrderBy(static segment => segment.Number)
+                .ToList();
+
+            if (logSegments.Count > 0)
+            {
+                (currentLogSegment, string path) = logSegments[^1];
+
+                await using Stream stream = await fileStorage.OpenReadFile(path);
+
+                currentLogSegmentSize = stream.Length;
+            }
+
+            SetState(queueId, new QueueStorageState(
+                currentSegment,
+                currentSegmentSize,
+                currentLogSegment,
+                currentLogSegmentSize));
+
             List<StoredMambaMessage> restoredMessages = [];
 
             foreach (Guid messageId in messageOrder)
                 if (messages.TryGetValue(messageId, out StoredMambaMessage? message))
                     restoredMessages.Add(message);
-            
+
             queues.Add(new StoredMambaQueueState(storedQueue, restoredMessages));
         }
 
@@ -109,7 +137,7 @@ internal sealed partial class QueueStorageService(
         }
     }
 
-    public async Task DeleteMessage(Guid queueId, Guid messageId, CancellationToken cancellationToken = default)
+    public async Task MarkAsDeleteMessage(Guid queueId, Guid messageId, CancellationToken cancellationToken = default)
     {
         QueueStorageState state = GetOrCreateState(queueId);
 
@@ -126,8 +154,28 @@ internal sealed partial class QueueStorageService(
             state.Gate.Release();
         }
     }
+    
+    public async Task SaveLog(Guid queueId, StoredQueueLog log, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(log);
 
-    public async Task Cleanup(CancellationToken cancellationToken = default)
+        QueueStorageState state = GetOrCreateState(queueId);
+
+        await state.Gate.WaitAsync(cancellationToken);
+
+        try
+        {
+            byte[] record = SerializeLog(log);
+
+            await AppendLogRecord(queueId, state, record, cancellationToken);
+        }
+        finally
+        {
+            state.Gate.Release();
+        }
+    }
+
+    public async Task CleanupMessages(CancellationToken cancellationToken = default)
     {
         IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
 
@@ -144,7 +192,43 @@ internal sealed partial class QueueStorageService(
 
             try
             {
-                await CleanupQueue(queueId, cancellationToken);
+                StoredMambaQueue queue = await RestoreQueueMetadata(queueId, cancellationToken);
+
+                if (!queue.MessageRetention.RetentionEnabled)
+                    continue;
+
+                await CleanupMessagesForQueue(queueId, queue.MessageRetention.RetentionPeriod, cancellationToken);
+            }
+            finally
+            {
+                state.Gate.Release();
+            }
+        }
+    }
+    
+    public async Task CleanupLogs(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
+
+        foreach (string directory in directories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!Guid.TryParseExact(directory, "N", out Guid queueId))
+                continue;
+
+            QueueStorageState state = GetOrCreateState(queueId);
+
+            await state.Gate.WaitAsync(cancellationToken);
+
+            try
+            {
+                StoredMambaQueue queue = await RestoreQueueMetadata(queueId, cancellationToken);
+
+                if (!queue.LogRetention.RetentionEnabled)
+                    continue;
+
+                await CleanupLogsForQueue(queueId, queue.LogRetention.RetentionPeriod, cancellationToken);
             }
             finally
             {

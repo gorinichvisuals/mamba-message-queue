@@ -115,6 +115,9 @@ internal sealed class FileStorageService : IFileStorageService
         return Task.CompletedTask;
     }
 
+    public DateTime GetLastWriteTimeUtc(string path)
+        => File.GetLastWriteTimeUtc(GetFullPath(path));
+
     private static void EnsureDirectoryExists(string fullPath)
     {
         string? directory = Path.GetDirectoryName(fullPath);

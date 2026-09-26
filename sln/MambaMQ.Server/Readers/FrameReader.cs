@@ -14,8 +14,7 @@ public static class FrameReader
             throw new InvalidDataException("Invalid payload length.");
 
         if (payloadLength > maxMessageSizeInBytes)
-            throw new InvalidDataException(
-                $"Payload is too large. Maximum size is {maxMessageSizeInBytes} bytes.");
+            throw new InvalidDataException($"Payload is too large. Maximum size is {maxMessageSizeInBytes} bytes.");
 
         byte[] buffer = new byte[FrameConstants.HeaderSize + payloadLength];
 
