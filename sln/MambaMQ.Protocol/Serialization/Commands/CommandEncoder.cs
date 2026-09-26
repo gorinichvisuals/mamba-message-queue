@@ -6,6 +6,7 @@ public static class CommandEncoder
     {
         return command.Type switch
         {
+            FrameType.CreateQueue => EncodeCreateQueue((CreateQueueCommand)command),
             FrameType.PublishMessage => EncodePublishMessage((PublishMessageCommand)command),
             FrameType.SubscribeQueue => EncodeSubscribeQueue((SubscribeQueueCommand)command),
             FrameType.DeleteMessage => EncodeDeleteMessage((DeleteMessageCommand)command),
@@ -14,15 +15,21 @@ public static class CommandEncoder
         };
     }
 
-    private static byte[] EncodePublishMessage(PublishMessageCommand messageCommand)
+    private static byte[] EncodeCreateQueue(CreateQueueCommand queueCommand)
     {
-        byte[] queueName = Encoding.UTF8.GetBytes(messageCommand.QueueName);
+        byte[] queueName = Encoding.UTF8.GetBytes(queueCommand.QueueName);
 
-        byte[] message = MessageEncoder.Encode(messageCommand.MambaMessage);
-        
         int offset = CommandConstants.QueueNameLengthSize;
 
-        byte[] buffer = new byte[offset + queueName.Length + CommandConstants.IsDurableSize + CommandConstants.PersistMessagesSize + message.Length];
+        byte[] buffer = new byte[
+            offset +
+            queueName.Length +
+            CommandConstants.IsDurableSize +
+            CommandConstants.MessageRetentionEnabledSize +
+            CommandConstants.MessageRetentionPeriodSize +
+            CommandConstants.LogsRetentionEnabledSize +
+            CommandConstants.LogLevelSize +
+            CommandConstants.LogsRetentionPeriodSize];
 
         Span<byte> span = buffer;
 
@@ -30,17 +37,52 @@ public static class CommandEncoder
 
         offset += queueName.Length;
 
-        span[offset] = messageCommand.IsDurable 
-                ? (byte)1 
-                : (byte)0;
+        span[offset] = queueCommand.IsDurable
+            ? (byte)1
+            : (byte)0;
 
         offset += CommandConstants.IsDurableSize;
 
-        span[offset] = messageCommand.PersistMessages 
-                ? (byte)1 
-                : (byte)0;
+        span[offset] = queueCommand.MessageRetentionEnabled
+            ? (byte)1
+            : (byte)0;
 
-        offset += CommandConstants.PersistMessagesSize;
+        offset += CommandConstants.MessageRetentionEnabledSize;
+
+        BinaryPrimitives.WriteInt64BigEndian(span[offset..], queueCommand.MessageRetentionPeriod.Ticks);
+
+        offset += CommandConstants.MessageRetentionPeriodSize;
+
+        span[offset] = queueCommand.LogRetentionEnabled
+            ? (byte)1
+            : (byte)0;
+
+        offset += CommandConstants.LogsRetentionEnabledSize;
+
+        span[offset] = queueCommand.LogLevel;
+
+        offset += CommandConstants.LogLevelSize;
+
+        BinaryPrimitives.WriteInt64BigEndian(span[offset..], queueCommand.LogRetentionPeriod.Ticks);
+
+        return buffer;
+    }
+
+    private static byte[] EncodePublishMessage(PublishMessageCommand messageCommand)
+    {
+        byte[] queueName = Encoding.UTF8.GetBytes(messageCommand.QueueName);
+
+        byte[] message = MessageEncoder.Encode(messageCommand.MambaMessage);
+
+        int offset = CommandConstants.QueueNameLengthSize;
+
+        byte[] buffer = new byte[offset + queueName.Length + message.Length];
+
+        Span<byte> span = buffer;
+
+        WriteQueueName(span, queueName);
+
+        offset += queueName.Length;
 
         message.CopyTo(span[offset..]);
 
@@ -53,23 +95,11 @@ public static class CommandEncoder
 
         int offset = CommandConstants.QueueNameLengthSize;
 
-        byte[] buffer = new byte[offset + queueName.Length + CommandConstants.IsDurableSize + CommandConstants.PersistMessagesSize];
+        byte[] buffer = new byte[offset + queueName.Length];
 
         Span<byte> span = buffer;
 
         WriteQueueName(span, queueName);
-
-        offset += queueName.Length;
-
-        span[offset] = queueCommand.IsDurable 
-            ? (byte)1 
-            : (byte)0;
-
-        offset += CommandConstants.IsDurableSize;
-
-        span[offset] = queueCommand.PersistMessages 
-            ? (byte)1 
-            : (byte)0;
 
         return buffer;
     }
@@ -81,7 +111,7 @@ public static class CommandEncoder
         int offset = CommandConstants.QueueNameLengthSize;
 
         byte[] buffer = new byte[offset + queueName.Length + CommandConstants.MessageIdSize];
-        
+
         Span<byte> span = buffer;
 
         WriteQueueName(span, queueName);

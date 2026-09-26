@@ -9,4 +9,5 @@ public interface IFileStorageService
     Task<IReadOnlyCollection<string>> GetDirectories(string path, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<string>> GetFiles(string path, CancellationToken cancellationToken = default);
     Task DeleteDirectory(string path, CancellationToken cancellationToken = default);
+    DateTime GetLastWriteTimeUtc(string path);
 }

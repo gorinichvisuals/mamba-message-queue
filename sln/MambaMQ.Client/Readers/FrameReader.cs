@@ -8,10 +8,7 @@ internal static class FrameReader
 
         await ReadExactlyAsync(connection, header, cancellationToken);
         
-        int payloadLength = BinaryPrimitives.ReadInt32BigEndian(
-            header.AsSpan(
-                FrameConstants.PayloadLengthOffset,
-                FrameConstants.PayloadLengthSize));
+        int payloadLength = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(FrameConstants.PayloadLengthOffset, FrameConstants.PayloadLengthSize));
         
         if (payloadLength < 0)
             throw new InvalidDataException("Invalid payload length.");

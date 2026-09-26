@@ -18,9 +18,8 @@ internal sealed class CommandDispatcher(IServiceProvider serviceProvider) : ICom
     private async Task DispatchInternalAsync<TCommand>(IClientConnection connection, TCommand command, CancellationToken cancellationToken)
         where TCommand : ICommand
     {
-        ICommandHandler<TCommand> handler =
-            serviceProvider.GetRequiredService<ICommandHandler<TCommand>>();
+        ICommandHandler<TCommand> handler = serviceProvider.GetRequiredService<ICommandHandler<TCommand>>();
 
-        await handler.HandleAsync(command, connection, cancellationToken);
+        await handler.Handle(command, connection, cancellationToken);
     }
 }

@@ -1,13 +1,25 @@
 ﻿namespace MambaMQ.Server.Queues;
 
-public sealed class MambaQueue(Guid queueId, string queueName, bool isDurable, bool persistMessages)
+public sealed class MambaQueue(
+    Guid queueId,
+    string queueName, 
+    bool isDurable, 
+    bool messageRetentionEnabled, 
+    TimeSpan messageRetentionPeriod,
+    bool logRetentionEnabled,
+    LogLevel logRetentionLevel,
+    TimeSpan logRetentionPeriod)
 {
     private long _nextDeliveryId = 1;
     
     public Guid Id { get; } = queueId;
     public string Name { get; } = queueName;
     public bool IsDurable { get; } = isDurable;
-    public bool PersistMessages { get; }  = persistMessages;
+    public bool MessageRetentionEnabled { get; }  = messageRetentionEnabled;
+    public TimeSpan MessageRetentionPeriod { get; }  = messageRetentionPeriod;
+    public bool LogRetentionEnabled { get; }  = logRetentionEnabled;
+    public LogLevel  LogLevel { get; } = logRetentionLevel;
+    public TimeSpan LogRetentionPeriod { get; }  = logRetentionPeriod;
 
     private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
     private readonly ConcurrentQueue<Guid> _available = [];

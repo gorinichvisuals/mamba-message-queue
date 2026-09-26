@@ -10,7 +10,9 @@ public sealed class MambaServerOptions
 public sealed class StorageOptions
 {
     public required string Path { get; init; } = "data";
-    public int SegmentSizeInBytes { get; init; } = 32 * 1024 * 1024;
-    public int MaxSegments { get; init; } = 2;
-    public TimeSpan CleanupInterval { get; init; } = TimeSpan.FromMinutes(5);
+    public int MessageSegmentSizeInBytes { get; init; } = 32 * 1024 * 1024;
+    public int LogSegmentSizeInBytes { get; init; } = 64 * 1024 * 1024;
+    public int MaxMessageSegments { get; init; } = 2;
+    public TimeSpan CleanupMessagesInterval { get; init; } = TimeSpan.FromMinutes(10);
+    public TimeSpan CleanupLogsInterval { get; init; } = TimeSpan.FromHours(24);
 }

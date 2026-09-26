@@ -2,14 +2,10 @@
 
 internal sealed partial class QueueStorageService
 {
-    private const string QueuesDirectory = "queues";
     private const string MessagesDirectory = "messages";
-    private const string QueueMetadataFile = "queue.dat";
 
     private const string SegmentPrefix = "segment-";
     private const string SegmentExtension = ".dat";
-
-    private const byte StorageVersion = 1;
 
     private const int RecordLengthSize = sizeof(int);
     private const int RecordTypeSize = sizeof(byte);
@@ -17,18 +13,19 @@ internal sealed partial class QueueStorageService
     private const int ReceivedAtSize = sizeof(long);
     private const int BodyLengthSize = sizeof(int);
     
-    private readonly int _segmentSizeInBytes = segmentSizeInBytes > 0
-        ? segmentSizeInBytes
-        : throw new ArgumentOutOfRangeException(nameof(segmentSizeInBytes));
+    private readonly int _messageSegmentSizeInBytes = messageSegmentSizeInBytes > 0
+        ? messageSegmentSizeInBytes
+        : throw new ArgumentOutOfRangeException(nameof(messageSegmentSizeInBytes));
 
-    private readonly int _maxSegments = maxSegments > 0
-        ? maxSegments
-        : throw new ArgumentOutOfRangeException(nameof(maxSegments));
+    private readonly int _maxMessageSegments = maxMessageSegments > 0
+        ? maxMessageSegments
+        : throw new ArgumentOutOfRangeException(nameof(maxMessageSegments));
     
     private readonly ConcurrentDictionary<Guid, QueueStorageState> _states = [];
     
-    private async Task CleanupQueue(
+    private async Task CleanupMessagesForQueue(
         Guid queueId,
+        TimeSpan retentionPeriod,
         CancellationToken cancellationToken)
     {
         IReadOnlyCollection<string> files = await fileStorage.GetFiles(GetMessagesPath(queueId), cancellationToken);
@@ -40,10 +37,13 @@ internal sealed partial class QueueStorageService
             .OrderBy(static segment => segment.Number)
             .ToList();
 
-        if (segments.Count <= _maxSegments)
+        if (segments.Count <= _maxMessageSegments)
             return;
 
         int activeSegment = segments[^1].Number;
+
+        DateTimeOffset cutoff =
+            DateTimeOffset.UtcNow - retentionPeriod;
 
         Dictionary<int, HashSet<Guid>> messagesBySegment = [];
         Dictionary<Guid, int> deleteSegments = [];
@@ -67,12 +67,16 @@ internal sealed partial class QueueStorageService
             if (!messagesBySegment.TryGetValue(number, out HashSet<Guid>? messageIds))
                 continue;
 
-            bool allMessagesDeleted = messageIds.All(
-                messageId => deleteSegments.TryGetValue(messageId, out int deleteSegment) && deleteSegment >= number);
+            bool allMessagesDeleted = messageIds.All(messageId => deleteSegments.TryGetValue(messageId, out int deleteSegment) && deleteSegment >= number);
 
             if (!allMessagesDeleted)
                 continue;
-            
+
+            DateTime lastWriteTimeUtc = fileStorage.GetLastWriteTimeUtc(path);;
+
+            if (lastWriteTimeUtc >= cutoff.UtcDateTime)
+                continue;
+
             await fileStorage.DeleteFile(path);
         }
     }
@@ -167,22 +171,9 @@ internal sealed partial class QueueStorageService
         }
     }
     
-    private async Task<StoredMambaQueue> RestoreQueueMetadata(Guid queueId, CancellationToken cancellationToken)
-    {
-        string path = GetQueueMetadataPath(queueId);
-
-        await using Stream stream = await fileStorage.OpenReadFile(path);
-
-        StoredMambaQueue storedQueue = await DeserializeQueue(stream, cancellationToken);
-
-        return storedQueue.Id != queueId 
-            ? throw new InvalidDataException($"Queue metadata ID '{storedQueue.Id}' does not match directory ID '{queueId}'.") 
-            : storedQueue;
-    }
-    
     private async Task AppendRecord(Guid queueId, QueueStorageState state, byte[] record, CancellationToken cancellationToken)
     {
-        if (state.CurrentSegmentSize > 0 && state.CurrentSegmentSize + record.Length > _segmentSizeInBytes)
+        if (state.CurrentSegmentSize > 0 && state.CurrentSegmentSize + record.Length > _messageSegmentSizeInBytes)
         {
             state.CurrentSegment++;
             state.CurrentSegmentSize = 0;
@@ -193,79 +184,6 @@ internal sealed partial class QueueStorageService
         await fileStorage.AppendToFile(path, record, flushToDisk: true, cancellationToken);
 
         state.CurrentSegmentSize += record.Length;
-    }
-    
-    private static byte[] SerializeQueue( StoredMambaQueue queue)
-    {
-        byte[] name = Encoding.UTF8.GetBytes(queue.Name);
-
-        int size = sizeof(byte) + 16 + sizeof(byte) + sizeof(byte) + sizeof(int) + name.Length;
-
-        byte[] buffer = new byte[size];
-
-        Span<byte> span = buffer;
-
-        int offset = 0;
-
-        span[offset++] = StorageVersion;
-
-        queue.Id.TryWriteBytes(span[offset..]);
-        offset += 16;
-
-        span[offset++] = queue.IsDurable 
-            ? (byte)1 
-            : (byte)0;
-
-        span[offset++] = queue.PersistMessages 
-            ? (byte)1 
-            : (byte)0;
-
-        BinaryPrimitives.WriteInt32BigEndian( span[offset..], name.Length);
-
-        offset += sizeof(int);
-
-        name.CopyTo(span[offset..]);
-
-        return buffer;
-    }
-    
-    private static async Task<StoredMambaQueue> DeserializeQueue(Stream stream, CancellationToken cancellationToken)
-    {
-        const int headerSize = sizeof(byte) + 16 + sizeof(byte) + sizeof(byte) + sizeof(int);
-
-        byte[] header = new byte[headerSize];
-
-        await ReadExactly(stream, header, cancellationToken);
-
-        ReadOnlySpan<byte> span = header;
-
-        int offset = 0;
-
-        byte version = span[offset++];
-
-        if (version is not StorageVersion)
-            throw new InvalidDataException($"Unsupported storage version '{version}'.");
-
-        Guid queueId = new(span.Slice(offset, 16));
-
-        offset += 16;
-
-        bool isDurable = span[offset++] is not 0;
-
-        bool persistMessages = span[offset++] is not 0;
-
-        int nameLength = BinaryPrimitives.ReadInt32BigEndian(span[offset..]);
-
-        if (nameLength < 0)
-            throw new InvalidDataException("Queue name length cannot be negative.");
-
-        byte[] nameBuffer = new byte[nameLength];
-
-        await ReadExactly(stream, nameBuffer, cancellationToken);
-
-        string name = Encoding.UTF8.GetString(nameBuffer);
-
-        return new StoredMambaQueue(queueId, name, isDurable, persistMessages);
     }
     
     private static byte[] SerializeMessage( StoredMambaMessage message)
@@ -496,14 +414,8 @@ internal sealed partial class QueueStorageService
     private void RemoveState(Guid queueId)
         => _states.TryRemove(queueId, out _);
     
-    private static string GetQueuePath(Guid queueId) 
-        => $"{QueuesDirectory}/{queueId:N}";
-    
     private static string GetMessagesPath(Guid queueId)
         => $"{GetQueuePath(queueId)}/{MessagesDirectory}";
-
-    private static string GetQueueMetadataPath(Guid queueId) 
-        => $"{GetQueuePath(queueId)}/{QueueMetadataFile}";
     
     private static string GetSegmentPath(Guid queueId, int segment)
         => $"{GetMessagesPath(queueId)}/{SegmentPrefix}{segment:D6}{SegmentExtension}";
