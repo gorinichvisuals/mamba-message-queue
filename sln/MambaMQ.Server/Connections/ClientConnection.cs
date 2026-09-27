@@ -3,7 +3,8 @@
 internal sealed class ClientConnection(
     TcpClient client, 
     ICommandDispatcher dispatcher,
-    int maxMessageSizeInBytes) : IClientConnection, IAsyncDisposable
+    int maxMessageSizeInBytes,
+    ILogger<ClientConnection> logger) : IClientConnection, IAsyncDisposable
 {
     public Guid Id { get; } = Guid.CreateVersion7();
 
@@ -16,6 +17,8 @@ internal sealed class ClientConnection(
     {
         _stream = client.GetStream();
 
+        logger.LogInformation("Client {ClientId} connected.", Id);
+        
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -29,14 +32,15 @@ internal sealed class ClientConnection(
                 Track(task);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
+        catch (OperationCanceledException ) when (cancellationToken.IsCancellationRequested)
+        {        
         }
         catch (IOException)
         { 
         }
-        catch (Exception)
-        { 
+        catch (Exception exception)
+        {             
+            logger.LogError(exception, "Unhandled error in client connection {ClientId}.", Id);
         }
         finally
         {

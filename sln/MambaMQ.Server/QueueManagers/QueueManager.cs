@@ -1,6 +1,9 @@
 ﻿namespace MambaMQ.Server.QueueManagers;
 
-internal sealed class QueueManager(IQueueStorageService queueStorageService, IQueueLogService queueLogService) : IQueueManager
+internal sealed class QueueManager(
+    IServerStorageService serverStorageService, 
+    IQueueLogger queueLogger,
+    ILogger<QueueManager> logger) : IQueueManager
 {    
     private readonly Dictionary<Guid, MambaQueue> _queues = [];
     private readonly Dictionary<string, Guid> _queueNames = [];
@@ -10,7 +13,7 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
         bool messageRetentionEnabled,
         TimeSpan messageRetentionPeriod,
         bool logsRetentionEnabled,
-        LogLevel logRetentionLevel, 
+        MambaServerLogLevel mambaServerLogRetentionLevel, 
         TimeSpan logsRetentionPeriod)
     {
         ValidateQueueOptions(isDurable, messageRetentionEnabled);
@@ -19,8 +22,8 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
 
         if (queue is not null)
         {
-            if(logsRetentionEnabled && (queue.LogLevel & LogLevel.Info) is not 0) 
-                await queueLogService.Log(queue, LogLevel.Info, LogEventType.QueueAlreadyExists, $"Queue '{queueName}' already exists.");     
+            if(logsRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0) 
+                await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.QueueAlreadyExists, $"Queue '{queueName}' already exists.");     
             
             return;
         }
@@ -32,7 +35,7 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
             messageRetentionEnabled,
             messageRetentionPeriod,
             logsRetentionEnabled,
-            logRetentionLevel,
+            mambaServerLogRetentionLevel,
             logsRetentionPeriod);
         
         if (isDurable)
@@ -46,17 +49,27 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
                     newQueue.MessageRetentionPeriod),
                 new StoredLogRetentionOptions(
                     newQueue.LogRetentionEnabled,
-                    newQueue.LogLevel,
+                    newQueue.MambaServerLogLevel,
                     newQueue.LogRetentionPeriod));
 
-            await queueStorageService.SaveQueue(storedQueue);
+            try
+            {
+                await serverStorageService.SaveQueue(storedQueue);
+            }
+            catch (Exception exception)
+            {
+                if(logsRetentionEnabled && (newQueue.MambaServerLogLevel & MambaServerLogLevel.Errors) is not 0)
+                    await queueLogger.Log(newQueue, MambaServerLogLevel.Errors, LogEventType.QueueNotCreated, $"{exception.Message}. Queue name - {newQueue.Name}");
+
+                throw;
+            }
         }
         
         _queues.Add(newQueue.Id, newQueue);
         _queueNames.Add(newQueue.Name, newQueue.Id);
         
-        if(logsRetentionEnabled && (newQueue.LogLevel & LogLevel.Info) is not 0)
-            await queueLogService.Log(newQueue, LogLevel.Info, LogEventType.QueueCreated, $"Queue '{newQueue.Name}' was created.");
+        if(logsRetentionEnabled && (newQueue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+            await queueLogger.Log(newQueue, MambaServerLogLevel.Info, LogEventType.QueueCreated, $"Queue '{newQueue.Name}' was created.");
     }
 
     public async Task PublishMessage(
@@ -64,18 +77,15 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
         MambaMessage message, 
         CancellationToken cancellationToken = default)
     {
-        MambaQueue? queue = GetQueue(queueName);
-        
-        if(queue is null)
-            throw new InvalidOperationException($"Queue '{queueName}' does not exist.");
+        MambaQueue queue = GetRequiredQueue(queueName);
         
         if (queue.MessageRetentionEnabled)
             await PersistMessageIfRequired(queue, message, cancellationToken);
         
         queue.PublishMessage(message);
         
-        if(queue.LogRetentionEnabled && (queue.LogLevel & LogLevel.Info) is not 0)
-            await queueLogService.Log(queue, LogLevel.Info, LogEventType.MessagePublished, $"Message '{message.MessageId}' was published.", cancellationToken);
+        if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+            await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.MessagePublished, $"Message '{message.MessageId}' was published.", cancellationToken);
     }
 
     public Task SubscribeQueue(
@@ -83,10 +93,7 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
         IClientConnection connection, 
         CancellationToken cancellationToken = default)
     {
-        MambaQueue? queue = GetQueue(queueName);
-        
-        if(queue is null)
-            throw new InvalidOperationException($"Queue '{queueName}' does not exist.");
+        MambaQueue queue = GetRequiredQueue(queueName);
 
         _ = Consume(queue, connection, cancellationToken);
         
@@ -98,22 +105,37 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
         Guid messageId, 
         CancellationToken cancellationToken = default)
     {
-        Guid queueId = _queueNames[queueName];
-        MambaQueue queue = _queues[queueId];
+        MambaQueue queue = GetRequiredQueue(queueName);
         
-        if (queue.MessageRetentionEnabled)
-            await queueStorageService.MarkAsDeleteMessage(queue.Id, messageId, cancellationToken);
+        try
+        {
+            await serverStorageService.MarkAsDeleteMessage(queue.Id, messageId, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            if(!queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Errors) is not 0)
+                await queueLogger.Log(
+                    queue, 
+                    MambaServerLogLevel.Errors,
+                    LogEventType.MessagesRestored, 
+                    $"{exception.Message}. Queue name - {queue.Name}. MessageId - {messageId}", 
+                    cancellationToken);
+
+            throw;
+        }
 
         queue.DeleteMessage(messageId);
         
-        if(queue.LogRetentionEnabled && (queue.LogLevel & LogLevel.Info) is not 0)
-            await queueLogService.Log(queue, LogLevel.Info, LogEventType.MessageDeleted, $"Message '{messageId}' was deleted.", cancellationToken);
+        if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+            await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.MessageDeleted, $"Message '{messageId}' was deleted.", cancellationToken);
     }
 
     public async Task RestoreQueues(CancellationToken cancellationToken = default)
     {
-        IReadOnlyCollection<StoredMambaQueueState> storedQueues = await queueStorageService.RestoreQueues(cancellationToken);
+        IReadOnlyCollection<StoredMambaQueueState> storedQueues = await serverStorageService.RestoreQueues(cancellationToken);
 
+        logger.LogInformation("Successfully restored {QueueCount} queues.", storedQueues.Count);
+        
         foreach (StoredMambaQueueState storedQueue in storedQueues)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -125,7 +147,7 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
                 storedQueue.Queue.MessageRetention.RetentionEnabled,
                 storedQueue.Queue.MessageRetention.RetentionPeriod,
                 storedQueue.Queue.LogRetention.RetentionEnabled,
-                storedQueue.Queue.LogRetention.LogLevel,
+                storedQueue.Queue.LogRetention.MambaServerLogLevel,
                 storedQueue.Queue.LogRetention.RetentionPeriod);
 
             foreach (StoredMambaMessage message in storedQueue.Messages)
@@ -134,11 +156,11 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
             _queues.Add(queue.Id, queue);
             _queueNames.Add(queue.Name, queue.Id);
 
-            if (!queue.LogRetentionEnabled && (queue.LogLevel & LogLevel.Info) is 0) 
+            if (!queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is 0) 
                 continue;
             
-            await queueLogService.Log(queue, LogLevel.Info, LogEventType.MessagesRestored, $"Restored {storedQueue.Messages.Count} messages.", cancellationToken);
-            await queueLogService.Log(queue, LogLevel.Info, LogEventType.QueueRestored, $"Queue '{queue.Name}' was successfully restored.", cancellationToken);
+            await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.MessagesRestored, $"Restored {storedQueue.Messages.Count} messages.", cancellationToken);
+            await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.QueueRestored, $"Queue '{queue.Name}' was successfully restored.", cancellationToken);
         }
     }
     
@@ -147,8 +169,8 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
         IClientConnection connection, 
         CancellationToken cancellationToken)
     {
-        if(queue.LogRetentionEnabled && (queue.LogLevel & LogLevel.Info) is not 0)
-            await queueLogService.Log(queue, LogLevel.Info, LogEventType.ConsumerConnected, $"Consumer '{connection.Id}' subscribed to queue '{queue.Name}'.", cancellationToken);
+        if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+            await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.ConsumerConnected, $"Consumer '{connection.Id}' subscribed to queue '{queue.Name}'.", cancellationToken);
         
         try
         {
@@ -160,14 +182,14 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
 
                 await connection.SendAsync(frame, cancellationToken);
                 
-                if(queue.LogRetentionEnabled && (queue.LogLevel & LogLevel.Info) is not 0)
-                    await queueLogService.Log(queue, LogLevel.Info, LogEventType.MessageDelivered, $"Message '{delivery.Message.MessageId}' was delivered to connection '{connection.Id}'.", cancellationToken);
+                if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+                    await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.MessageDelivered, $"Message '{delivery.Message.MessageId}' was delivered to connection '{connection.Id}'.", cancellationToken);
             }
         }
         finally
         {
-            if(queue.LogRetentionEnabled && (queue.LogLevel & LogLevel.Info) is not 0)
-                await queueLogService.Log(queue, LogLevel.Info, LogEventType.ConsumerDisconnected, $"Consumer '{connection.Id}' unsubscribed from queue '{queue.Name}'.", CancellationToken.None);
+            if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+                await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.ConsumerDisconnected, $"Consumer '{connection.Id}' unsubscribed from queue '{queue.Name}'.", CancellationToken.None);
         }
     }
     
@@ -178,16 +200,43 @@ internal sealed class QueueManager(IQueueStorageService queueStorageService, IQu
     {
         StoredMambaMessage storedMessage = new(message.MessageId, message.ReceivedAt, message.Body);
 
-        await queueStorageService.SaveMessage(queue.Id, storedMessage, cancellationToken);
+        try
+        {
+            await serverStorageService.SaveMessage(queue.Id, storedMessage, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Errors) is not 0)
+                await queueLogger.Log(
+                    queue, 
+                    MambaServerLogLevel.Errors,
+                    LogEventType.MessageNotSavedToStorage, 
+                    $"{exception.Message}. Queue name - {queue.Name}. MessageId - {message.MessageId}", 
+                    cancellationToken);
+
+            throw;
+        }
         
-        if(queue.LogRetentionEnabled && (queue.LogLevel & LogLevel.Info) is not 0)
-            await queueLogService.Log(queue, LogLevel.Info, LogEventType.MessageSavedToStorage, $"Message '{message.MessageId}' was saved to storage.", cancellationToken);
+        if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+            await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.MessageSavedToStorage, $"Message '{message.MessageId}' was saved to storage.", cancellationToken);
     }
     
     private static void ValidateQueueOptions(bool isDurable, bool persistMessages)
     {
         if (!isDurable && persistMessages)
             throw new InvalidOperationException("PersistMessages cannot be enabled for a non-durable queue.");
+    }
+    
+    private MambaQueue GetRequiredQueue(string queueName)
+    {
+        MambaQueue? queue = GetQueue(queueName);
+
+        if (queue is not null) 
+            return queue;
+        
+        logger.LogWarning("Queue {QueueName} does not exist.", queueName);
+
+        throw new InvalidOperationException($"Queue '{queueName}' does not exist.");
     }
     
     private MambaQueue? GetQueue(string queueName)

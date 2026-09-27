@@ -12,6 +12,6 @@ public interface IQueueManager
         bool messageRetentionEnabled,
         TimeSpan messageRetentionPeriod,
         bool logRetentionEnabled, 
-        LogLevel logRetentionLevel, 
+        MambaServerLogLevel mambaServerLogRetentionLevel, 
         TimeSpan logsRetentionPeriod);
 }

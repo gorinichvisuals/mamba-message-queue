@@ -1,10 +1,10 @@
-﻿namespace MambaMQ.Server.Logging;
+﻿namespace MambaMQ.Server.Logging.Implementations;
 
-internal sealed class QueueLogService(IQueueStorageService queueStorageService) : IQueueLogService
+internal sealed class QueueLogger(IServerStorageService serverStorageService) : IQueueLogger
 {
     public async Task Log(
         MambaQueue queue, 
-        LogLevel level,
+        MambaServerLogLevel level,
         LogEventType eventType,
         string message,
         CancellationToken cancellationToken = default)
@@ -12,11 +12,11 @@ internal sealed class QueueLogService(IQueueStorageService queueStorageService) 
         if (!queue.LogRetentionEnabled)
             return;
 
-        if ((queue.LogLevel & level) is 0)
+        if ((queue.MambaServerLogLevel & level) is 0)
             return;
 
         StoredQueueLog log = new(DateTimeOffset.UtcNow, (byte)level, (byte)eventType, message);
 
-        await queueStorageService.SaveLog(queue.Id, log, cancellationToken);
+        await serverStorageService.SaveQueueLog(queue.Id, log, cancellationToken);
     }
 }

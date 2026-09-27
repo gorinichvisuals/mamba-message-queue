@@ -1,12 +1,7 @@
 ﻿namespace MambaMQ.Persistence.Services.Implementations;
 
-internal sealed partial class QueueStorageService
+internal sealed partial class ServerStorageService
 {
-    private const string MessagesDirectory = "messages";
-
-    private const string SegmentPrefix = "segment-";
-    private const string SegmentExtension = ".dat";
-
     private const int RecordLengthSize = sizeof(int);
     private const int RecordTypeSize = sizeof(byte);
     private const int MessageIdSize = 16;

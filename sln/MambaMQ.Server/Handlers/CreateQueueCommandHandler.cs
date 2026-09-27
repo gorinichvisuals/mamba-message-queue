@@ -9,6 +9,6 @@ internal sealed class CreateQueueCommandHandler(IQueueManager queueManager) : IC
             command.MessageRetentionEnabled, 
             command.MessageRetentionPeriod,
             command.LogRetentionEnabled, 
-            (LogLevel)command.LogLevel,
+            (MambaServerLogLevel)command.LogLevel,
             command.LogRetentionPeriod);
 }

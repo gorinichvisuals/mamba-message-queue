@@ -5,6 +5,7 @@ public enum LogEventType : byte
     Unknown,
 
     QueueCreated,
+    QueueNotCreated,
     QueueAlreadyExists,
     QueueRestored,
     
@@ -13,6 +14,7 @@ public enum LogEventType : byte
     MessageDelivered,
     MessageDeleted,
     MessagesRestored,
+    MessageNotSavedToStorage,
     
     ConsumerConnected,
     ConsumerDisconnected

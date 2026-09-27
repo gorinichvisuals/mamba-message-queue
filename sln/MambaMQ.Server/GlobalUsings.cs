@@ -1,5 +1,6 @@
 ﻿global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Options;
+global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 
@@ -15,12 +16,13 @@ global using MambaMQ.Server.Queues;
 global using MambaMQ.Server.Options;
 global using MambaMQ.Server.Helpers;
 global using MambaMQ.Server.Readers;
-global using MambaMQ.Server.Logging;
 global using MambaMQ.Server.Recovery;
 global using MambaMQ.Server.Handlers;
 global using MambaMQ.Server.Dispatchers;
 global using MambaMQ.Server.Connections;
 global using MambaMQ.Server.QueueManagers;
+global using MambaMQ.Server.Logging.Abstractions;
+global using MambaMQ.Server.Logging.Implementations;
 global using MambaMQ.Server.Handlers.Abstractions;
 
 global using MambaMQ.Protocol.Frames;

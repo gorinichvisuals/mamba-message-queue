@@ -13,5 +13,5 @@ public sealed record StoredMessageRetentionOptions(
 
 public sealed record StoredLogRetentionOptions(
     bool RetentionEnabled,
-    LogLevel LogLevel,
+    MambaServerLogLevel MambaServerLogLevel,
     TimeSpan RetentionPeriod);
