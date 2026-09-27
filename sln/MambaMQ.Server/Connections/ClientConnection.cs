@@ -7,6 +7,7 @@ internal sealed class ClientConnection(
     ILogger<ClientConnection> logger) : IClientConnection, IAsyncDisposable
 {
     public Guid Id { get; } = Guid.CreateVersion7();
+    private bool _isAuthenticated;
 
     private NetworkStream? _stream;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
@@ -26,6 +27,20 @@ internal sealed class ClientConnection(
                 Frame frame = await FrameReader.ReadFrameAsync(_stream, maxMessageSizeInBytes, cancellationToken);
 
                 ICommand command = CommandDecoder.Decode(frame.Type, frame.Payload.Span);
+
+                if (!_isAuthenticated)
+                {
+                    if (command is not AuthenticationCommand)
+                    {
+                        logger.LogWarning("Client {ClientId} attempted to execute a command before authentication.", Id);
+
+                        break;
+                    }
+
+                    await dispatcher.DispatchAsync(this, command, cancellationToken);
+
+                    continue;
+                }
 
                 Task task = dispatcher.DispatchAsync(this, command, cancellationToken);
 
@@ -99,4 +114,6 @@ internal sealed class ClientConnection(
         
         client.Dispose();
     }
+    
+    public void Authenticate() => _isAuthenticated = true;
 }

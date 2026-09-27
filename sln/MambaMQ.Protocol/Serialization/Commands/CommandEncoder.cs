@@ -10,6 +10,7 @@ public static class CommandEncoder
             FrameType.PublishMessage => EncodePublishMessage((PublishMessageCommand)command),
             FrameType.SubscribeQueue => EncodeSubscribeQueue((SubscribeQueueCommand)command),
             FrameType.DeleteMessage => EncodeDeleteMessage((DeleteMessageCommand)command),
+            FrameType.Authentication => EncodeAuthentication((AuthenticationCommand)command),
 
             _ => throw new ArgumentException($"Unsupported command type: {command.Type}.", nameof(command))
         };
@@ -123,6 +124,34 @@ public static class CommandEncoder
         return buffer;
     }
 
+    private static byte[] EncodeAuthentication(AuthenticationCommand command)
+    {
+        byte[] username = Encoding.UTF8.GetBytes(command.UserName);
+        byte[] password = Encoding.UTF8.GetBytes(command.Password);
+
+        int offset = 0;
+
+        byte[] buffer = new byte[CommandConstants.UsernameLengthSize + username.Length + CommandConstants.PasswordLengthSize + password.Length];
+
+        Span<byte> span = buffer;
+
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], username.Length);
+
+        offset += CommandConstants.UsernameLengthSize;
+
+        username.CopyTo(span[offset..]);
+
+        offset += username.Length;
+
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], password.Length);
+
+        offset += CommandConstants.PasswordLengthSize;
+
+        password.CopyTo(span[offset..]);
+
+        return buffer;
+    }
+    
     private static void WriteQueueName(Span<byte> buffer, byte[] queueName)
     {
         BinaryPrimitives.WriteInt32BigEndian(buffer[..CommandConstants.QueueNameLengthSize], queueName.Length);

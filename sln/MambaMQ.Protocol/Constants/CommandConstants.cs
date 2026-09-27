@@ -10,4 +10,6 @@ public static class CommandConstants
     public const int LogsRetentionEnabledSize = 1;
     public const int LogsRetentionPeriodSize = sizeof(long);
     public const int LogLevelSize = sizeof(byte);
+    public const int UsernameLengthSize = sizeof(int);
+    public const int PasswordLengthSize = sizeof(int);
 }

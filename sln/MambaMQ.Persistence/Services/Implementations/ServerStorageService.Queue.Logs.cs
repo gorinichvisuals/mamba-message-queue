@@ -2,14 +2,56 @@
 
 internal sealed partial class ServerStorageService
 {
-    private const int LogTimestampSize = sizeof(long);
-    private const int LogLevelSize = sizeof(byte);
-    private const int LogEventTypeSize = sizeof(byte);
-    private const int LogMessageLengthSize = sizeof(int);
-    
-    private readonly int _logSegmentSizeInBytes = queueLogSegmentSizeInBytes > 0
-            ? queueLogSegmentSizeInBytes
-            : throw new ArgumentOutOfRangeException(nameof(queueLogSegmentSizeInBytes));
+   public async Task SaveQueueLog(Guid queueId, StoredQueueLog log, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(log);
+
+        QueueStorageState state = GetOrCreateState(queueId);
+
+        await state.Gate.WaitAsync(cancellationToken);
+
+        try
+        {
+            byte[] record = SerializeLog(log);
+
+            await AppendLogRecord(queueId, state, record, cancellationToken);
+        }
+        finally
+        {
+            state.Gate.Release();
+        }
+    }
+   
+    public async Task CleanupQueueLogs(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
+
+        foreach (string directory in directories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!Guid.TryParseExact(directory, "N", out Guid queueId))
+                continue;
+
+            QueueStorageState state = GetOrCreateState(queueId);
+
+            await state.Gate.WaitAsync(cancellationToken);
+
+            try
+            {
+                StoredMambaQueue queue = await RestoreQueueMetadata(queueId, cancellationToken);
+
+                if (!queue.LogRetention.RetentionEnabled)
+                    continue;
+
+                await CleanupLogsForQueue(queueId, queue.LogRetention.RetentionPeriod, cancellationToken);
+            }
+            finally
+            {
+                state.Gate.Release();
+            }
+        }
+    }
     
     private async Task AppendLogRecord(
         Guid queueId,
@@ -17,7 +59,7 @@ internal sealed partial class ServerStorageService
         byte[] record,
         CancellationToken cancellationToken)
     {
-        if (state.CurrentLogSegmentSize > 0 && state.CurrentLogSegmentSize + record.Length > _logSegmentSizeInBytes)
+        if (state.CurrentLogSegmentSize > 0 && state.CurrentLogSegmentSize + record.Length > _queueLogSegmentSizeInBytes)
         {
             state.CurrentLogSegment++;
             state.CurrentLogSegmentSize = 0;
@@ -34,9 +76,9 @@ internal sealed partial class ServerStorageService
     {
         byte[] message = Encoding.UTF8.GetBytes(log.Message);
 
-        int recordLength = LogTimestampSize + LogLevelSize + LogEventTypeSize + LogMessageLengthSize + message.Length;
+        int recordLength = QueueLogTimestampSize + QueueLogLevelSize + QueueLogEventTypeSize + QueueLogMessageLengthSize + message.Length;
 
-        byte[] buffer = new byte[RecordLengthSize + recordLength];
+        byte[] buffer = new byte[MessageRecordLengthSize + recordLength];
 
         Span<byte> span = buffer;
 
@@ -44,11 +86,11 @@ internal sealed partial class ServerStorageService
 
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], recordLength);
 
-        offset += RecordLengthSize;
+        offset += MessageRecordLengthSize;
 
         BinaryPrimitives.WriteInt64BigEndian(span[offset..], log.Timestamp.UtcTicks);
 
-        offset += LogTimestampSize;
+        offset += QueueLogTimestampSize;
 
         span[offset++] = log.Level;
 
@@ -56,7 +98,7 @@ internal sealed partial class ServerStorageService
 
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], message.Length);
 
-        offset += LogMessageLengthSize;
+        offset += QueueLogMessageLengthSize;
 
         message.CopyTo(span[offset..]);
 
