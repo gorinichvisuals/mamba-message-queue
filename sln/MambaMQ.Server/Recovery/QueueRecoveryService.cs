@@ -2,6 +2,6 @@
 
 public sealed class QueueRecoveryService(IQueueManager queueManager) : IQueueRecoveryService
 {
-    public Task RecoverAsync(CancellationToken cancellationToken = default)
+    public Task RestoreQueues(CancellationToken cancellationToken = default)
         => queueManager.RestoreQueues(cancellationToken);
 }

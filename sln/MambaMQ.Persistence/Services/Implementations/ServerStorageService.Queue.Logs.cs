@@ -1,17 +1,15 @@
 ﻿namespace MambaMQ.Persistence.Services.Implementations;
 
-internal sealed partial class QueueStorageService
+internal sealed partial class ServerStorageService
 {
-    private const string LogsDirectory = "logs";
-
     private const int LogTimestampSize = sizeof(long);
     private const int LogLevelSize = sizeof(byte);
     private const int LogEventTypeSize = sizeof(byte);
     private const int LogMessageLengthSize = sizeof(int);
     
-    private readonly int _logSegmentSizeInBytes = logSegmentSizeInBytes > 0
-            ? logSegmentSizeInBytes
-            : throw new ArgumentOutOfRangeException(nameof(logSegmentSizeInBytes));
+    private readonly int _logSegmentSizeInBytes = queueLogSegmentSizeInBytes > 0
+            ? queueLogSegmentSizeInBytes
+            : throw new ArgumentOutOfRangeException(nameof(queueLogSegmentSizeInBytes));
     
     private async Task AppendLogRecord(
         Guid queueId,

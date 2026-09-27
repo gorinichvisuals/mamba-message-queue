@@ -1,13 +1,21 @@
 ﻿namespace MambaMQ.Persistence.Services.Implementations;
 
-internal sealed partial class QueueStorageService(
+internal sealed partial class ServerStorageService(
     IFileStorageService fileStorage, 
     int messageSegmentSizeInBytes,
     int maxMessageSegments,
-    int logSegmentSizeInBytes) : IQueueStorageService
+    int queueLogSegmentSizeInBytes,
+    int serverLogSegmentSizeInBytes) : IServerStorageService
 {
-    private const byte StorageVersion = 1;
+    private const string LogsDirectory = "logs";
+    private const string ServerDirectory = "server";
+    private const string MessagesDirectory = "messages";
+    private const string QueuesDirectory = "queues";
 
+    private const byte StorageVersion = 1;
+    private const string SegmentPrefix = "segment-";
+    private const string SegmentExtension = ".dat";
+    
     public async Task SaveQueue(StoredMambaQueue storedQueue, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(storedQueue);
@@ -155,7 +163,7 @@ internal sealed partial class QueueStorageService(
         }
     }
     
-    public async Task SaveLog(Guid queueId, StoredQueueLog log, CancellationToken cancellationToken = default)
+    public async Task SaveQueueLog(Guid queueId, StoredQueueLog log, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(log);
 
@@ -173,6 +181,27 @@ internal sealed partial class QueueStorageService(
         {
             state.Gate.Release();
         }
+    }
+
+    public async Task WriteServerLog(string message, CancellationToken cancellationToken = default)
+    {
+        byte[] data = Encoding.UTF8.GetBytes($"{message}{Environment.NewLine}");
+
+        List<(int Number, string Path)> segments = await GetServerLogSegments(cancellationToken);
+
+        int currentSegment = 0;
+        long currentSegmentSize = 0;
+
+        if (segments.Count > 0)
+        {
+            (currentSegment, string path) = segments[^1];
+
+            currentSegmentSize = await GetSegmentSize(path);
+        }
+
+        currentSegment = GetNextSegment(currentSegment, currentSegmentSize, data.Length, _serverLogSegmentSizeInBytes);
+
+        await fileStorage.AppendToFile(GetServerLogSegmentPath(currentSegment), data, flushToDisk: true, cancellationToken);
     }
 
     public async Task CleanupMessages(CancellationToken cancellationToken = default)
@@ -206,7 +235,7 @@ internal sealed partial class QueueStorageService(
         }
     }
     
-    public async Task CleanupLogs(CancellationToken cancellationToken = default)
+    public async Task CleanupQueueLogs(CancellationToken cancellationToken = default)
     {
         IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
 
@@ -234,6 +263,32 @@ internal sealed partial class QueueStorageService(
             {
                 state.Gate.Release();
             }
+        }
+    }
+
+    public async Task CleanupServerLogs(TimeSpan retentionPeriod, CancellationToken cancellationToken = default)
+    {
+        List<(int Number, string Path)> segments = await GetServerLogSegments(cancellationToken);
+
+        if (segments.Count <= 1)
+            return;
+
+        int activeSegment = segments[^1].Number;
+        DateTime cutoff = DateTime.UtcNow - retentionPeriod;
+
+        foreach ((int number, string path) in segments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (number == activeSegment)
+                continue;
+
+            DateTime lastWriteTimeUtc = fileStorage.GetLastWriteTimeUtc(path);
+
+            if (lastWriteTimeUtc >= cutoff)
+                continue;
+
+            await fileStorage.DeleteFile(path);
         }
     }
 }

@@ -7,7 +7,7 @@ public sealed class MambaQueue(
     bool messageRetentionEnabled, 
     TimeSpan messageRetentionPeriod,
     bool logRetentionEnabled,
-    LogLevel logRetentionLevel,
+    MambaServerLogLevel mambaServerLogRetentionLevel,
     TimeSpan logRetentionPeriod)
 {
     private long _nextDeliveryId = 1;
@@ -15,11 +15,11 @@ public sealed class MambaQueue(
     public Guid Id { get; } = queueId;
     public string Name { get; } = queueName;
     public bool IsDurable { get; } = isDurable;
-    public bool MessageRetentionEnabled { get; }  = messageRetentionEnabled;
-    public TimeSpan MessageRetentionPeriod { get; }  = messageRetentionPeriod;
-    public bool LogRetentionEnabled { get; }  = logRetentionEnabled;
-    public LogLevel  LogLevel { get; } = logRetentionLevel;
-    public TimeSpan LogRetentionPeriod { get; }  = logRetentionPeriod;
+    public bool MessageRetentionEnabled { get; } = messageRetentionEnabled;
+    public TimeSpan MessageRetentionPeriod { get; } = messageRetentionPeriod;
+    public bool LogRetentionEnabled { get; } = logRetentionEnabled;
+    public MambaServerLogLevel MambaServerLogLevel { get; } = mambaServerLogRetentionLevel;
+    public TimeSpan LogRetentionPeriod { get; } = logRetentionPeriod;
 
     private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
     private readonly ConcurrentQueue<Guid> _available = [];

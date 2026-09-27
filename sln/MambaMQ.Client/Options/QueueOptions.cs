@@ -10,13 +10,13 @@ public sealed class QueueOptions
 
 public sealed class MessageRetentionOptions
 {
-    public bool Enabled { get; init; }
+    public bool Enabled { get; init; } = false;
     public TimeSpan RetentionPeriod { get; init; } = TimeSpan.FromMinutes(10);
 }
 
 public sealed class LogRetentionOptions
 {
-    public bool Enabled { get; init; } = true;
-    public QueueLogLevel LogLevel { get; init; } = QueueLogLevel.All;
+    public bool Enabled { get; init; } = false;
+    public QueueLogLevel LogLevel { get; init; } = QueueLogLevel.None;
     public TimeSpan RetentionPeriod { get; init; } = TimeSpan.FromHours(24);
 }

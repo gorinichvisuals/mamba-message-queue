@@ -1,7 +1,7 @@
 ﻿namespace MambaMQ.Persistence.Enums;
 
 [Flags]
-public enum LogLevel
+public enum MambaServerLogLevel
 {
     None = 0,
     Errors = 1 << 0,

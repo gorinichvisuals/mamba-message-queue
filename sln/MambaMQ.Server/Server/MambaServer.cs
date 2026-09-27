@@ -3,24 +3,31 @@
 internal sealed class MambaServer(
     ICommandDispatcher dispatcher, 
     IQueueRecoveryService queueRecoveryService,
-    IQueueStorageService queueStorage,
-    IOptions<MambaServerOptions> options)
+    IServerStorageService serverStorage,
+    IOptions<MambaServerOptions> options,
+    ILogger<MambaServer> logger,
+    ILoggerFactory loggerFactory)
 {
     private TcpListener? _tcpListener;
 
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    public async Task Start(CancellationToken cancellationToken = default)
     {
-        await queueRecoveryService.RecoverAsync(cancellationToken);
+        await queueRecoveryService.RestoreQueues(cancellationToken);
+        
+        logger.LogInformation("Queues recovered successfully.");
         
         _tcpListener = new TcpListener(IPAddress.Any,  options.Value.Port);
         
         _tcpListener.Start();
         
-        Task serverTask = AcceptClientsAsync(cancellationToken);
-        Task cleanupMessagesTask = RunMessagesCleanupAsync(cancellationToken);
-        Task cleanupLogsTask = RunLogsCleanupAsync(cancellationToken);
+        logger.LogInformation("MambaMQ server started on port {Port}.", options.Value.Port);
         
-        await Task.WhenAll(serverTask, cleanupMessagesTask, cleanupLogsTask);
+        Task serverTask = AcceptClientsAsync(cancellationToken);
+        Task cleanupMessagesTask = RunMessagesCleanup(cancellationToken);
+        Task cleanupLogsTask = RunQueueLogsCleanup(cancellationToken);
+        Task cleanupServerLogsTask = RunServerLogsCleanup(cancellationToken);
+        
+        await Task.WhenAll(serverTask, cleanupMessagesTask, cleanupLogsTask, cleanupServerLogsTask);
     }
 
     private async Task AcceptClientsAsync(CancellationToken cancellationToken)
@@ -29,29 +36,88 @@ internal sealed class MambaServer(
         {
             TcpClient client = await _tcpListener!.AcceptTcpClientAsync(cancellationToken);
 
-            _ = HandleClientAsync(client, cancellationToken);
+            logger.LogDebug("Client connection accepted from {RemoteEndPoint}.", client.Client.RemoteEndPoint);
+            
+            _ = HandleClient(client, cancellationToken);
         }
     }
 
-    private async Task RunMessagesCleanupAsync(CancellationToken cancellationToken)
-    {
-        using PeriodicTimer timer = new(options.Value.Storage.CleanupMessagesInterval);
+    private async Task RunMessagesCleanup(CancellationToken cancellationToken)
+    {    
+        if (!options.Value.QueueStorage.MessageCleanupEnabled)
+            return;
+        
+        using PeriodicTimer timer = new(options.Value.QueueStorage.CleanupMessageInterval);
 
         while (await timer.WaitForNextTickAsync(cancellationToken))
-            await queueStorage.CleanupMessages(cancellationToken);
+        {
+            try
+            {
+                await serverStorage.CleanupMessages(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Failed to cleanup messages.");
+            }
+        }
     }
 
-    private async Task RunLogsCleanupAsync(CancellationToken cancellationToken)
+    private async Task RunQueueLogsCleanup(CancellationToken cancellationToken)
     {
-        using PeriodicTimer timer = new(options.Value.Storage.CleanupLogsInterval);
+        if(!options.Value.QueueStorage.LogCleanupEnabled) 
+            return;
+        
+        using PeriodicTimer timer = new(options.Value.QueueStorage.CleanupLogInterval);
         
         while (await timer.WaitForNextTickAsync(cancellationToken))
-            await queueStorage.CleanupLogs(cancellationToken);
+        {
+            try
+            {
+                await serverStorage.CleanupQueueLogs(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Failed to cleanup queue logs.");
+            }
+        }
     }
     
-    private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
+    private async Task RunServerLogsCleanup(CancellationToken cancellationToken)
     {
-        await using ClientConnection connection = new ClientConnection(client, dispatcher, options.Value.MaxMessageSizeInBytes);
+        if(!options.Value.ServerLogging.CleanupLogEnabled)
+            return;
+        
+        using PeriodicTimer timer = new(options.Value.ServerLogging.CleanupInterval);
+        
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            try
+            {
+                await serverStorage.CleanupServerLogs(
+                    options.Value.ServerLogging.RetentionPeriod,
+                    cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Failed to cleanup server logs.");
+            }
+        }
+    }
+    
+    private async Task HandleClient(TcpClient client, CancellationToken cancellationToken)
+    {
+        ILogger<ClientConnection> clientLogger = loggerFactory.CreateLogger<ClientConnection>();
+        
+        await using ClientConnection connection = new ClientConnection(client, dispatcher, options.Value.MaxMessageSizeInBytes, clientLogger);
         
         await connection.RunAsync(cancellationToken);
     }

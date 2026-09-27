@@ -1,8 +1,7 @@
 ﻿namespace MambaMQ.Persistence.Services.Implementations;
 
-internal sealed partial class QueueStorageService
+internal sealed partial class ServerStorageService
 {
-    private const string QueuesDirectory = "queues";
     private const string QueueMetadataFile = "queue.dat";
 
     private async Task<StoredMambaQueue> RestoreQueueMetadata(Guid queueId, CancellationToken cancellationToken)
@@ -61,7 +60,7 @@ internal sealed partial class QueueStorageService
             ? (byte)1
             : (byte)0;
 
-        span[offset++] = (byte)queue.LogRetention.LogLevel;
+        span[offset++] = (byte)queue.LogRetention.MambaServerLogLevel;
 
         BinaryPrimitives.WriteInt64BigEndian(span[offset..], queue.LogRetention.RetentionPeriod.Ticks);
 
@@ -118,7 +117,7 @@ internal sealed partial class QueueStorageService
 
         bool logRetentionEnabled = span[offset++] is not 0;
 
-        LogLevel logLevel = (LogLevel)span[offset++];
+        MambaServerLogLevel mambaServerLogLevel = (MambaServerLogLevel)span[offset++];
 
         long logRetentionPeriodTicks = BinaryPrimitives.ReadInt64BigEndian(span[offset..]);
 
@@ -146,7 +145,7 @@ internal sealed partial class QueueStorageService
                 messageRetentionPeriod),
             new StoredLogRetentionOptions(
                 logRetentionEnabled,
-                logLevel,
+                mambaServerLogLevel,
                 logRetentionPeriod));
     }
 

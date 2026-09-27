@@ -1,10 +1,10 @@
-﻿namespace MambaMQ.Server.Logging;
+﻿namespace MambaMQ.Server.Logging.Abstractions;
 
-public interface IQueueLogService
+public interface IQueueLogger
 {
     Task Log(
         MambaQueue queue, 
-        LogLevel level, 
+        MambaServerLogLevel level, 
         LogEventType eventType, 
         string message, 
         CancellationToken cancellationToken = default);

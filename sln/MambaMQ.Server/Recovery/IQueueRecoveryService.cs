@@ -2,5 +2,5 @@
 
 public interface IQueueRecoveryService
 {
-    Task RecoverAsync(CancellationToken cancellationToken = default);
+    Task RestoreQueues(CancellationToken cancellationToken = default);
 }
