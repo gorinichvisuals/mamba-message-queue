@@ -2,21 +2,74 @@
 
 internal sealed partial class ServerStorageService
 {
-    private const int RecordLengthSize = sizeof(int);
-    private const int RecordTypeSize = sizeof(byte);
-    private const int MessageIdSize = 16;
-    private const int ReceivedAtSize = sizeof(long);
-    private const int BodyLengthSize = sizeof(int);
-    
-    private readonly int _messageSegmentSizeInBytes = messageSegmentSizeInBytes > 0
-        ? messageSegmentSizeInBytes
-        : throw new ArgumentOutOfRangeException(nameof(messageSegmentSizeInBytes));
+   public async Task SaveMessage(Guid queueId, StoredMambaMessage message, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(message);
 
-    private readonly int _maxMessageSegments = maxMessageSegments > 0
-        ? maxMessageSegments
-        : throw new ArgumentOutOfRangeException(nameof(maxMessageSegments));
+        QueueStorageState state = GetOrCreateState(queueId);
+
+        await state.Gate.WaitAsync(cancellationToken);
+
+        try
+        {
+            byte[] record = SerializeMessage(message);
+
+            await AppendRecord(queueId, state, record, cancellationToken);
+        }
+        finally
+        {
+            state.Gate.Release();
+        }
+    }
+
+    public async Task MarkAsDeleteMessage(Guid queueId, Guid messageId, CancellationToken cancellationToken = default)
+    {
+        QueueStorageState state = GetOrCreateState(queueId);
+
+        await state.Gate.WaitAsync(cancellationToken);
+
+        try
+        {
+            byte[] record = SerializeDelete(messageId);
+
+            await AppendRecord(queueId, state, record, cancellationToken);
+        }
+        finally
+        {
+            state.Gate.Release();
+        }
+    }
     
-    private readonly ConcurrentDictionary<Guid, QueueStorageState> _states = [];
+    public async Task CleanupMessages(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
+
+        foreach (string directory in directories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!Guid.TryParseExact(directory, "N", out Guid queueId))
+                continue;
+
+            QueueStorageState state = GetOrCreateState(queueId);
+
+            await state.Gate.WaitAsync(cancellationToken);
+
+            try
+            {
+                StoredMambaQueue queue = await RestoreQueueMetadata(queueId, cancellationToken);
+
+                if (!queue.MessageRetention.RetentionEnabled)
+                    continue;
+
+                await CleanupMessagesForQueue(queueId, queue.MessageRetention.RetentionPeriod, cancellationToken);
+            }
+            finally
+            {
+                state.Gate.Release();
+            }
+        }
+    }
     
     private async Task CleanupMessagesForQueue(
         Guid queueId,
@@ -87,7 +140,7 @@ internal sealed partial class ServerStorageService
 
         messagesBySegment[segmentNumber] = messageIds;
 
-        byte[] lengthBuffer = new byte[RecordLengthSize];
+        byte[] lengthBuffer = new byte[MessageRecordLengthSize];
 
         while (true)
         {
@@ -98,7 +151,7 @@ internal sealed partial class ServerStorageService
             switch (bytesRead)
             {
                 case 0:
-                case < RecordLengthSize:
+                case < MessageRecordLengthSize:
                     return;
             }
 
@@ -124,7 +177,7 @@ internal sealed partial class ServerStorageService
         int segmentNumber,
         Dictionary<Guid, int> deleteSegments)
     {
-        if (record.Length < RecordTypeSize)
+        if (record.Length < MessageRecordTypeSize)
             throw new InvalidDataException("Storage record is too small.");
 
         int offset = 0;
@@ -135,7 +188,7 @@ internal sealed partial class ServerStorageService
         {
             case StorageRecordType.Message:
             {
-                const int minimumLength = RecordTypeSize + MessageIdSize + ReceivedAtSize + BodyLengthSize;
+                const int minimumLength = MessageRecordTypeSize + MessageIdSize + MessageReceivedAtSize + MessageBodyLengthSize;
 
                 if (record.Length < minimumLength)
                     throw new InvalidDataException("Message record is too small.");
@@ -149,7 +202,7 @@ internal sealed partial class ServerStorageService
 
             case StorageRecordType.DeleteMessage:
             {
-                const int expectedLength = RecordTypeSize + MessageIdSize;
+                const int expectedLength = MessageRecordTypeSize + MessageIdSize;
 
                 if (record.Length != expectedLength)
                     throw new InvalidDataException("Invalid delete message record length.");
@@ -183,9 +236,9 @@ internal sealed partial class ServerStorageService
     
     private static byte[] SerializeMessage( StoredMambaMessage message)
     {
-        int recordLength = RecordTypeSize + MessageIdSize + ReceivedAtSize + BodyLengthSize + message.Body.Length;
+        int recordLength = MessageRecordTypeSize + MessageIdSize + MessageReceivedAtSize + MessageBodyLengthSize + message.Body.Length;
 
-        byte[] buffer = new byte[RecordLengthSize + recordLength];
+        byte[] buffer = new byte[MessageRecordLengthSize + recordLength];
 
         Span<byte> span = buffer;
 
@@ -193,7 +246,7 @@ internal sealed partial class ServerStorageService
 
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], recordLength);
 
-        offset += RecordLengthSize;
+        offset += MessageRecordLengthSize;
 
         span[offset++] = (byte)StorageRecordType.Message;
 
@@ -203,11 +256,11 @@ internal sealed partial class ServerStorageService
 
         BinaryPrimitives.WriteInt64BigEndian(span[offset..], message.ReceivedAt.UtcTicks);
 
-        offset += ReceivedAtSize;
+        offset += MessageReceivedAtSize;
 
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], message.Body.Length);
 
-        offset += BodyLengthSize;
+        offset += MessageBodyLengthSize;
 
         message.Body.Span.CopyTo(span[offset..]);
 
@@ -216,9 +269,9 @@ internal sealed partial class ServerStorageService
     
     private static byte[] SerializeDelete(Guid messageId)
     {
-        const int recordLength = RecordTypeSize + MessageIdSize;
+        const int recordLength = MessageRecordTypeSize + MessageIdSize;
 
-        byte[] buffer = new byte[RecordLengthSize + recordLength];
+        byte[] buffer = new byte[MessageRecordLengthSize + recordLength];
 
         Span<byte> span = buffer;
 
@@ -226,7 +279,7 @@ internal sealed partial class ServerStorageService
 
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], recordLength);
 
-        offset += RecordLengthSize;
+        offset += MessageRecordLengthSize;
 
         span[offset++] = (byte)StorageRecordType.DeleteMessage;
 
@@ -241,7 +294,7 @@ internal sealed partial class ServerStorageService
         List<Guid> messageOrder,
         CancellationToken cancellationToken)
     {
-        byte[] lengthBuffer = new byte[RecordLengthSize];
+        byte[] lengthBuffer = new byte[MessageRecordLengthSize];
 
         while (true)
         {
@@ -252,7 +305,7 @@ internal sealed partial class ServerStorageService
             switch (bytesRead)
             {
                 case 0:
-                case < RecordLengthSize:
+                case < MessageRecordLengthSize:
                     return;
             }
 
@@ -277,7 +330,7 @@ internal sealed partial class ServerStorageService
         Dictionary<Guid, StoredMambaMessage> messages,
         List<Guid> messageOrder)
     {
-        if (record.Length < RecordTypeSize)
+        if (record.Length < MessageRecordTypeSize)
             throw new InvalidDataException("Storage record is too small.");
 
         int offset = 0;
@@ -306,7 +359,7 @@ internal sealed partial class ServerStorageService
         Dictionary<Guid, StoredMambaMessage> messages,
         List<Guid> messageOrder)
     {
-        const int minimumLength = RecordTypeSize + MessageIdSize + ReceivedAtSize + BodyLengthSize;
+        const int minimumLength = MessageRecordTypeSize + MessageIdSize + MessageReceivedAtSize + MessageBodyLengthSize;
 
         if (record.Length < minimumLength)
             throw new InvalidDataException("Message record is too small.");
@@ -317,11 +370,11 @@ internal sealed partial class ServerStorageService
 
         long receivedAtTicks = BinaryPrimitives.ReadInt64BigEndian(record[offset..]);
 
-        offset += ReceivedAtSize;
+        offset += MessageReceivedAtSize;
 
         int bodyLength = BinaryPrimitives.ReadInt32BigEndian(record[offset..]);
 
-        offset += BodyLengthSize;
+        offset += MessageBodyLengthSize;
 
         if (bodyLength < 0 || bodyLength > record.Length - offset)
             throw new InvalidDataException("Invalid message body length.");
@@ -340,7 +393,7 @@ internal sealed partial class ServerStorageService
     
     private static void ParseDeleteRecord(ReadOnlySpan<byte> record, ref int offset, Dictionary<Guid, StoredMambaMessage> messages)
     {
-        const int expectedLength = RecordTypeSize + MessageIdSize;
+        const int expectedLength = MessageRecordTypeSize + MessageIdSize;
 
         if (record.Length != expectedLength)
             throw new InvalidDataException("Invalid delete message record length.");

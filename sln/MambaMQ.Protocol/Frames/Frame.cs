@@ -13,4 +13,5 @@ public enum FrameType : byte
     DeleteMessage = 3,
     CreateQueue = 4,
     GetMessage = 5,
+    Authentication = 6,
 }

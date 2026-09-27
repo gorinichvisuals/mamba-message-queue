@@ -7,288 +7,43 @@ internal sealed partial class ServerStorageService(
     int queueLogSegmentSizeInBytes,
     int serverLogSegmentSizeInBytes) : IServerStorageService
 {
+    private const byte StorageVersion = 1;
+
     private const string LogsDirectory = "logs";
     private const string ServerDirectory = "server";
     private const string MessagesDirectory = "messages";
     private const string QueuesDirectory = "queues";
 
-    private const byte StorageVersion = 1;
     private const string SegmentPrefix = "segment-";
     private const string SegmentExtension = ".dat";
+    private const string QueueMetadataFile = "queue.dat";
+
+    private const int MessageRecordLengthSize = sizeof(int);
+    private const int MessageRecordTypeSize = sizeof(byte);
+    private const int MessageIdSize = 16;
+    private const int MessageReceivedAtSize = sizeof(long);
+    private const int MessageBodyLengthSize = sizeof(int);
     
-    public async Task SaveQueue(StoredMambaQueue storedQueue, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(storedQueue);
-
-        byte[] data = SerializeQueue(storedQueue);
-        await fileStorage.ReplaceFile(GetQueueMetadataPath(storedQueue.Id), data, flushToDisk: true, cancellationToken);
-        GetOrCreateState(storedQueue.Id);
-    }
-
-    public async Task<IReadOnlyCollection<StoredMambaQueueState>> RestoreQueues(CancellationToken cancellationToken = default)
-    {
-        IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
-
-        List<StoredMambaQueueState> queues = [];
-
-        foreach (string directory in directories)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!Guid.TryParseExact(directory, "N", out Guid queueId))
-                continue;
-
-            StoredMambaQueue storedQueue = await RestoreQueueMetadata(queueId, cancellationToken);
-
-            Dictionary<Guid, StoredMambaMessage> messages = [];
-            List<Guid> messageOrder = [];
-
-            IReadOnlyCollection<string> files = await fileStorage.GetFiles(GetMessagesPath(queueId), cancellationToken);
-
-            List<(int Number, string Path)> segments = files
-                .Select(ParseSegment)
-                .Where(static segment => segment is not null)
-                .Select(static segment => segment!.Value)
-                .OrderBy(static segment => segment.Number)
-                .ToList();
-
-            int currentSegment = 0;
-            long currentSegmentSize = 0;
-
-            foreach ((int number, string path) in segments)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                await using Stream stream = await fileStorage.OpenReadFile(path);
-
-                await ReplaySegment(stream, messages, messageOrder, cancellationToken);
-
-                currentSegment = number;
-                currentSegmentSize = stream.Length;
-            }
-
-            int currentLogSegment = 0;
-            long currentLogSegmentSize = 0;
-
-            IReadOnlyCollection<string> logFiles = await fileStorage.GetFiles(GetLogsPath(queueId), cancellationToken);
-
-            List<(int Number, string Path)> logSegments = logFiles
-                .Select(ParseSegment)
-                .Where(static segment => segment is not null)
-                .Select(static segment => segment!.Value)
-                .OrderBy(static segment => segment.Number)
-                .ToList();
-
-            if (logSegments.Count > 0)
-            {
-                (currentLogSegment, string path) = logSegments[^1];
-
-                await using Stream stream = await fileStorage.OpenReadFile(path);
-
-                currentLogSegmentSize = stream.Length;
-            }
-
-            SetState(queueId, new QueueStorageState(
-                currentSegment,
-                currentSegmentSize,
-                currentLogSegment,
-                currentLogSegmentSize));
-
-            List<StoredMambaMessage> restoredMessages = [];
-
-            foreach (Guid messageId in messageOrder)
-                if (messages.TryGetValue(messageId, out StoredMambaMessage? message))
-                    restoredMessages.Add(message);
-
-            queues.Add(new StoredMambaQueueState(storedQueue, restoredMessages));
-        }
-
-        return queues;
-    }
-
-    public async Task DeleteQueue(Guid queueId, CancellationToken cancellationToken = default)
-    {
-        QueueStorageState? state = GetState(queueId);
-
-        if (state is not null) 
-            await state.Gate.WaitAsync(cancellationToken);
-
-        try
-        {
-            await fileStorage.DeleteDirectory(GetQueuePath(queueId), cancellationToken);
-
-            RemoveState(queueId);
-        }
-        finally
-        {
-            state?.Gate.Release();
-        }
-    }
-
-    public async Task SaveMessage(Guid queueId, StoredMambaMessage message, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(message);
-
-        QueueStorageState state = GetOrCreateState(queueId);
-
-        await state.Gate.WaitAsync(cancellationToken);
-
-        try
-        {
-            byte[] record = SerializeMessage(message);
-
-            await AppendRecord(queueId, state, record, cancellationToken);
-        }
-        finally
-        {
-            state.Gate.Release();
-        }
-    }
-
-    public async Task MarkAsDeleteMessage(Guid queueId, Guid messageId, CancellationToken cancellationToken = default)
-    {
-        QueueStorageState state = GetOrCreateState(queueId);
-
-        await state.Gate.WaitAsync(cancellationToken);
-
-        try
-        {
-            byte[] record = SerializeDelete(messageId);
-
-            await AppendRecord(queueId, state, record, cancellationToken);
-        }
-        finally
-        {
-            state.Gate.Release();
-        }
-    }
+    private const int QueueLogTimestampSize = sizeof(long);
+    private const int QueueLogLevelSize = sizeof(byte);
+    private const int QueueLogEventTypeSize = sizeof(byte);
+    private const int QueueLogMessageLengthSize = sizeof(int);
     
-    public async Task SaveQueueLog(Guid queueId, StoredQueueLog log, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(log);
+    private readonly ConcurrentDictionary<Guid, QueueStorageState> _states = [];
 
-        QueueStorageState state = GetOrCreateState(queueId);
+    private readonly int _messageSegmentSizeInBytes = messageSegmentSizeInBytes > 0
+        ? messageSegmentSizeInBytes
+        : throw new ArgumentOutOfRangeException(nameof(messageSegmentSizeInBytes));
 
-        await state.Gate.WaitAsync(cancellationToken);
-
-        try
-        {
-            byte[] record = SerializeLog(log);
-
-            await AppendLogRecord(queueId, state, record, cancellationToken);
-        }
-        finally
-        {
-            state.Gate.Release();
-        }
-    }
-
-    public async Task WriteServerLog(string message, CancellationToken cancellationToken = default)
-    {
-        byte[] data = Encoding.UTF8.GetBytes($"{message}{Environment.NewLine}");
-
-        List<(int Number, string Path)> segments = await GetServerLogSegments(cancellationToken);
-
-        int currentSegment = 0;
-        long currentSegmentSize = 0;
-
-        if (segments.Count > 0)
-        {
-            (currentSegment, string path) = segments[^1];
-
-            currentSegmentSize = await GetSegmentSize(path);
-        }
-
-        currentSegment = GetNextSegment(currentSegment, currentSegmentSize, data.Length, _serverLogSegmentSizeInBytes);
-
-        await fileStorage.AppendToFile(GetServerLogSegmentPath(currentSegment), data, flushToDisk: true, cancellationToken);
-    }
-
-    public async Task CleanupMessages(CancellationToken cancellationToken = default)
-    {
-        IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
-
-        foreach (string directory in directories)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!Guid.TryParseExact(directory, "N", out Guid queueId))
-                continue;
-
-            QueueStorageState state = GetOrCreateState(queueId);
-
-            await state.Gate.WaitAsync(cancellationToken);
-
-            try
-            {
-                StoredMambaQueue queue = await RestoreQueueMetadata(queueId, cancellationToken);
-
-                if (!queue.MessageRetention.RetentionEnabled)
-                    continue;
-
-                await CleanupMessagesForQueue(queueId, queue.MessageRetention.RetentionPeriod, cancellationToken);
-            }
-            finally
-            {
-                state.Gate.Release();
-            }
-        }
-    }
+    private readonly int _maxMessageSegments = maxMessageSegments > 0
+        ? maxMessageSegments
+        : throw new ArgumentOutOfRangeException(nameof(maxMessageSegments));
     
-    public async Task CleanupQueueLogs(CancellationToken cancellationToken = default)
-    {
-        IReadOnlyCollection<string> directories = await fileStorage.GetDirectories(QueuesDirectory, cancellationToken);
-
-        foreach (string directory in directories)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!Guid.TryParseExact(directory, "N", out Guid queueId))
-                continue;
-
-            QueueStorageState state = GetOrCreateState(queueId);
-
-            await state.Gate.WaitAsync(cancellationToken);
-
-            try
-            {
-                StoredMambaQueue queue = await RestoreQueueMetadata(queueId, cancellationToken);
-
-                if (!queue.LogRetention.RetentionEnabled)
-                    continue;
-
-                await CleanupLogsForQueue(queueId, queue.LogRetention.RetentionPeriod, cancellationToken);
-            }
-            finally
-            {
-                state.Gate.Release();
-            }
-        }
-    }
-
-    public async Task CleanupServerLogs(TimeSpan retentionPeriod, CancellationToken cancellationToken = default)
-    {
-        List<(int Number, string Path)> segments = await GetServerLogSegments(cancellationToken);
-
-        if (segments.Count <= 1)
-            return;
-
-        int activeSegment = segments[^1].Number;
-        DateTime cutoff = DateTime.UtcNow - retentionPeriod;
-
-        foreach ((int number, string path) in segments)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (number == activeSegment)
-                continue;
-
-            DateTime lastWriteTimeUtc = fileStorage.GetLastWriteTimeUtc(path);
-
-            if (lastWriteTimeUtc >= cutoff)
-                continue;
-
-            await fileStorage.DeleteFile(path);
-        }
-    }
+    private readonly int _queueLogSegmentSizeInBytes = queueLogSegmentSizeInBytes > 0
+        ? queueLogSegmentSizeInBytes
+        : throw new ArgumentOutOfRangeException(nameof(queueLogSegmentSizeInBytes));
+    
+    private readonly int _serverLogSegmentSizeInBytes = serverLogSegmentSizeInBytes > 0
+        ? serverLogSegmentSizeInBytes
+        : throw new ArgumentOutOfRangeException(nameof(serverLogSegmentSizeInBytes));
 }

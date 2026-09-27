@@ -10,6 +10,7 @@ public static class CommandDecoder
             FrameType.PublishMessage => DecodePublish(buffer),
             FrameType.SubscribeQueue => DecodeSubscribe(buffer),
             FrameType.DeleteMessage => DecodeDelete(buffer),
+            FrameType.Authentication => DecodeAuthentication(buffer),
 
             _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
         };
@@ -92,6 +93,42 @@ public static class CommandDecoder
         Guid messageId = new(buffer.Slice(offset, CommandConstants.MessageIdSize));
 
         return new DeleteMessageCommand(queueName, messageId);
+    }
+    
+    private static AuthenticationCommand DecodeAuthentication(ReadOnlySpan<byte> buffer)
+    {
+        const int lengthSize = sizeof(int);
+
+        if (buffer.Length < lengthSize)
+            throw new InvalidDataException("Command does not contain username length.");
+
+        int usernameLength = BinaryPrimitives.ReadInt32BigEndian(buffer[..lengthSize]);
+
+        if (usernameLength <= 0)
+            throw new InvalidDataException("Invalid username length.");
+
+        int offset = lengthSize;
+
+        if (buffer.Length < offset + usernameLength + lengthSize)
+            throw new InvalidDataException("Command does not contain complete username.");
+
+        string username = Encoding.UTF8.GetString(buffer.Slice(offset, usernameLength));
+
+        offset += usernameLength;
+
+        int passwordLength = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, lengthSize));
+
+        if (passwordLength <= 0)
+            throw new InvalidDataException("Invalid password length.");
+
+        offset += lengthSize;
+
+        if (buffer.Length < offset + passwordLength)
+            throw new InvalidDataException("Command does not contain complete password.");
+
+        string password = Encoding.UTF8.GetString(buffer.Slice(offset, passwordLength));
+
+        return new AuthenticationCommand(username, password);
     }
 
     private static string DecodeQueueName(ReadOnlySpan<byte> buffer, out int offset)

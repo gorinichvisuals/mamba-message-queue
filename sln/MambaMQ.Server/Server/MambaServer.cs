@@ -2,6 +2,7 @@
 
 internal sealed class MambaServer(
     ICommandDispatcher dispatcher, 
+    IAuthenticationService authenticationService,
     IQueueRecoveryService queueRecoveryService,
     IServerStorageService serverStorage,
     IOptions<MambaServerOptions> options,
@@ -12,6 +13,8 @@ internal sealed class MambaServer(
 
     public async Task Start(CancellationToken cancellationToken = default)
     {
+        authenticationService.InitializeUserCredentials();
+        
         await queueRecoveryService.RestoreQueues(cancellationToken);
         
         logger.LogInformation("Queues recovered successfully.");

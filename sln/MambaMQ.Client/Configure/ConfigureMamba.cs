@@ -11,7 +11,13 @@ public static class ConfigureMamba
         configure(options);
 
         services.AddSingleton(options);
-        services.AddSingleton<IConnection, TcpConnection>();
+        services.AddSingleton<TcpConnection>();
+
+        services.AddSingleton<IConnection>(serviceProvider =>
+            new AuthenticatedConnection(
+                serviceProvider.GetRequiredService<TcpConnection>(), 
+                serviceProvider.GetRequiredService<MambaClientOptions>()));
+        
         services.AddSingleton<IMamba, MambaClient>();
     }
 }

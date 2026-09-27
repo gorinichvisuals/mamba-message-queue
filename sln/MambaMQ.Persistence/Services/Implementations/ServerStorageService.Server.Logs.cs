@@ -2,10 +2,53 @@
 
 internal sealed partial class ServerStorageService
 {
-    private readonly int _serverLogSegmentSizeInBytes = serverLogSegmentSizeInBytes > 0
-        ? serverLogSegmentSizeInBytes
-        : throw new ArgumentOutOfRangeException(nameof(serverLogSegmentSizeInBytes));
+    public async Task WriteServerLog(string message, CancellationToken cancellationToken = default)
+    {
+        byte[] data = Encoding.UTF8.GetBytes($"{message}{Environment.NewLine}");
 
+        List<(int Number, string Path)> segments = await GetServerLogSegments(cancellationToken);
+
+        int currentSegment = 0;
+        long currentSegmentSize = 0;
+
+        if (segments.Count > 0)
+        {
+            (currentSegment, string path) = segments[^1];
+
+            currentSegmentSize = await GetSegmentSize(path);
+        }
+
+        currentSegment = GetNextSegment(currentSegment, currentSegmentSize, data.Length, _serverLogSegmentSizeInBytes);
+
+        await fileStorage.AppendToFile(GetServerLogSegmentPath(currentSegment), data, flushToDisk: true, cancellationToken);
+    }
+    
+    public async Task CleanupServerLogs(TimeSpan retentionPeriod, CancellationToken cancellationToken = default)
+    {
+        List<(int Number, string Path)> segments = await GetServerLogSegments(cancellationToken);
+
+        if (segments.Count <= 1)
+            return;
+
+        int activeSegment = segments[^1].Number;
+        DateTime cutoff = DateTime.UtcNow - retentionPeriod;
+
+        foreach ((int number, string path) in segments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (number == activeSegment)
+                continue;
+
+            DateTime lastWriteTimeUtc = fileStorage.GetLastWriteTimeUtc(path);
+
+            if (lastWriteTimeUtc >= cutoff)
+                continue;
+
+            await fileStorage.DeleteFile(path);
+        }
+    }
+    
     private async Task<List<(int Number, string Path)>> GetServerLogSegments(CancellationToken cancellationToken)
     {
         IReadOnlyCollection<string> files = await fileStorage.GetFiles(GetServerLogsPath(), cancellationToken);
