@@ -6,6 +6,7 @@ internal sealed class CreateQueueCommandHandler(IQueueManager queueManager) : IC
         => await queueManager.CreateQueue(
             command.QueueName, 
             command.IsDurable, 
+            command.LoadBalancingAlgorithm,
             command.MessageRetentionEnabled, 
             command.MessageRetentionPeriod,
             command.LogRetentionEnabled, 

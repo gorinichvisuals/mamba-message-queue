@@ -5,13 +5,3 @@ public sealed class Frame(FrameType type, ReadOnlyMemory<byte> payload)
     public FrameType Type { get; } = type;
     public ReadOnlyMemory<byte> Payload { get; } = payload;
 }
-
-public enum FrameType : byte
-{
-    PublishMessage = 1,
-    SubscribeQueue = 2,
-    DeleteMessage = 3,
-    CreateQueue = 4,
-    GetMessage = 5,
-    Authentication = 6,
-}

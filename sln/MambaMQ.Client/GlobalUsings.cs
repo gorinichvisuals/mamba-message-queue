@@ -11,6 +11,7 @@ global using MambaMQ.Client.Readers;
 global using MambaMQ.Client.Options;
 global using MambaMQ.Client.Connection;
 
+global using MambaMQ.Protocol.Enums;
 global using MambaMQ.Protocol.Frames;
 global using MambaMQ.Protocol.Messages;
 global using MambaMQ.Protocol.Commands;

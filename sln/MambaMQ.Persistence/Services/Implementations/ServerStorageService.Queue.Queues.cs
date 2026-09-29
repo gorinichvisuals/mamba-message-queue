@@ -133,6 +133,7 @@ internal sealed partial class ServerStorageService
             16 +
             sizeof(byte) +
             sizeof(byte) +
+            sizeof(byte) +
             sizeof(long) +
             sizeof(byte) +
             sizeof(byte) +
@@ -155,12 +156,13 @@ internal sealed partial class ServerStorageService
             ? (byte)1
             : (byte)0;
 
+        span[offset++] = queue.LoadBalancingAlgorithm;
+
         span[offset++] = queue.MessageRetention.RetentionEnabled
             ? (byte)1
             : (byte)0;
 
         BinaryPrimitives.WriteInt64BigEndian(span[offset..], queue.MessageRetention.RetentionPeriod.Ticks);
-
         offset += sizeof(long);
 
         span[offset++] = queue.LogRetention.RetentionEnabled
@@ -182,11 +184,14 @@ internal sealed partial class ServerStorageService
         return buffer;
     }
 
-    private static async Task<StoredMambaQueue> DeserializeQueue(Stream stream, CancellationToken cancellationToken)
+    private static async Task<StoredMambaQueue> DeserializeQueue(
+        Stream stream,
+        CancellationToken cancellationToken)
     {
         const int headerSize =
             sizeof(byte) +
             16 +
+            sizeof(byte) +
             sizeof(byte) +
             sizeof(byte) +
             sizeof(long) +
@@ -213,6 +218,8 @@ internal sealed partial class ServerStorageService
         offset += 16;
 
         bool isDurable = span[offset++] is not 0;
+
+        byte loadBalancingAlgorithm = span[offset++];
 
         bool messageRetentionEnabled = span[offset++] is not 0;
 
@@ -247,6 +254,7 @@ internal sealed partial class ServerStorageService
             queueId,
             name,
             isDurable,
+            loadBalancingAlgorithm,
             new StoredMessageRetentionOptions(
                 messageRetentionEnabled,
                 messageRetentionPeriod),

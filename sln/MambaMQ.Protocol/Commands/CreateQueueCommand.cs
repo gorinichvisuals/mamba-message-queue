@@ -2,7 +2,8 @@
 
 public sealed class CreateQueueCommand(
     string queueName, 
-    bool isDurable, 
+    bool isDurable,
+    LoadBalancingAlgorithm loadBalancingAlgorithm, 
     bool messageRetentionEnabled,
     TimeSpan messageRetentionPeriod,
     bool logRetentionEnabled, 
@@ -12,6 +13,7 @@ public sealed class CreateQueueCommand(
     public FrameType Type => FrameType.CreateQueue;
     public string QueueName { get; } = queueName;
     public bool IsDurable { get; } = isDurable;
+    public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; } = loadBalancingAlgorithm;
     public bool MessageRetentionEnabled { get; } =  messageRetentionEnabled;
     public TimeSpan MessageRetentionPeriod { get; } = messageRetentionPeriod;
     public bool LogRetentionEnabled { get; } = logRetentionEnabled;
