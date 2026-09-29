@@ -7,9 +7,13 @@ internal sealed class QueueManager(
 {    
     private readonly Dictionary<Guid, MambaQueue> _queues = [];
     private readonly Dictionary<string, Guid> _queueNames = [];
-
+    private readonly Dictionary<Guid, List<Subscriber>> _subscribers = [];  
+    private readonly Dictionary<Guid, ILoadBalancingStrategy> _loadBalancingStrategies = [];
+    private readonly Dictionary<Guid, SemaphoreSlim> _batchLocks = [];
+    
     public async Task CreateQueue(string queueName, 
         bool isDurable,
+        LoadBalancingAlgorithm loadBalancingAlgorithm,
         bool messageRetentionEnabled,
         TimeSpan messageRetentionPeriod,
         bool logsRetentionEnabled,
@@ -32,6 +36,7 @@ internal sealed class QueueManager(
             Guid.CreateVersion7(),
             queueName,
             isDurable,
+            loadBalancingAlgorithm,
             messageRetentionEnabled,
             messageRetentionPeriod,
             logsRetentionEnabled,
@@ -44,6 +49,7 @@ internal sealed class QueueManager(
                 newQueue.Id,
                 newQueue.Name,
                 newQueue.IsDurable,
+                (byte)newQueue.LoadBalancingAlgorithm,
                 new StoredMessageRetentionOptions(
                     newQueue.MessageRetentionEnabled,
                     newQueue.MessageRetentionPeriod),
@@ -67,6 +73,8 @@ internal sealed class QueueManager(
         
         _queues.Add(newQueue.Id, newQueue);
         _queueNames.Add(newQueue.Name, newQueue.Id);
+        _loadBalancingStrategies.Add(newQueue.Id, CreateLoadBalancingStrategy(newQueue.LoadBalancingAlgorithm));
+        _batchLocks.Add(newQueue.Id, new SemaphoreSlim(1, 1));
         
         if(logsRetentionEnabled && (newQueue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
             await queueLogger.Log(newQueue, MambaServerLogLevel.Info, LogEventType.QueueCreated, $"Queue '{newQueue.Name}' was created.");
@@ -100,9 +108,48 @@ internal sealed class QueueManager(
         return Task.CompletedTask;
     }
 
+    public Task SubscribeQueueWithBatch(
+        string queueName,
+        IClientConnection connection,
+        int maxMessages,
+        int maxBytes,
+        TimeSpan maxWaitTime,
+        int weight,
+        CancellationToken cancellationToken = default)
+    {
+        MambaQueue queue = GetRequiredQueue(queueName);
+
+        Subscriber subscriber = new(
+            connection,
+            maxMessages,
+            maxBytes,
+            maxWaitTime,
+            weight);
+
+        lock (_subscribers)
+        {
+            if (!_subscribers.TryGetValue(queue.Id, out List<Subscriber>? subscribers))
+            {
+                subscribers = [];
+                _subscribers.Add(queue.Id, subscribers);
+            }
+
+            subscribers.Add(subscriber);
+        }
+
+        _ = ConsumeWithBatch(queue, subscriber, cancellationToken);
+
+        StartNextBatch(queue);
+        
+        logger.LogInformation("Subscriber {ConnectionId} is subscribed.", subscriber.Connection.Id);
+
+        return Task.CompletedTask;
+    }
+    
     public async Task DeleteMessage(
         string queueName,
-        Guid messageId, 
+        Guid messageId,
+        Guid connectionId,
         CancellationToken cancellationToken = default)
     {
         MambaQueue queue = GetRequiredQueue(queueName);
@@ -126,6 +173,18 @@ internal sealed class QueueManager(
 
         queue.DeleteMessage(messageId);
         
+        lock (_subscribers)
+        {
+            if (_subscribers.TryGetValue(queue.Id, out List<Subscriber>? subscribers))
+            {
+                Subscriber? subscriber = subscribers
+                    .FirstOrDefault(x => x.Connection.Id == connectionId);
+
+                if (subscriber is not null)
+                    subscriber.InFlight--;
+            }
+        }
+        
         if(queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
             await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.MessageDeleted, $"Message '{messageId}' was deleted.", cancellationToken);
     }
@@ -142,8 +201,9 @@ internal sealed class QueueManager(
 
             MambaQueue queue = new(
                 storedQueue.Queue.Id, 
-                storedQueue.Queue.Name, 
+                storedQueue.Queue.Name,
                 storedQueue.Queue.IsDurable, 
+                (LoadBalancingAlgorithm)storedQueue.Queue.LoadBalancingAlgorithm,
                 storedQueue.Queue.MessageRetention.RetentionEnabled,
                 storedQueue.Queue.MessageRetention.RetentionPeriod,
                 storedQueue.Queue.LogRetention.RetentionEnabled,
@@ -155,13 +215,28 @@ internal sealed class QueueManager(
             
             _queues.Add(queue.Id, queue);
             _queueNames.Add(queue.Name, queue.Id);
-
+            _loadBalancingStrategies.Add(queue.Id, CreateLoadBalancingStrategy(queue.LoadBalancingAlgorithm));
+            _batchLocks.Add(queue.Id, new SemaphoreSlim(1, 1));
+            
             if (!queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is 0) 
                 continue;
             
             await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.MessagesRestored, $"Restored {storedQueue.Messages.Count} messages.", cancellationToken);
             await queueLogger.Log(queue, MambaServerLogLevel.Info, LogEventType.QueueRestored, $"Queue '{queue.Name}' was successfully restored.", cancellationToken);
         }
+    }
+    
+    private static ILoadBalancingStrategy CreateLoadBalancingStrategy(LoadBalancingAlgorithm algorithm)
+    {
+        return algorithm switch
+        {
+            LoadBalancingAlgorithm.RoundRobin => new RoundRobinStrategy(),
+            LoadBalancingAlgorithm.Random => new RandomStrategy(),
+            LoadBalancingAlgorithm.WeightedRoundRobin => new WeightedRoundRobinStrategy(),
+            LoadBalancingAlgorithm.LeastInFlight =>new LeastInFlightStrategy(),
+
+            _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, null)
+        };
     }
     
     private async Task Consume(
@@ -193,6 +268,167 @@ internal sealed class QueueManager(
         }
     }
     
+    private async Task ConsumeWithBatch(
+        MambaQueue queue,
+        Subscriber subscriber,
+        CancellationToken cancellationToken)
+    {
+        IClientConnection connection = subscriber.Connection;
+
+        if (queue.LogRetentionEnabled &&
+            (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+        {
+            await queueLogger.Log(
+                queue,
+                MambaServerLogLevel.Info,
+                LogEventType.ConsumerConnected,
+                $"Consumer '{connection.Id}' subscribed to queue '{queue.Name}' with batch.",
+                cancellationToken);
+        }
+
+        try
+        {
+            SemaphoreSlim batchLock = _batchLocks[queue.Id];
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await subscriber.BatchSignal.WaitAsync(cancellationToken);
+
+                logger.LogInformation("Subscriber {Id} woke up.", connection.Id);
+
+                IReadOnlyList<MessageDelivery> deliveries;
+
+                await batchLock.WaitAsync(cancellationToken);
+
+                try
+                {
+                    deliveries = await DequeueBatch(queue, subscriber, cancellationToken);
+                }
+                finally
+                {
+                    batchLock.Release();
+                }
+
+                logger.LogInformation("Subscriber {Id} received batch size {Count}", connection.Id, deliveries.Count);
+
+                if (deliveries.Count is 0)
+                {
+                    StartNextBatch(queue);
+                    continue;
+                }
+
+                MambaMessage[] messages = new MambaMessage[deliveries.Count];
+
+                for (int i = 0; i < deliveries.Count; i++)
+                    messages[i] = deliveries[i].Message;
+
+                byte[] payload = MessageBatchEncoder.Encode(messages);
+
+                Frame frame = new(FrameType.BatchMessages, payload);
+
+                await connection.SendAsync(frame, cancellationToken);
+
+                subscriber.InFlight += deliveries.Count;
+
+                if (queue.LogRetentionEnabled && (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+                {
+                    foreach (MessageDelivery delivery in deliveries)
+                    {
+                        await queueLogger.Log(
+                            queue,
+                            MambaServerLogLevel.Info,
+                            LogEventType.MessageDelivered,
+                            $"Message '{delivery.Message.MessageId}' was delivered to connection '{connection.Id}'.",
+                            cancellationToken);
+                    }
+                }
+
+                StartNextBatch(queue);
+            }
+        }
+        finally
+        {
+            lock (_subscribers)
+            {
+                if (_subscribers.TryGetValue(queue.Id, out List<Subscriber>? subscribers))
+                {
+                    subscribers.Remove(subscriber);
+
+                    if (subscribers.Count is 0)
+                        _subscribers.Remove(queue.Id);
+                }
+            }
+
+            if (queue.LogRetentionEnabled &&
+                (queue.MambaServerLogLevel & MambaServerLogLevel.Info) is not 0)
+            {
+                await queueLogger.Log(
+                    queue,
+                    MambaServerLogLevel.Info,
+                    LogEventType.ConsumerDisconnected,
+                    $"Consumer '{connection.Id}' unsubscribed from queue '{queue.Name}'.",
+                    CancellationToken.None);
+            }
+        }
+    }
+    
+    private async Task<IReadOnlyList<MessageDelivery>> DequeueBatch(
+        MambaQueue queue,
+        Subscriber subscriber,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("DequeueAsync waiting...");
+        
+        List<MessageDelivery> deliveries = [];
+
+        int bytes = 0;
+
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        timeoutCts.CancelAfter(subscriber.MaxWaitTime);
+
+        while (deliveries.Count < subscriber.MaxMessages)
+        {
+            MambaMessage? nextMessage = queue.PeekNextMessage();
+
+            if (nextMessage is null)
+                try
+                {
+                    MessageDelivery? delivery = await queue.DequeueAsync(subscriber.Connection.Id, timeoutCts.Token);
+
+                    if (delivery is null)
+                        break;
+
+                    deliveries.Add(delivery);
+                    bytes += delivery.Message.Body.Length;
+
+                    continue;
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+            int messageSize = nextMessage.Body.Length;
+
+            if (deliveries.Count > 0 && bytes + messageSize > subscriber.MaxBytes)
+                break;
+
+            MessageDelivery? nextDelivery = await queue.DequeueAsync(subscriber.Connection.Id, timeoutCts.Token);
+
+            if (nextDelivery is null)
+                break;
+
+            deliveries.Add(nextDelivery);
+            bytes += messageSize;
+
+            if (bytes >= subscriber.MaxBytes)
+                break;
+        }
+
+        return deliveries;
+    }
+
     private async Task PersistMessageIfRequired(
         MambaQueue queue, 
         MambaMessage message, 
@@ -237,6 +473,23 @@ internal sealed class QueueManager(
         logger.LogWarning("Queue {QueueName} does not exist.", queueName);
 
         throw new InvalidOperationException($"Queue '{queueName}' does not exist.");
+    }
+    
+    private void StartNextBatch(MambaQueue queue)
+    {
+        Subscriber subscriber;
+
+        lock (_subscribers)
+        {
+            if (!_subscribers.TryGetValue(queue.Id, out List<Subscriber>? subscribers) || subscribers.Count is 0)
+                return;
+
+            ILoadBalancingStrategy strategy = _loadBalancingStrategies[queue.Id];
+
+            subscriber = strategy.Select(subscribers);
+        }
+
+        subscriber.BatchSignal.Release();
     }
     
     private MambaQueue? GetQueue(string queueName)

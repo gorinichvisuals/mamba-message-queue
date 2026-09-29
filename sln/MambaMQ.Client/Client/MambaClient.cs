@@ -26,6 +26,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         CreateQueueCommand command = new(
             queueOptions.QueueName, 
             queueOptions.IsDurable, 
+            queueOptions.LoadBalancingAlgorithm,
             queueOptions.MessageRetention.Enabled,
             queueOptions.MessageRetention.RetentionPeriod,
             queueOptions.LogRetention.Enabled,
@@ -51,7 +52,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async IAsyncEnumerable<MambaMessage> SubscribeAsync(
+    public async IAsyncEnumerable<MambaMessage> SubscribeQueueAsync(
         string queueName, 
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -68,6 +69,35 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
             MambaMessage message = MessageDecoder.Decode(frame.Payload.Span);
 
             yield return message;
+        }
+    }
+    
+    public async IAsyncEnumerable<IReadOnlyList<MambaMessage>> SubscribeWithBatchAsync(
+        string queueName,
+        BatchSubscribeOptions options,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync(cancellationToken);
+
+        SubscribeQueueWithBatchCommand command = new(
+            queueName,
+            options.MaxMessages,
+            options.MaxBytes,
+            options.MaxWaitTime,
+            options.Weight);
+
+        await SendCommandAsync(command, cancellationToken);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
+
+            if (frame.Type is not FrameType.BatchMessages)
+                throw new InvalidDataException($"Expected {FrameType.BatchMessages} frame, but received {frame.Type}.");
+
+            IReadOnlyList<MambaMessage> messages = MessageBatchDecoder.Decode(frame.Payload.Span);
+
+            yield return messages;
         }
     }
 

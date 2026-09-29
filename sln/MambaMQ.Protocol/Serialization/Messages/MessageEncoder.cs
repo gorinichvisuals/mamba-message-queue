@@ -11,17 +11,9 @@ public static class MessageEncoder
 
         message.MessageId.TryWriteBytes(span[..MessageConstants.MessageIdSize]);
 
-        BinaryPrimitives.WriteInt64BigEndian(
-            span.Slice(
-                MessageConstants.MessageIdSize,
-                MessageConstants.ReceivedAtSize),
-            message.ReceivedAt.Ticks);
+        BinaryPrimitives.WriteInt64BigEndian(span.Slice(MessageConstants.MessageIdSize, MessageConstants.ReceivedAtSize), message.ReceivedAt.Ticks);
 
-        BinaryPrimitives.WriteInt32BigEndian(
-            span.Slice(
-                MessageConstants.BodyLengthOffset,
-                MessageConstants.BodyLengthSize),
-            bodyLength);
+        BinaryPrimitives.WriteInt32BigEndian(span.Slice(MessageConstants.BodyLengthOffset, MessageConstants.BodyLengthSize), bodyLength);
 
         message.Body.Span.CopyTo(span[MessageConstants.HeaderSize..]);
 

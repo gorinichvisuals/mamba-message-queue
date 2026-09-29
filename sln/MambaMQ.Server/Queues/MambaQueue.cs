@@ -3,7 +3,8 @@
 public sealed class MambaQueue(
     Guid queueId,
     string queueName, 
-    bool isDurable, 
+    bool isDurable,
+    LoadBalancingAlgorithm loadBalancingAlgorithm,
     bool messageRetentionEnabled, 
     TimeSpan messageRetentionPeriod,
     bool logRetentionEnabled,
@@ -15,6 +16,7 @@ public sealed class MambaQueue(
     public Guid Id { get; } = queueId;
     public string Name { get; } = queueName;
     public bool IsDurable { get; } = isDurable;
+    public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; } = loadBalancingAlgorithm;
     public bool MessageRetentionEnabled { get; } = messageRetentionEnabled;
     public TimeSpan MessageRetentionPeriod { get; } = messageRetentionPeriod;
     public bool LogRetentionEnabled { get; } = logRetentionEnabled;
@@ -26,7 +28,8 @@ public sealed class MambaQueue(
     
     private readonly ConcurrentDictionary<DeliveryId, Delivery> _inFlight = [];
     private readonly ConcurrentDictionary<Guid, DeliveryId> _deliveryByMessage = [];
-
+    private readonly ConcurrentDictionary<Guid, int> _inFlightByConnection = [];
+    
     private readonly SemaphoreSlim _messageAvailable = new(0);
     
     public void PublishMessage(MambaMessage message)
@@ -63,6 +66,46 @@ public sealed class MambaQueue(
 
         if (_deliveryByMessage.TryRemove(messageId, out DeliveryId deliveryId))
             _inFlight.TryRemove(deliveryId, out _);
+    }
+    
+    public async ValueTask<MessageDelivery?> DequeueAsync(Guid connectionId, CancellationToken cancellationToken = default)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            await _messageAvailable.WaitAsync(cancellationToken);
+
+            if (!_available.TryDequeue(out Guid messageId))
+                continue;
+
+            if (!_messages.TryGetValue(messageId, out MambaMessage? message))
+                continue;
+
+            return CreateDelivery(message, connectionId);
+        }
+
+        return null;
+    }
+    
+    public MambaMessage? PeekNextMessage()
+    {
+        while (_available.TryPeek(out Guid messageId))
+        {
+            if (_messages.TryGetValue(messageId, out MambaMessage? message))
+                return message;
+
+            _available.TryDequeue(out _);
+        }
+
+        return null;
+    }
+    
+    public void RequeueDelivery(MessageDelivery delivery)
+    {
+        _inFlight.TryRemove(delivery.DeliveryId, out _);
+        _deliveryByMessage.TryRemove(delivery.Message.MessageId, out _);
+
+        _available.Enqueue(delivery.Message.MessageId);
+        _messageAvailable.Release();
     }
     
     private MessageDelivery CreateDelivery(

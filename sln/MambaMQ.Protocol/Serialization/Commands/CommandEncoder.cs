@@ -9,6 +9,7 @@ public static class CommandEncoder
             FrameType.CreateQueue => EncodeCreateQueue((CreateQueueCommand)command),
             FrameType.PublishMessage => EncodePublishMessage((PublishMessageCommand)command),
             FrameType.SubscribeQueue => EncodeSubscribeQueue((SubscribeQueueCommand)command),
+            FrameType.SubscribeQueueWithBatch => EncodeSubscribeQueueWithBatch((SubscribeQueueWithBatchCommand)command),
             FrameType.DeleteMessage => EncodeDeleteMessage((DeleteMessageCommand)command),
             FrameType.Authentication => EncodeAuthentication((AuthenticationCommand)command),
 
@@ -26,6 +27,7 @@ public static class CommandEncoder
             offset +
             queueName.Length +
             CommandConstants.IsDurableSize +
+            CommandConstants.LoadBalancingAlgorithmSize +
             CommandConstants.MessageRetentionEnabledSize +
             CommandConstants.MessageRetentionPeriodSize +
             CommandConstants.LogsRetentionEnabledSize +
@@ -43,6 +45,10 @@ public static class CommandEncoder
             : (byte)0;
 
         offset += CommandConstants.IsDurableSize;
+
+        span[offset] = (byte)queueCommand.LoadBalancingAlgorithm;
+
+        offset += CommandConstants.LoadBalancingAlgorithmSize;
 
         span[offset] = queueCommand.MessageRetentionEnabled
             ? (byte)1
@@ -101,6 +107,48 @@ public static class CommandEncoder
         Span<byte> span = buffer;
 
         WriteQueueName(span, queueName);
+
+        return buffer;
+    }
+    
+    private static byte[] EncodeSubscribeQueueWithBatch(SubscribeQueueWithBatchCommand command)
+    {
+        byte[] queueNameBytes = Encoding.UTF8.GetBytes(command.QueueName);
+
+        int payloadSize =
+            CommandConstants.QueueNameLengthSize +
+            queueNameBytes.Length +
+            CommandConstants.MaxMessagesSize +
+            CommandConstants.MaxBytesSize +
+            CommandConstants.MaxWaitTimeSize +
+            CommandConstants.WeightSize;
+
+        byte[] buffer = new byte[payloadSize];
+        Span<byte> span = buffer;
+
+        int offset = 0;
+
+        BinaryPrimitives.WriteInt32BigEndian(span.Slice(offset, CommandConstants.QueueNameLengthSize), queueNameBytes.Length);
+
+        offset += CommandConstants.QueueNameLengthSize;
+
+        queueNameBytes.CopyTo(span[offset..]);
+
+        offset += queueNameBytes.Length;
+
+        BinaryPrimitives.WriteInt32BigEndian(span.Slice(offset, CommandConstants.MaxMessagesSize), command.MaxMessages);
+
+        offset += CommandConstants.MaxMessagesSize;
+
+        BinaryPrimitives.WriteInt32BigEndian(span.Slice(offset, CommandConstants.MaxBytesSize), command.MaxBytes);
+
+        offset += CommandConstants.MaxBytesSize;
+
+        BinaryPrimitives.WriteInt64BigEndian(span.Slice(offset, CommandConstants.MaxWaitTimeSize), command.MaxWaitTime.Ticks);
+
+        offset += CommandConstants.MaxWaitTimeSize;
+
+        BinaryPrimitives.WriteInt32BigEndian(span.Slice(offset, CommandConstants.WeightSize), command.Weight);
 
         return buffer;
     }

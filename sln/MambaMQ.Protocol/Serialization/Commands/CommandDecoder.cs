@@ -8,7 +8,8 @@ public static class CommandDecoder
         {
             FrameType.CreateQueue => DecodeCreateQueue(buffer),
             FrameType.PublishMessage => DecodePublish(buffer),
-            FrameType.SubscribeQueue => DecodeSubscribe(buffer),
+            FrameType.SubscribeQueue => DecodeSubscribeQueue(buffer),
+            FrameType.SubscribeQueueWithBatch => DecodeSubscribeQueueWithBatch(buffer),
             FrameType.DeleteMessage => DecodeDelete(buffer),
             FrameType.Authentication => DecodeAuthentication(buffer),
 
@@ -26,6 +27,12 @@ public static class CommandDecoder
 
         offset += CommandConstants.IsDurableSize;
 
+        ValidateLoadBalancingAlgorithm(buffer, offset);
+
+        LoadBalancingAlgorithm loadBalancingAlgorithm = (LoadBalancingAlgorithm)buffer[offset];
+
+        offset += CommandConstants.LoadBalancingAlgorithmSize;
+
         ValidateMessageRetentionEnabled(buffer, offset);
 
         bool messageRetentionEnabled = DecodeBoolean(buffer[offset], "Create queue command contains invalid MessageRetentionEnabled value.");
@@ -34,7 +41,8 @@ public static class CommandDecoder
 
         ValidateMessageRetentionPeriod(buffer, offset);
 
-        long messageRetentionPeriodTicks = BinaryPrimitives.ReadInt64BigEndian(buffer.Slice(offset, CommandConstants.MessageRetentionPeriodSize));
+        long messageRetentionPeriodTicks =
+            BinaryPrimitives.ReadInt64BigEndian(buffer.Slice(offset, CommandConstants.MessageRetentionPeriodSize));
 
         TimeSpan messageRetentionPeriod = TimeSpan.FromTicks(messageRetentionPeriodTicks);
 
@@ -61,6 +69,7 @@ public static class CommandDecoder
         return new CreateQueueCommand(
             queueName,
             isDurable,
+            loadBalancingAlgorithm,
             messageRetentionEnabled,
             messageRetentionPeriod,
             logRetentionEnabled,
@@ -77,13 +86,49 @@ public static class CommandDecoder
         return new PublishMessageCommand(queueName, mambaMessage);
     }
 
-    private static SubscribeQueueCommand DecodeSubscribe(ReadOnlySpan<byte> buffer)
+    private static SubscribeQueueCommand DecodeSubscribeQueue(ReadOnlySpan<byte> buffer)
     {
         string queueName = DecodeQueueName(buffer, out _);
 
         return new SubscribeQueueCommand(queueName);
     }
 
+    private static SubscribeQueueWithBatchCommand DecodeSubscribeQueueWithBatch(ReadOnlySpan<byte> buffer)
+    {
+        string queueName = DecodeQueueName(buffer, out int offset);
+
+        ValidateMaxMessages(buffer, offset);
+
+        int maxMessages = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, CommandConstants.MaxMessagesSize));
+
+        offset += CommandConstants.MaxMessagesSize;
+
+        ValidateMaxBytes(buffer, offset);
+
+        int maxBytes = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, CommandConstants.MaxBytesSize));
+
+        offset += CommandConstants.MaxBytesSize;
+
+        ValidateMaxWaitTime(buffer, offset);
+
+        long maxWaitTimeTicks = BinaryPrimitives.ReadInt64BigEndian(buffer.Slice(offset, CommandConstants.MaxWaitTimeSize));
+
+        TimeSpan maxWaitTime = TimeSpan.FromTicks(maxWaitTimeTicks);
+
+        offset += CommandConstants.MaxWaitTimeSize;
+
+        ValidateWeight(buffer, offset);
+
+        int weight = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, CommandConstants.WeightSize));
+
+        return new SubscribeQueueWithBatchCommand(
+            queueName,
+            maxMessages,
+            maxBytes,
+            maxWaitTime,
+            weight);
+    }
+    
     private static DeleteMessageCommand DecodeDelete(ReadOnlySpan<byte> buffer)
     {
         string queueName = DecodeQueueName(buffer, out int offset);
@@ -155,6 +200,30 @@ public static class CommandDecoder
         return value is 1;
     }
 
+    private static void ValidateMaxMessages(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.MaxMessagesSize)
+            throw new InvalidDataException("Subscribe with batch command does not contain MaxMessages.");
+    }
+
+    private static void ValidateMaxBytes(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.MaxBytesSize)
+            throw new InvalidDataException("Subscribe with batch command does not contain MaxBytes.");
+    }
+
+    private static void ValidateMaxWaitTime(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.MaxWaitTimeSize)
+            throw new InvalidDataException("Subscribe with batch command does not contain MaxWaitTime.");
+    }
+    
+    private static void ValidateWeight(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.WeightSize)
+            throw new InvalidDataException("Subscribe with batch command does not contain Weight.");
+    }
+    
     private static void ValidateQueueNameLength(ReadOnlySpan<byte> buffer)
     {
         if (buffer.Length < CommandConstants.QueueNameLengthSize)
@@ -201,5 +270,16 @@ public static class CommandDecoder
     {
         if (buffer.Length < offset + CommandConstants.LogLevelSize)
             throw new InvalidDataException("Command does not contain LogLevel.");
+    }
+    
+    private static void ValidateLoadBalancingAlgorithm(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (offset + CommandConstants.LoadBalancingAlgorithmSize > buffer.Length)
+            throw new InvalidDataException("Create queue command does not contain LoadBalancingAlgorithm.");
+
+        byte value = buffer[offset];
+
+        if (!Enum.IsDefined((LoadBalancingAlgorithm)value))
+            throw new InvalidDataException("Create queue command contains invalid LoadBalancingAlgorithm value.");
     }
 }

@@ -4,6 +4,7 @@ public sealed record StoredMambaQueue(
     Guid Id,
     string Name,
     bool IsDurable,
+    byte LoadBalancingAlgorithm,
     StoredMessageRetentionOptions MessageRetention,
     StoredLogRetentionOptions LogRetention);
 
