@@ -2,8 +2,7 @@
 
 public enum LoadBalancingAlgorithm : byte
 {
-    Random = 1,
-    RoundRobin = 2,
-    WeightedRoundRobin = 3,
-    LeastInFlight = 4
+    RoundRobin = 1,
+    WeightedRoundRobin = 2,
+    LeastInFlight = 3,
 }

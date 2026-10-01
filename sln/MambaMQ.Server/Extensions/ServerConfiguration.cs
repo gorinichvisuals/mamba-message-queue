@@ -11,29 +11,14 @@ public static class ServerConfiguration
         services.ConfigurePersistence(
             options.QueueStorage.Path,
             options.QueueStorage.MessageSegmentSizeInBytes,
-            options.QueueStorage.MaxMessageSegments,
-            options.QueueStorage.LogSegmentSizeInBytes,
-            options.ServerLogging.SegmentSizeInBytes);
-
-        services.AddLogging(logging =>
-        {
-            logging.ClearProviders();
-            logging.SetMinimumLevel(options.ServerLogging.MinimumLevel);
-
-            if (options.ServerLogging.ConsoleEnabled)
-                logging.AddConsole();
-
-            if (options.ServerLogging.FileEnabled)
-                logging.Services.AddSingleton<
-                    ILoggerProvider,
-                    ServerFileLoggerProvider>();
-        });
-
-        services.AddSingleton<IQueueLogger, QueueLogger>();
-        services.AddSingleton<IQueueManager, QueueManager>();
+            options.QueueStorage.MaxMessageSegments);
+        
+        services.AddServerLogging(options.ServerLogging);
+        services.AddAuthentication();
+        services.AddCoreExtensions();
+        
         services.AddSingleton<ICommandDispatcher, CommandDispatcher>();
         services.AddSingleton<IQueueRecoveryService, QueueRecoveryService>();
-        services.AddSingleton<IAuthenticationService, AuthenticationService>();
 
         AddCommandHandlers(services);
 

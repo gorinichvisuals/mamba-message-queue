@@ -5,10 +5,7 @@ public sealed class CreateQueueCommand(
     bool isDurable,
     LoadBalancingAlgorithm loadBalancingAlgorithm, 
     bool messageRetentionEnabled,
-    TimeSpan messageRetentionPeriod,
-    bool logRetentionEnabled, 
-    byte logLevel,
-    TimeSpan logRetentionPeriod) : ICommand
+    TimeSpan messageRetentionPeriod) : ICommand
 {
     public FrameType Type => FrameType.CreateQueue;
     public string QueueName { get; } = queueName;
@@ -16,7 +13,4 @@ public sealed class CreateQueueCommand(
     public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; } = loadBalancingAlgorithm;
     public bool MessageRetentionEnabled { get; } =  messageRetentionEnabled;
     public TimeSpan MessageRetentionPeriod { get; } = messageRetentionPeriod;
-    public bool LogRetentionEnabled { get; } = logRetentionEnabled;
-    public byte LogLevel { get; } = logLevel;
-    public TimeSpan LogRetentionPeriod { get; } = logRetentionPeriod;
 } 

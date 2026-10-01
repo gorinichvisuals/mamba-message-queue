@@ -29,10 +29,7 @@ public static class CommandEncoder
             CommandConstants.IsDurableSize +
             CommandConstants.LoadBalancingAlgorithmSize +
             CommandConstants.MessageRetentionEnabledSize +
-            CommandConstants.MessageRetentionPeriodSize +
-            CommandConstants.LogsRetentionEnabledSize +
-            CommandConstants.LogLevelSize +
-            CommandConstants.LogsRetentionPeriodSize];
+            CommandConstants.MessageRetentionPeriodSize];
 
         Span<byte> span = buffer;
 
@@ -57,20 +54,6 @@ public static class CommandEncoder
         offset += CommandConstants.MessageRetentionEnabledSize;
 
         BinaryPrimitives.WriteInt64BigEndian(span[offset..], queueCommand.MessageRetentionPeriod.Ticks);
-
-        offset += CommandConstants.MessageRetentionPeriodSize;
-
-        span[offset] = queueCommand.LogRetentionEnabled
-            ? (byte)1
-            : (byte)0;
-
-        offset += CommandConstants.LogsRetentionEnabledSize;
-
-        span[offset] = queueCommand.LogLevel;
-
-        offset += CommandConstants.LogLevelSize;
-
-        BinaryPrimitives.WriteInt64BigEndian(span[offset..], queueCommand.LogRetentionPeriod.Ticks);
 
         return buffer;
     }

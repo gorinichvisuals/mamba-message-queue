@@ -4,8 +4,10 @@ internal sealed class ClientConnection(
     TcpClient client, 
     ICommandDispatcher dispatcher,
     int maxMessageSizeInBytes,
-    ILogger<ClientConnection> logger) : IClientConnection, IAsyncDisposable
+    IMambaLogger mambaLogger) : IClientConnection, IAsyncDisposable
 {
+    private readonly ILogger _logger = mambaLogger.Server;
+
     public Guid Id { get; } = Guid.CreateVersion7();
     private bool _isAuthenticated;
 
@@ -18,7 +20,7 @@ internal sealed class ClientConnection(
     {
         _stream = client.GetStream();
 
-        logger.LogInformation("Client {ClientId} connected.", Id);
+        _logger.LogInformation("Client {ClientId} connected.", Id);
         
         try
         {
@@ -32,7 +34,7 @@ internal sealed class ClientConnection(
                 {
                     if (command is not AuthenticationCommand)
                     {
-                        logger.LogWarning("Client {ClientId} attempted to execute a command before authentication.", Id);
+                        _logger.LogWarning("Client {ClientId} attempted to execute a command before authentication.", Id);
 
                         break;
                     }
@@ -55,7 +57,7 @@ internal sealed class ClientConnection(
         }
         catch (Exception exception)
         {             
-            logger.LogError(exception, "Unhandled error in client connection {ClientId}.", Id);
+            _logger.LogError(exception, "Unhandled error in client connection {ClientId}.", Id);
         }
         finally
         {
