@@ -9,10 +9,5 @@ public interface IServerStorageService
     Task SaveMessage(Guid queueId, StoredMambaMessage message, CancellationToken cancellationToken = default);
     Task MarkAsDeleteMessage(Guid queueId, Guid messageId, CancellationToken cancellationToken = default);
     
-    Task SaveQueueLog(Guid queueId, StoredQueueLog log, CancellationToken cancellationToken = default);
-    Task WriteServerLog(string message, CancellationToken cancellationToken = default);
-    
     Task CleanupMessages(CancellationToken cancellationToken = default);
-    Task CleanupQueueLogs(CancellationToken cancellationToken = default);
-    Task CleanupServerLogs(TimeSpan retentionPeriod, CancellationToken cancellationToken = default);
 }

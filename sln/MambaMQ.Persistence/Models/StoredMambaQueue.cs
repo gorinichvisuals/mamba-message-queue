@@ -5,14 +5,8 @@ public sealed record StoredMambaQueue(
     string Name,
     bool IsDurable,
     byte LoadBalancingAlgorithm,
-    StoredMessageRetentionOptions MessageRetention,
-    StoredLogRetentionOptions LogRetention);
+    StoredMessageRetentionOptions MessageRetention);
 
 public sealed record StoredMessageRetentionOptions(
     bool RetentionEnabled, 
-    TimeSpan RetentionPeriod);
-
-public sealed record StoredLogRetentionOptions(
-    bool RetentionEnabled,
-    MambaServerLogLevel MambaServerLogLevel,
     TimeSpan RetentionPeriod);

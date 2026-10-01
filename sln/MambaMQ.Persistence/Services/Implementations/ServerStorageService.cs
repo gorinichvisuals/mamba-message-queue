@@ -3,14 +3,10 @@
 internal sealed partial class ServerStorageService(
     IFileStorageService fileStorage, 
     int messageSegmentSizeInBytes,
-    int maxMessageSegments,
-    int queueLogSegmentSizeInBytes,
-    int serverLogSegmentSizeInBytes) : IServerStorageService
+    int maxMessageSegments) : IServerStorageService
 {
     private const byte StorageVersion = 1;
-
-    private const string LogsDirectory = "logs";
-    private const string ServerDirectory = "server";
+    
     private const string MessagesDirectory = "messages";
     private const string QueuesDirectory = "queues";
 
@@ -24,11 +20,6 @@ internal sealed partial class ServerStorageService(
     private const int MessageReceivedAtSize = sizeof(long);
     private const int MessageBodyLengthSize = sizeof(int);
     
-    private const int QueueLogTimestampSize = sizeof(long);
-    private const int QueueLogLevelSize = sizeof(byte);
-    private const int QueueLogEventTypeSize = sizeof(byte);
-    private const int QueueLogMessageLengthSize = sizeof(int);
-    
     private readonly ConcurrentDictionary<Guid, QueueStorageState> _states = [];
 
     private readonly int _messageSegmentSizeInBytes = messageSegmentSizeInBytes > 0
@@ -38,12 +29,4 @@ internal sealed partial class ServerStorageService(
     private readonly int _maxMessageSegments = maxMessageSegments > 0
         ? maxMessageSegments
         : throw new ArgumentOutOfRangeException(nameof(maxMessageSegments));
-    
-    private readonly int _queueLogSegmentSizeInBytes = queueLogSegmentSizeInBytes > 0
-        ? queueLogSegmentSizeInBytes
-        : throw new ArgumentOutOfRangeException(nameof(queueLogSegmentSizeInBytes));
-    
-    private readonly int _serverLogSegmentSizeInBytes = serverLogSegmentSizeInBytes > 0
-        ? serverLogSegmentSizeInBytes
-        : throw new ArgumentOutOfRangeException(nameof(serverLogSegmentSizeInBytes));
 }

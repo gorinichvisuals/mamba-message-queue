@@ -6,9 +6,10 @@ internal sealed class MambaServer(
     IQueueRecoveryService queueRecoveryService,
     IServerStorageService serverStorage,
     IOptions<MambaServerOptions> options,
-    ILogger<MambaServer> logger,
-    ILoggerFactory loggerFactory)
+    IMambaLogger mambaLogger)
 {
+    private readonly ILogger _logger = mambaLogger.Server;
+
     private TcpListener? _tcpListener;
 
     public async Task Start(CancellationToken cancellationToken = default)
@@ -17,20 +18,18 @@ internal sealed class MambaServer(
         
         await queueRecoveryService.RestoreQueues(cancellationToken);
         
-        logger.LogInformation("Queues recovered successfully.");
+        _logger.LogInformation("Queues recovered successfully.");
         
         _tcpListener = new TcpListener(IPAddress.Any,  options.Value.Port);
         
         _tcpListener.Start();
         
-        logger.LogInformation("MambaMQ server started on port {Port}.", options.Value.Port);
+        _logger.LogInformation("MambaMQ server started on port {Port}.", options.Value.Port);
         
         Task serverTask = AcceptClientsAsync(cancellationToken);
         Task cleanupMessagesTask = RunMessagesCleanup(cancellationToken);
-        Task cleanupLogsTask = RunQueueLogsCleanup(cancellationToken);
-        Task cleanupServerLogsTask = RunServerLogsCleanup(cancellationToken);
         
-        await Task.WhenAll(serverTask, cleanupMessagesTask, cleanupLogsTask, cleanupServerLogsTask);
+        await Task.WhenAll(serverTask, cleanupMessagesTask);
     }
 
     private async Task AcceptClientsAsync(CancellationToken cancellationToken)
@@ -39,7 +38,7 @@ internal sealed class MambaServer(
         {
             TcpClient client = await _tcpListener!.AcceptTcpClientAsync(cancellationToken);
 
-            logger.LogDebug("Client connection accepted from {RemoteEndPoint}.", client.Client.RemoteEndPoint);
+            _logger.LogDebug("Client connection accepted from {RemoteEndPoint}.", client.Client.RemoteEndPoint);
             
             _ = HandleClient(client, cancellationToken);
         }
@@ -63,64 +62,14 @@ internal sealed class MambaServer(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Failed to cleanup messages.");
-            }
-        }
-    }
-
-    private async Task RunQueueLogsCleanup(CancellationToken cancellationToken)
-    {
-        if(!options.Value.QueueStorage.LogCleanupEnabled) 
-            return;
-        
-        using PeriodicTimer timer = new(options.Value.QueueStorage.CleanupLogInterval);
-        
-        while (await timer.WaitForNextTickAsync(cancellationToken))
-        {
-            try
-            {
-                await serverStorage.CleanupQueueLogs(cancellationToken);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-            }
-            catch (Exception exception)
-            {
-                logger.LogError(exception, "Failed to cleanup queue logs.");
-            }
-        }
-    }
-    
-    private async Task RunServerLogsCleanup(CancellationToken cancellationToken)
-    {
-        if(!options.Value.ServerLogging.CleanupLogEnabled)
-            return;
-        
-        using PeriodicTimer timer = new(options.Value.ServerLogging.CleanupInterval);
-        
-        while (await timer.WaitForNextTickAsync(cancellationToken))
-        {
-            try
-            {
-                await serverStorage.CleanupServerLogs(
-                    options.Value.ServerLogging.RetentionPeriod,
-                    cancellationToken);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-            }
-            catch (Exception exception)
-            {
-                logger.LogError(exception, "Failed to cleanup server logs.");
+                _logger.LogError(exception, "Failed to cleanup messages.");
             }
         }
     }
     
     private async Task HandleClient(TcpClient client, CancellationToken cancellationToken)
     {
-        ILogger<ClientConnection> clientLogger = loggerFactory.CreateLogger<ClientConnection>();
-        
-        await using ClientConnection connection = new ClientConnection(client, dispatcher, options.Value.MaxMessageSizeInBytes, clientLogger);
+        await using ClientConnection connection = new ClientConnection(client, dispatcher, options.Value.MaxMessageSizeInBytes, mambaLogger);
         
         await connection.RunAsync(cancellationToken);
     }

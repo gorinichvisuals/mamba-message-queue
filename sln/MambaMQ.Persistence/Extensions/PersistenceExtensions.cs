@@ -6,17 +6,13 @@ public static class PersistenceExtensions
         this IServiceCollection services, 
         string storagePath, 
         int messageSegmentSizeInBytes,
-        int maxMessageSegments,
-        int queuelogsSegmentSizeInBytes,
-        int serverLogsegmentSizeInBytes)
+        int maxMessageSegments)
     {
         services.AddSingleton<IServerStorageService>(
             sp => new ServerStorageService(
                 sp.GetRequiredService<IFileStorageService>(), 
                 messageSegmentSizeInBytes, 
-                maxMessageSegments, 
-                queuelogsSegmentSizeInBytes,
-                serverLogsegmentSizeInBytes));
+                maxMessageSegments));
         
         services.AddSingleton<IFileStorageService>(_ => new FileStorageService(storagePath));
     }
