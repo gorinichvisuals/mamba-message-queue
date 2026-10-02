@@ -1,11 +1,10 @@
 ﻿namespace MambaMQ.Core.Services;
 
 internal sealed partial class QueueManager(
+    bool authorizationEnabled,
     IServerStorageService serverStorageService, 
     IMambaLogger mambaLogger) : IQueueManager
 {
-    private readonly ILogger _serverLogger = mambaLogger.Server;
-
     private readonly Dictionary<Guid, MambaQueue> _queues = [];
     private readonly Dictionary<string, Guid> _queueNames = [];
     private readonly Dictionary<Guid, List<Subscriber>> _subscribers = [];  
@@ -15,6 +14,7 @@ internal sealed partial class QueueManager(
     public async Task CreateQueue(string queueName, 
         bool isDurable,
         LoadBalancingAlgorithm loadBalancingAlgorithm,
+        Dictionary<string, QueuePermission> permissions,
         bool messageRetentionEnabled,
         TimeSpan messageRetentionPeriod)
     {
@@ -34,6 +34,7 @@ internal sealed partial class QueueManager(
             queueName,
             isDurable,
             loadBalancingAlgorithm,
+            permissions,
             messageRetentionEnabled,
             messageRetentionPeriod);
         
@@ -44,6 +45,9 @@ internal sealed partial class QueueManager(
                 newQueue.Name,
                 newQueue.IsDurable,
                 (byte)newQueue.LoadBalancingAlgorithm,
+                permissions.ToDictionary(
+                    x => x.Key,
+                    x => (byte)x.Value),
                 new StoredMessageRetentionOptions(
                     newQueue.MessageRetentionEnabled,
                     newQueue.MessageRetentionPeriod));
@@ -70,10 +74,18 @@ internal sealed partial class QueueManager(
 
     public async Task PublishMessage(
         string queueName, 
-        MambaMessage message, 
+        MambaMessage message,
+        IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
         MambaQueue queue = GetRequiredQueue(queueName);
+        
+        if (!HasQueuePermission(queue, connection, QueuePermission.Write))
+        {
+            mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Write permission for this queue.", connection.ServiceName);
+
+            return;
+        }
         
         if (queue.MessageRetentionEnabled)
             await PersistMessageIfRequired(queue, message, cancellationToken);
@@ -89,7 +101,14 @@ internal sealed partial class QueueManager(
         CancellationToken cancellationToken = default)
     {
         MambaQueue queue = GetRequiredQueue(queueName);
+        
+        if (!HasQueuePermission(queue, connection, QueuePermission.Read))
+        {
+            mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Read permission for this queue.", connection.ServiceName);
 
+            return Task.CompletedTask;
+        }
+        
         _ = Consume(queue, connection, cancellationToken);
         
         return Task.CompletedTask;
@@ -105,7 +124,14 @@ internal sealed partial class QueueManager(
         CancellationToken cancellationToken = default)
     {
         MambaQueue queue = GetRequiredQueue(queueName);
+        
+        if (!HasQueuePermission(queue, connection, QueuePermission.Read))
+        {
+            mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Read permission for this queue.", connection.ServiceName);
 
+            return Task.CompletedTask;
+        }
+        
         Subscriber subscriber = new(
             connection,
             maxMessages,
@@ -127,10 +153,17 @@ internal sealed partial class QueueManager(
     public async Task DeleteMessage(
         string queueName,
         Guid messageId,
-        Guid connectionId,
+        IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
         MambaQueue queue = GetRequiredQueue(queueName);
+        
+        if (!HasQueuePermission(queue, connection, QueuePermission.Delete))
+        {
+            mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Delete permission for this queue.", connection.ServiceName);
+
+            return;
+        }
         
         try
         {
@@ -145,7 +178,7 @@ internal sealed partial class QueueManager(
 
         queue.DeleteMessage(messageId);
 
-        DecrementInFlight(queue.Id, connectionId);
+        DecrementInFlight(queue.Id, connection.Id);
         
         mambaLogger.Queue(queue.Name).LogDebug("Message {MessageId} has been deleted.", messageId);
     }
@@ -154,7 +187,7 @@ internal sealed partial class QueueManager(
     {
         IReadOnlyCollection<StoredMambaQueueState> storedQueues = await serverStorageService.RestoreQueues(cancellationToken);
 
-        _serverLogger.LogInformation("Successfully restored {QueueCount} queues.", storedQueues.Count);
+        mambaLogger.Server.LogInformation("Successfully restored {QueueCount} queues.", storedQueues.Count);
         
         foreach (StoredMambaQueueState storedQueue in storedQueues)
         {
@@ -165,6 +198,9 @@ internal sealed partial class QueueManager(
                 storedQueue.Queue.Name,
                 storedQueue.Queue.IsDurable, 
                 (LoadBalancingAlgorithm)storedQueue.Queue.LoadBalancingAlgorithm,
+                storedQueue.Queue.Permissions.ToDictionary(
+                    x => x.Key,
+                    x => (QueuePermission)x.Value),
                 storedQueue.Queue.MessageRetention.RetentionEnabled,
                 storedQueue.Queue.MessageRetention.RetentionPeriod);
 

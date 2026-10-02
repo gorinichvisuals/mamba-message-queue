@@ -6,11 +6,10 @@ internal sealed class ClientConnection(
     int maxMessageSizeInBytes,
     IMambaLogger mambaLogger) : IClientConnection, IAsyncDisposable
 {
-    private readonly ILogger _logger = mambaLogger.Server;
-
     public Guid Id { get; } = Guid.CreateVersion7();
     private bool _isAuthenticated;
-
+    public string ServiceName { get; private set; } = string.Empty;
+    
     private NetworkStream? _stream;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     
@@ -20,7 +19,7 @@ internal sealed class ClientConnection(
     {
         _stream = client.GetStream();
 
-        _logger.LogInformation("Client {ClientId} connected.", Id);
+        mambaLogger.Server.LogInformation("Client {ClientId} connected.", Id);
         
         try
         {
@@ -34,7 +33,7 @@ internal sealed class ClientConnection(
                 {
                     if (command is not AuthenticationCommand)
                     {
-                        _logger.LogWarning("Client {ClientId} attempted to execute a command before authentication.", Id);
+                        mambaLogger.Server.LogWarning("Client {ClientId} attempted to execute a command before authentication.", Id);
 
                         break;
                     }
@@ -57,7 +56,7 @@ internal sealed class ClientConnection(
         }
         catch (Exception exception)
         {             
-            _logger.LogError(exception, "Unhandled error in client connection {ClientId}.", Id);
+            mambaLogger.Server.LogError(exception, "Unhandled error in client connection {ClientId}.", Id);
         }
         finally
         {
@@ -115,7 +114,21 @@ internal sealed class ClientConnection(
             await _stream.DisposeAsync();
         
         client.Dispose();
+        
+        mambaLogger.Server.LogDebug("Client {ClientId} connection closed.", Id);
     }
     
-    public void Authenticate() => _isAuthenticated = true;
+    public void Authenticate()
+    {
+        _isAuthenticated = true;
+
+        mambaLogger.Server.LogInformation("Client {ClientId} authenticated.", Id);
+    }
+
+    public void IdentifyService(string serviceName)
+    {
+        ServiceName = serviceName;
+
+        mambaLogger.Server.LogInformation("Service '{ServiceName}' identified on client {ClientId}.", serviceName, Id);
+    }
 }

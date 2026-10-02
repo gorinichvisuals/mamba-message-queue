@@ -2,12 +2,20 @@
 
 internal sealed partial class QueueManager
 {
+    private bool HasQueuePermission(MambaQueue queue, IClientConnection connection, QueuePermission permission)
+    {
+        if (!authorizationEnabled)
+            return true;
+
+        return connection.ServiceName is not null && queue.HasPermission(connection.ServiceName, permission);
+    }
+    
     private async Task Consume(
         MambaQueue queue, 
         IClientConnection connection, 
         CancellationToken cancellationToken)
     {
-        mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ConnectionId}' subscribed to queue.", connection.Id);
+        mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ServiceName}' with ID '{ConnectionId}' subscribed to queue.", connection.ServiceName, connection.Id);
         
         try
         {
@@ -35,7 +43,7 @@ internal sealed partial class QueueManager
     {
         IClientConnection connection = subscriber.Connection;
         
-        mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ConnectionId}' subscribed to queue with batch.", connection.Id);
+        mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ServiceName}' with ID '{ConnectionId}' subscribed to queue with batch.", connection.ServiceName, connection.Id);
 
         try
         {
@@ -198,7 +206,7 @@ internal sealed partial class QueueManager
         if (queue is not null) 
             return queue;
         
-        _serverLogger.LogWarning("Queue {QueueName} does not exist.", queueName);
+        mambaLogger.Server.LogWarning("Queue {QueueName} does not exist.", queueName);
 
         throw new InvalidOperationException($"Queue '{queueName}' does not exist.");
     }

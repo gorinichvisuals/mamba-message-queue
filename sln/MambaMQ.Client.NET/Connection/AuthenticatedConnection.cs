@@ -11,6 +11,7 @@ internal sealed class AuthenticatedConnection(
         try
         {
             await AuthenticateAsync(cancellationToken);
+            await IdentifyServiceAsync(cancellationToken);
         }
         catch
         {
@@ -49,5 +50,16 @@ internal sealed class AuthenticatedConnection(
 
         if (!response.Success)
             throw new AuthenticationException(response.ErrorMessage ?? "Authentication failed.");
+    }
+    
+    private async Task IdentifyServiceAsync(CancellationToken cancellationToken)
+    {
+        ServiceIdentityCommand command = new(options.ServiceName);
+
+        byte[] payload = CommandEncoder.Encode(command);
+        Frame frame = new(FrameType.ServiceIdentity, payload);
+        byte[] buffer = FrameEncoder.Encode(frame);
+
+        await connection.SendAsync(buffer, cancellationToken);
     }
 }

@@ -27,6 +27,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
             queueOptions.QueueName, 
             queueOptions.IsDurable, 
             queueOptions.LoadBalancingAlgorithm,
+            queueOptions.Permissions,
             queueOptions.MessageRetention.Enabled,
             queueOptions.MessageRetention.RetentionPeriod);
         

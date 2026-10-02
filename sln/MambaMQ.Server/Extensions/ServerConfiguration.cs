@@ -15,7 +15,7 @@ public static class ServerConfiguration
         
         services.AddServerLogging(options.ServerLogging);
         services.AddAuthentication();
-        services.AddCoreExtensions();
+        services.AddCoreExtensions(options.AuthorizationEnabled);
         
         services.AddSingleton<ICommandDispatcher, CommandDispatcher>();
         services.AddSingleton<IQueueRecoveryService, QueueRecoveryService>();

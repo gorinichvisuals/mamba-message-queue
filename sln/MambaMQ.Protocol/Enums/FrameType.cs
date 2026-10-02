@@ -9,5 +9,6 @@ public enum FrameType : byte
     GetMessage = 5,
     Authentication = 6,
     SubscribeQueueWithBatch = 7,
-    BatchMessages = 8
+    BatchMessages = 8,
+    ServiceIdentity
 }

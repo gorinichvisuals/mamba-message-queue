@@ -3,5 +3,5 @@
 internal sealed class DeleteMessageCommandHandler(IQueueManager queueManager) : ICommandHandler<DeleteMessageCommand>
 {
     public async Task Handle(DeleteMessageCommand command, IClientConnection connection, CancellationToken cancellationToken)
-        => await queueManager.DeleteMessage(command.QueueName, command.MessageId, connection.Id, cancellationToken);
+        => await queueManager.DeleteMessage(command.QueueName, command.MessageId, connection, cancellationToken);
 }

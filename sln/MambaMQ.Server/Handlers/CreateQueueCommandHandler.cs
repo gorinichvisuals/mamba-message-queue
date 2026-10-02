@@ -7,6 +7,7 @@ internal sealed class CreateQueueCommandHandler(IQueueManager queueManager) : IC
             command.QueueName, 
             command.IsDurable, 
             command.LoadBalancingAlgorithm,
+            command.Permissions,
             command.MessageRetentionEnabled, 
             command.MessageRetentionPeriod);
 }

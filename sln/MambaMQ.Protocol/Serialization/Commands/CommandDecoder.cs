@@ -12,7 +12,8 @@ public static class CommandDecoder
             FrameType.SubscribeQueueWithBatch => DecodeSubscribeQueueWithBatch(buffer),
             FrameType.DeleteMessage => DecodeDelete(buffer),
             FrameType.Authentication => DecodeAuthentication(buffer),
-
+            FrameType.ServiceIdentity => DecodeServiceIdentity(buffer),
+            
             _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
         };
     }
@@ -29,13 +30,42 @@ public static class CommandDecoder
 
         ValidateLoadBalancingAlgorithm(buffer, offset);
 
-        LoadBalancingAlgorithm loadBalancingAlgorithm = (LoadBalancingAlgorithm)buffer[offset];
+        LoadBalancingAlgorithm loadBalancingAlgorithm =
+            (LoadBalancingAlgorithm)buffer[offset];
 
         offset += CommandConstants.LoadBalancingAlgorithmSize;
 
+        ValidatePermissions(buffer, offset, out int permissionsCount);
+
+        offset += CommandConstants.PermissionsCountSize;
+
+        Dictionary<string, QueuePermission> permissions = [];
+
+        for (int i = 0; i < permissionsCount; i++)
+        {
+            ValidateServiceNameLength(buffer, offset, out int serviceNameLength);
+
+            offset += CommandConstants.ServiceNameLengthSize;
+
+            if (buffer.Length < offset + serviceNameLength + CommandConstants.PermissionSize)
+                throw new InvalidDataException("Create queue command does not contain complete permission.");
+
+            string serviceName = Encoding.UTF8.GetString(buffer.Slice(offset, serviceNameLength));
+
+            offset += serviceNameLength;
+
+            QueuePermission permission = (QueuePermission)buffer[offset];
+
+            offset += CommandConstants.PermissionSize;
+
+            permissions.Add(serviceName, permission);
+        }
+
         ValidateMessageRetentionEnabled(buffer, offset);
 
-        bool messageRetentionEnabled = DecodeBoolean(buffer[offset], "Create queue command contains invalid MessageRetentionEnabled value.");
+        bool messageRetentionEnabled = DecodeBoolean(
+            buffer[offset],
+            "Create queue command contains invalid MessageRetentionEnabled value.");
 
         offset += CommandConstants.MessageRetentionEnabledSize;
 
@@ -47,12 +77,14 @@ public static class CommandDecoder
                     offset,
                     CommandConstants.MessageRetentionPeriodSize));
 
-        TimeSpan messageRetentionPeriod = TimeSpan.FromTicks(messageRetentionPeriodTicks);
+        TimeSpan messageRetentionPeriod =
+            TimeSpan.FromTicks(messageRetentionPeriodTicks);
 
         return new CreateQueueCommand(
             queueName,
             isDurable,
             loadBalancingAlgorithm,
+            permissions,
             messageRetentionEnabled,
             messageRetentionPeriod);
     }
@@ -155,6 +187,28 @@ public static class CommandDecoder
 
         return new AuthenticationCommand(username, password);
     }
+    
+    private static ServiceIdentityCommand DecodeServiceIdentity(ReadOnlySpan<byte> buffer)
+    {
+        const int lengthSize = sizeof(int);
+
+        if (buffer.Length < lengthSize)
+            throw new InvalidDataException("Command does not contain service name length.");
+
+        int serviceNameLength = BinaryPrimitives.ReadInt32BigEndian(buffer[..lengthSize]);
+
+        if (serviceNameLength <= 0)
+            throw new InvalidDataException("Invalid service name length.");
+
+        int offset = lengthSize;
+
+        if (buffer.Length < offset + serviceNameLength)
+            throw new InvalidDataException("Command does not contain complete service name.");
+
+        string serviceName = Encoding.UTF8.GetString(buffer.Slice(offset, serviceNameLength));
+
+        return new ServiceIdentityCommand(serviceName);
+    }
 
     private static string DecodeQueueName(ReadOnlySpan<byte> buffer, out int offset)
     {
@@ -171,7 +225,29 @@ public static class CommandDecoder
             ? throw new InvalidDataException("Command does not contain complete queue name.")
             : Encoding.UTF8.GetString(buffer.Slice(CommandConstants.QueueNameLengthSize, queueNameLength));
     }
+    
+    private static void ValidatePermissions(ReadOnlySpan<byte> buffer, int offset, out int permissionsCount)
+    {
+        if (buffer.Length < offset + CommandConstants.PermissionsCountSize)
+            throw new InvalidDataException("Create queue command does not contain permissions count.");
 
+        permissionsCount = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, CommandConstants.PermissionsCountSize));
+
+        if (permissionsCount < 0)
+            throw new InvalidDataException("Create queue command contains invalid permissions count.");
+    }
+    
+    private static void ValidateServiceNameLength(ReadOnlySpan<byte> buffer, int offset, out int serviceNameLength)
+    {
+        if (buffer.Length < offset + CommandConstants.ServiceNameLengthSize)
+            throw new InvalidDataException("Create queue command does not contain service name length.");
+
+        serviceNameLength = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, CommandConstants.ServiceNameLengthSize));
+
+        if (serviceNameLength <= 0)
+            throw new InvalidDataException("Create queue command contains invalid service name length.");
+    }
+    
     private static bool DecodeBoolean(byte value, string errorMessage)
     {
         if (value is not 0 and not 1)

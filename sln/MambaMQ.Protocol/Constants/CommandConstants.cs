@@ -14,4 +14,7 @@ public static class CommandConstants
     public const int MaxBytesSize = sizeof(int);
     public const int MaxWaitTimeSize = sizeof(long);
     public const int WeightSize = sizeof(int);
+    public const int ServiceNameLengthSize = sizeof(int);
+    public const int PermissionsCountSize = sizeof(int);
+    public const int PermissionSize = sizeof(byte);
 }

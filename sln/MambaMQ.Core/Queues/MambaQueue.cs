@@ -5,6 +5,7 @@ public sealed class MambaQueue(
     string queueName, 
     bool isDurable,
     LoadBalancingAlgorithm loadBalancingAlgorithm,
+    Dictionary<string, QueuePermission> permissions,
     bool messageRetentionEnabled, 
     TimeSpan messageRetentionPeriod)
 {
@@ -16,7 +17,8 @@ public sealed class MambaQueue(
     public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; } = loadBalancingAlgorithm;
     public bool MessageRetentionEnabled { get; } = messageRetentionEnabled;
     public TimeSpan MessageRetentionPeriod { get; } = messageRetentionPeriod;
-
+    private Dictionary<string, QueuePermission> Permissions { get; } = permissions;
+    
     private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
     private readonly ConcurrentQueue<Guid> _available = [];
     
@@ -121,4 +123,7 @@ public sealed class MambaQueue(
 
         throw new InvalidOperationException($"Message '{delivery.MessageId}' is already in flight.");
     }
+    
+    internal bool HasPermission(string serviceName, QueuePermission permission)
+        => Permissions.TryGetValue(serviceName, out QueuePermission permissions) && permissions.HasFlag(permission);
 }
