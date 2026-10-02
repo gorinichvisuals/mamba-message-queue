@@ -12,7 +12,8 @@ public static class CommandEncoder
             FrameType.SubscribeQueueWithBatch => EncodeSubscribeQueueWithBatch((SubscribeQueueWithBatchCommand)command),
             FrameType.DeleteMessage => EncodeDeleteMessage((DeleteMessageCommand)command),
             FrameType.Authentication => EncodeAuthentication((AuthenticationCommand)command),
-
+            FrameType.ServiceIdentity => EncodeServiceIdentity((ServiceIdentityCommand)command),
+            
             _ => throw new ArgumentException($"Unsupported command type: {command.Type}.", nameof(command))
         };
     }
@@ -21,6 +22,15 @@ public static class CommandEncoder
     {
         byte[] queueName = Encoding.UTF8.GetBytes(queueCommand.QueueName);
 
+        int permissionsSize = CommandConstants.PermissionsCountSize;
+
+        foreach (KeyValuePair<string, QueuePermission> permission in queueCommand.Permissions)
+        {
+            byte[] serviceName = Encoding.UTF8.GetBytes(permission.Key);
+
+            permissionsSize += CommandConstants.ServiceNameLengthSize + serviceName.Length + CommandConstants.PermissionSize;
+        }
+
         int offset = CommandConstants.QueueNameLengthSize;
 
         byte[] buffer = new byte[
@@ -28,6 +38,7 @@ public static class CommandEncoder
             queueName.Length +
             CommandConstants.IsDurableSize +
             CommandConstants.LoadBalancingAlgorithmSize +
+            permissionsSize +
             CommandConstants.MessageRetentionEnabledSize +
             CommandConstants.MessageRetentionPeriodSize];
 
@@ -46,6 +57,27 @@ public static class CommandEncoder
         span[offset] = (byte)queueCommand.LoadBalancingAlgorithm;
 
         offset += CommandConstants.LoadBalancingAlgorithmSize;
+
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], queueCommand.Permissions.Count);
+        
+        offset += CommandConstants.PermissionsCountSize;
+
+        foreach (KeyValuePair<string, QueuePermission> permission in queueCommand.Permissions)
+        {
+            byte[] serviceName = Encoding.UTF8.GetBytes(permission.Key);
+
+            BinaryPrimitives.WriteInt32BigEndian(span[offset..], serviceName.Length);
+
+            offset += CommandConstants.ServiceNameLengthSize;
+
+            serviceName.CopyTo(span[offset..]);
+
+            offset += serviceName.Length;
+
+            span[offset] = (byte)permission.Value;
+
+            offset += CommandConstants.PermissionSize;
+        }
 
         span[offset] = queueCommand.MessageRetentionEnabled
             ? (byte)1
@@ -179,6 +211,21 @@ public static class CommandEncoder
         offset += CommandConstants.PasswordLengthSize;
 
         password.CopyTo(span[offset..]);
+
+        return buffer;
+    }
+    
+    private static byte[] EncodeServiceIdentity(ServiceIdentityCommand command)
+    {
+        byte[] serviceName = Encoding.UTF8.GetBytes(command.ServiceName);
+
+        byte[] buffer = new byte[CommandConstants.ServiceNameLengthSize + serviceName.Length];
+
+        Span<byte> span = buffer;
+
+        BinaryPrimitives.WriteInt32BigEndian(span[..CommandConstants.ServiceNameLengthSize], serviceName.Length);
+
+        serviceName.CopyTo(span[CommandConstants.ServiceNameLengthSize..]);
 
         return buffer;
     }

@@ -11,7 +11,8 @@ internal sealed class MambaServer(
     private readonly ILogger _logger = mambaLogger.Server;
 
     private TcpListener? _tcpListener;
-
+    private int _activeConnections;
+    
     public async Task Start(CancellationToken cancellationToken = default)
     {
         authenticationService.InitializeUserCredentials();
@@ -69,8 +70,21 @@ internal sealed class MambaServer(
     
     private async Task HandleClient(TcpClient client, CancellationToken cancellationToken)
     {
-        await using ClientConnection connection = new ClientConnection(client, dispatcher, options.Value.MaxMessageSizeInBytes, mambaLogger);
-        
-        await connection.RunAsync(cancellationToken);
+        await using ClientConnection connection = new(client, dispatcher, options.Value.MaxMessageSizeInBytes, mambaLogger);
+
+        int activeConnections = Interlocked.Increment(ref _activeConnections);
+
+        _logger.LogDebug("Client {ClientId} connected. Active connections: {ActiveConnections}.", connection.Id, activeConnections);
+
+        try
+        {
+            await connection.RunAsync(cancellationToken);
+        }
+        finally
+        {
+            activeConnections = Interlocked.Decrement(ref _activeConnections);
+
+            _logger.LogDebug("Client {ClientId} disconnected. Active connections: {ActiveConnections}.", connection.Id, activeConnections);
+        }
     }
 }

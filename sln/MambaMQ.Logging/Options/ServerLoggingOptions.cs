@@ -3,5 +3,5 @@
 public sealed class ServerLoggingOptions
 {
     public LogLevel MinimumLevel { get; init; } = LogLevel.Information;    
-    public bool ConsoleEnabled { get; init; } = true;
+    public bool ConsoleEnabled { get; init; } = false;
 }

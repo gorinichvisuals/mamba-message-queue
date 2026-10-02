@@ -5,6 +5,7 @@ public sealed record StoredMambaQueue(
     string Name,
     bool IsDurable,
     byte LoadBalancingAlgorithm,
+    Dictionary<string, byte> Permissions,
     StoredMessageRetentionOptions MessageRetention);
 
 public sealed record StoredMessageRetentionOptions(

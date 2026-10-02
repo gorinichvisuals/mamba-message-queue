@@ -103,6 +103,15 @@ internal sealed partial class ServerStorageService
     {
         byte[] name = Encoding.UTF8.GetBytes(queue.Name);
 
+        int permissionsSize = sizeof(int);
+
+        foreach ((string serviceName, byte permission) in queue.Permissions)
+        {
+            byte[] serviceNameBytes = Encoding.UTF8.GetBytes(serviceName);
+
+            permissionsSize += sizeof(int) + serviceNameBytes.Length + sizeof(byte);
+        }
+
         int size =
             sizeof(byte) +
             16 +
@@ -111,7 +120,8 @@ internal sealed partial class ServerStorageService
             sizeof(byte) +
             sizeof(long) +
             sizeof(int) +
-            name.Length;
+            name.Length +
+            permissionsSize;
 
         byte[] buffer = new byte[size];
 
@@ -143,11 +153,32 @@ internal sealed partial class ServerStorageService
         offset += sizeof(int);
 
         name.CopyTo(span[offset..]);
+        offset += name.Length;
+
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], queue.Permissions.Count);
+
+        offset += sizeof(int);
+
+        foreach ((string serviceName, byte permission) in queue.Permissions)
+        {
+            byte[] serviceNameBytes = Encoding.UTF8.GetBytes(serviceName);
+
+            BinaryPrimitives.WriteInt32BigEndian(span[offset..], serviceNameBytes.Length);
+
+            offset += sizeof(int);
+
+            serviceNameBytes.CopyTo(span[offset..]);
+            offset += serviceNameBytes.Length;
+
+            span[offset++] = permission;
+        }
 
         return buffer;
     }
 
-    private static async Task<StoredMambaQueue> DeserializeQueue(Stream stream, CancellationToken cancellationToken)
+    private static async Task<StoredMambaQueue> DeserializeQueue(
+        Stream stream,
+        CancellationToken cancellationToken)
     {
         const int headerSize =
             sizeof(byte) +
@@ -198,11 +229,46 @@ internal sealed partial class ServerStorageService
 
         string name = Encoding.UTF8.GetString(nameBuffer);
 
+        byte[] permissionsCountBuffer = new byte[sizeof(int)];
+
+        await ReadExactly(stream, permissionsCountBuffer, cancellationToken);
+
+        int permissionsCount = BinaryPrimitives.ReadInt32BigEndian(permissionsCountBuffer);
+
+        if (permissionsCount < 0)
+            throw new InvalidDataException("Queue permissions count cannot be negative.");
+
+        Dictionary<string, byte> permissions = new(permissionsCount);
+
+        for (int i = 0; i < permissionsCount; i++)
+        {
+            await ReadExactly(stream, permissionsCountBuffer, cancellationToken);
+
+            int serviceNameLength = BinaryPrimitives.ReadInt32BigEndian(permissionsCountBuffer);
+
+            if (serviceNameLength <= 0)
+                throw new InvalidDataException("Service name length must be greater than zero.");
+
+            byte[] serviceNameBuffer = new byte[serviceNameLength];
+
+            await ReadExactly(stream, serviceNameBuffer, cancellationToken);
+
+            string serviceName = Encoding.UTF8.GetString(serviceNameBuffer);
+
+            int permission = stream.ReadByte();
+
+            if (permission < 0)
+                throw new EndOfStreamException();
+
+            permissions.Add(serviceName, (byte)permission);
+        }
+
         return new StoredMambaQueue(
             queueId,
             name,
             isDurable,
             loadBalancingAlgorithm,
+            permissions,
             new StoredMessageRetentionOptions(
                 messageRetentionEnabled,
                 messageRetentionPeriod));
