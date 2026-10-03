@@ -3,5 +3,5 @@
 public interface IAuthenticationService
 {
     void InitializeUserCredentials();
-    AuthenticationResponse Authenticate(string username, string password, CancellationToken cancellationToken = default);
+    CommandResponse Authenticate(string username, string password, CancellationToken cancellationToken = default);
 }

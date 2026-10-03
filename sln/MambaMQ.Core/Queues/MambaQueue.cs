@@ -17,7 +17,7 @@ public sealed class MambaQueue(
     public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; } = loadBalancingAlgorithm;
     public bool MessageRetentionEnabled { get; } = messageRetentionEnabled;
     public TimeSpan MessageRetentionPeriod { get; } = messageRetentionPeriod;
-    private Dictionary<string, QueuePermission> Permissions { get; } = permissions;
+    public Dictionary<string, QueuePermission> Permissions { get; } = permissions;
     
     private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
     private readonly ConcurrentQueue<Guid> _available = [];

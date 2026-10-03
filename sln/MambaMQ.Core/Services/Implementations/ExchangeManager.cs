@@ -7,13 +7,13 @@ internal sealed partial class ExchangeManager(
     private readonly Dictionary<Guid, MambaExchange> _exchangesById = [];
     private readonly Dictionary<string, MambaExchange> _exchangesByName = [];
     
-    public async Task CreateExchange(string name, bool isDurable, ExchangeType type)
+    public async Task<CommandResponse> CreateExchange(string name, bool isDurable, ExchangeType type)
     {
         if (_exchangesByName.ContainsKey(name))
         {
             mambaLogger.Server.LogInformation("Exchange '{Name}' already exists.", name);
             
-            return;
+            return CommandResponse.Success();
         }
 
         MambaExchange exchange = new(
@@ -29,37 +29,56 @@ internal sealed partial class ExchangeManager(
         _exchangesByName.Add(exchange.Name, exchange);
         
         mambaLogger.Exchange(exchange.Name).LogInformation("Exchange was created.");
+        
+        return CommandResponse.Success();
     }
     
-    public async Task Bind(string exchangeName, string queueName, string routingKey)
+    public async Task<CommandResponse> Bind(
+        string exchangeName,
+        string queueName,
+        string routingKey)
     {
-        MambaExchange exchange = GetRequiredExchange(exchangeName);
+        if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
+            return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
         
         if (exchange.IsDurable)
             await PersistExchange(exchange);
         
         exchange.Bind(queueName, routingKey);
-        
+
         mambaLogger.Exchange(exchange.Name).LogInformation("Queue {QueueId} was bound with routing key '{RoutingKey}'.", queueName, routingKey);
+
+        return CommandResponse.Success();
     }
 
-    public async Task Unbind(string exchangeName, string queueName, string routingKey)
+    public async Task<CommandResponse> Unbind(string exchangeName, string queueName, string routingKey)
     {
-        MambaExchange exchange = GetRequiredExchange(exchangeName);
+        if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
+            return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
         
         if (exchange.IsDurable)
-            await PersistExchange(exchange);
-        
+        {
+            CommandResponse persistResponse = await PersistExchange(exchange);
+
+            if (!persistResponse.IsSucceed)
+                return persistResponse;
+        }
+
         exchange.Unbind(queueName, routingKey);
-        
-        mambaLogger.Exchange(exchange.Name).LogInformation("Queue {queueName} was unbound with routing key '{RoutingKey}'.", queueName, routingKey);
+
+        mambaLogger.Exchange(exchange.Name).LogInformation("Queue {QueueName} was unbound with routing key '{RoutingKey}'.", queueName, routingKey);
+
+        return CommandResponse.Success();
     }
 
-    public IReadOnlyList<string> ResolveQueues(string exchangeName, string routingKey)
+    public CommandResponse<IReadOnlyList<string>> ResolveQueues(string exchangeName, string routingKey)
     {
-        MambaExchange exchange = GetRequiredExchange(exchangeName);
+        if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
+            return CommandResponse<IReadOnlyList<string>>.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
 
-        return exchange.ResolveQueues(routingKey);
+        IReadOnlyList<string> queueNames = exchange.ResolveQueues(routingKey);
+
+        return CommandResponse<IReadOnlyList<string>>.Success(queueNames);
     }
     
     public async Task RestoreExchanges(CancellationToken cancellationToken = default)

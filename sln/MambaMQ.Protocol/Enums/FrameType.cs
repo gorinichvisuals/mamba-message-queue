@@ -14,5 +14,6 @@ public enum FrameType : byte
     CreateExchange = 10,
     BindExchange = 11,
     UnbindExchange = 12,
-    PublishToExchange = 13
+    PublishToExchange = 13,
+    CommandResponse = 14,
 }

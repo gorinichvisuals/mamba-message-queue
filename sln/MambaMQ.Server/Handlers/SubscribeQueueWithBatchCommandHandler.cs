@@ -3,7 +3,8 @@
 internal sealed class SubscribeQueueWithBatchCommandHandler(IQueueManager queueManager) : ICommandHandler<SubscribeQueueWithBatchCommand>
 {
     public async Task Handle(SubscribeQueueWithBatchCommand command, IClientConnection connection, CancellationToken cancellationToken = default)
-        => await queueManager.SubscribeQueueWithBatch(
+    {
+        CommandResponse response = await queueManager.SubscribeQueueWithBatch(
             command.QueueName,
             connection,
             command.MaxMessages,
@@ -11,4 +12,11 @@ internal sealed class SubscribeQueueWithBatchCommandHandler(IQueueManager queueM
             command.MaxWaitTime,
             command.Weight,
             cancellationToken);
+
+        byte[] payload = CommandResponseEncoder.Encode(response);
+
+        Frame frame = new(FrameType.CommandResponse, payload);
+
+        await connection.SendAsync(frame, cancellationToken);
+    }
 }

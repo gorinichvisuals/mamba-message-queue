@@ -6,9 +6,28 @@ internal sealed class PublishToExchangeCommandHandler(
 {
     public async Task Handle(PublishToExchangeCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {
-        IReadOnlyList<string> queueNames = exchangeManager.ResolveQueues(command.ExchangeName, command.RoutingKey);
+        CommandResponse<IReadOnlyList<string>> response = exchangeManager.ResolveQueues(command.ExchangeName, command.RoutingKey);
 
-        foreach (string queueName in queueNames)
+        if (!response.IsSucceed)
+        {
+            byte[] payload = CommandResponseEncoder.Encode(response);
+
+            Frame frame = new(FrameType.CommandResponse, payload);
+
+            await connection.SendAsync(frame, cancellationToken);
+
+            return;
+        }
+
+        foreach (string queueName in response.Data!)
             await queueManager.PublishMessage(queueName, command.Message, connection, cancellationToken);
+
+        CommandResponse successResponse = CommandResponse.Success();
+
+        byte[] successPayload = CommandResponseEncoder.Encode(successResponse);
+
+        Frame successFrame = new(FrameType.CommandResponse, successPayload);
+
+        await connection.SendAsync(successFrame, cancellationToken);
     }
 }
