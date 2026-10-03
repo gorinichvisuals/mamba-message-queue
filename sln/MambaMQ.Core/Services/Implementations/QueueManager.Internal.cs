@@ -2,6 +2,34 @@
 
 internal sealed partial class QueueManager
 {
+    private async Task<CommandResponse> PersistQueue(MambaQueue queue, CancellationToken cancellationToken = default)
+    {
+        StoredMambaQueue storedQueue = new(
+            queue.Id,
+            queue.Name,
+            queue.IsDurable,
+            (byte)queue.LoadBalancingAlgorithm,
+            queue.Permissions.ToDictionary(
+                x => x.Key,
+                x => (byte)x.Value),
+            new StoredMessageRetentionOptions(
+                queue.MessageRetentionEnabled,
+                queue.MessageRetentionPeriod));
+
+        try
+        {
+            await serverStorageService.SaveQueue(storedQueue, cancellationToken);
+
+            return CommandResponse.Success();
+        }
+        catch (Exception exception)
+        {
+            mambaLogger.Queue(queue.Name).LogError(exception, "Failed to persist queue.");
+
+            return CommandResponse.Fail(ErrorCode.PersistenceError, "Failed to persist queue.");
+        }
+    }
+    
     private bool HasQueuePermission(MambaQueue queue, IClientConnection connection, QueuePermission permission)
     {
         if (!authorizationEnabled)
@@ -11,12 +39,12 @@ internal sealed partial class QueueManager
     }
     
     private async Task Consume(
-        MambaQueue queue, 
-        IClientConnection connection, 
+        MambaQueue queue,
+        IClientConnection connection,
         CancellationToken cancellationToken)
     {
         mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ServiceName}' with ID '{ConnectionId}' subscribed to queue.", connection.ServiceName, connection.Id);
-        
+
         try
         {
             await foreach (MessageDelivery delivery in queue.SubscribeAsync(connection.Id, cancellationToken))
@@ -26,7 +54,7 @@ internal sealed partial class QueueManager
                 Frame frame = new(FrameType.GetMessage, payload);
 
                 await connection.SendAsync(frame, cancellationToken);
-                
+
                 mambaLogger.Queue(queue.Name).LogDebug("Message '{MessageMessageId}' was delivered to connection '{ConnectionId}'.", delivery.Message.MessageId, connection.Id);
             }
         }
@@ -174,41 +202,30 @@ internal sealed partial class QueueManager
         return deliveries;
     }
 
-    private async Task PersistMessageIfRequired(
-        MambaQueue queue, 
-        MambaMessage message, 
-        CancellationToken cancellationToken)
+    private async Task<CommandResponse> PersistMessageIfRequired(MambaQueue queue, MambaMessage message, CancellationToken cancellationToken)
     {
         StoredMambaMessage storedMessage = new(message.MessageId, message.ReceivedAt, message.Body);
 
         try
         {
             await serverStorageService.SaveMessage(queue.Id, storedMessage, cancellationToken);
+
+            return CommandResponse.Success();
         }
         catch (Exception exception)
         {
-            mambaLogger.Queue(queue.Name).LogError(exception,"MessageId - {MessageMessageId}", message.MessageId);
+            mambaLogger.Queue(queue.Name).LogError(exception, "MessageId - {MessageMessageId}", message.MessageId);
 
-            throw;
+            return CommandResponse.Fail(ErrorCode.PersistenceError, "Failed to persist message.");
         }
     }
     
-    private static void ValidateQueueOptions(bool isDurable, bool nessageRetentionEnabled)
+    private static CommandResponse ValidateQueueOptions(bool isDurable, bool messageRetentionEnabled)
     {
-        if (!isDurable && nessageRetentionEnabled)
-            throw new InvalidOperationException("PersistMessages cannot be enabled for a non-durable queue.");
-    }
-    
-    private MambaQueue GetRequiredQueue(string queueName)
-    {
-        MambaQueue? queue = GetQueue(queueName);
+        if (!isDurable && messageRetentionEnabled)
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Message retention cannot be enabled for a non-durable queue.");
 
-        if (queue is not null) 
-            return queue;
-        
-        mambaLogger.Server.LogWarning("Queue {QueueName} does not exist.", queueName);
-
-        throw new InvalidOperationException($"Queue '{queueName}' does not exist.");
+        return CommandResponse.Success();
     }
     
     private void StartNextBatch(MambaQueue queue)
@@ -235,8 +252,7 @@ internal sealed partial class QueueManager
             if (!_subscribers.TryGetValue(queueId, out List<Subscriber>? subscribers))
                 return;
 
-            Subscriber? subscriber = subscribers
-                .FirstOrDefault(x => x.Connection.Id == connectionId);
+            Subscriber? subscriber = subscribers.FirstOrDefault(x => x.Connection.Id == connectionId);
 
             if (subscriber is not null)
                 subscriber.InFlight--;

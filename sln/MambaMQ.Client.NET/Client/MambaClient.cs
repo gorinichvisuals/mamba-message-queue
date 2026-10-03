@@ -4,7 +4,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 {
     private readonly IConnection _connection;
     private readonly MambaClientOptions _options;
-    
+
     private Task? _connectTask;
 
     public MambaClient(
@@ -20,27 +20,24 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     public async Task CreateQueueAsync(QueueOptions queueOptions, CancellationToken cancellationToken = default)
     {
         ValidateQueueOptions(queueOptions);
-        
+
         await EnsureConnectedAsync(cancellationToken);
-        
+
         CreateQueueCommand command = new(
-            queueOptions.QueueName, 
-            queueOptions.IsDurable, 
+            queueOptions.QueueName,
+            queueOptions.IsDurable,
             queueOptions.LoadBalancingAlgorithm,
             queueOptions.Permissions,
             queueOptions.MessageRetention.Enabled,
             queueOptions.MessageRetention.RetentionPeriod);
-        
+
         await SendCommandAsync(command, cancellationToken);
     }
-    
-    public async Task PublishToQueueAsync<T>(
-        string queueName, 
-        T message, 
-        CancellationToken cancellationToken = default)
+
+    public async Task PublishToQueueAsync<T>(string queueName, T message, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
-        
+
         byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
 
         MambaMessage mambaMessage = new(body);
@@ -50,12 +47,10 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async IAsyncEnumerable<MambaMessage> SubscribeQueueAsync(
-        string queueName, 
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<MambaMessage> SubscribeQueueAsync(string queueName, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
-        
+
         SubscribeQueueCommand command = new(queueName);
 
         await SendCommandAsync(command, cancellationToken);
@@ -64,16 +59,17 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         {
             Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
 
+            if (frame.Type is not FrameType.GetMessage)
+                throw new InvalidDataException($"Expected {FrameType.GetMessage} frame, but received {frame.Type}.");
+
             MambaMessage message = MessageDecoder.Decode(frame.Payload.Span);
 
             yield return message;
         }
     }
-    
+
     public async IAsyncEnumerable<IReadOnlyList<MambaMessage>> SubscribeQueueWithBatchAsync(
-        string queueName,
-        BatchSubscribeOptions options,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        string queueName, BatchSubscribeOptions options, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
 
@@ -91,7 +87,9 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
             Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
 
             if (frame.Type is not FrameType.BatchMessages)
+            {
                 throw new InvalidDataException($"Expected {FrameType.BatchMessages} frame, but received {frame.Type}.");
+            }
 
             IReadOnlyList<MambaMessage> messages = MessageBatchDecoder.Decode(frame.Payload.Span);
 
@@ -99,21 +97,16 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         }
     }
 
-    public async Task DeleteMessageAsync(
-        string queueName, 
-        Guid messageId, 
-        CancellationToken cancellationToken = default)
+    public async Task DeleteMessageAsync(string queueName, Guid messageId, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
-        
+
         DeleteMessageCommand command = new(queueName, messageId);
 
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async Task CreateExchangeAsync(
-        ExchangeOptions exchangeOptions,
-        CancellationToken cancellationToken = default)
+    public async Task CreateExchangeAsync(ExchangeOptions exchangeOptions, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
 
@@ -167,8 +160,8 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 
     private Task EnsureConnectedAsync(CancellationToken cancellationToken)
         => _connectTask ??= _connection.ConnectAsync(_options.Host, _options.Port, cancellationToken);
-    
-    private Task SendCommandAsync(ICommand command, CancellationToken cancellationToken)
+
+    private async Task SendCommandAsync(ICommand command, CancellationToken cancellationToken)
     {
         byte[] payload = CommandEncoder.Encode(command);
 
@@ -176,15 +169,29 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 
         byte[] buffer = FrameEncoder.Encode(frame);
 
-        return _connection.SendAsync(buffer, cancellationToken);
+        await _connection.SendAsync(buffer, cancellationToken);
+
+        CommandResponse response = await ReadCommandResponseAsync(cancellationToken);
+
+        if (!response.IsSucceed)
+            throw new CommandException(response.ErrorCode, response.ErrorMessage ?? "Command failed.");
+    }
+
+    private async Task<CommandResponse> ReadCommandResponseAsync(CancellationToken cancellationToken)
+    {
+        Frame responseFrame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
+
+        return responseFrame.Type is not FrameType.CommandResponse 
+            ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.") 
+            : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
     private static void ValidateQueueOptions(QueueOptions queueOptions)
     {
         if (queueOptions is { IsDurable: false, MessageRetention.Enabled: true })
-            throw new ArgumentException("PersistMessages cannot be enabled for a non-durable queue.");
+            throw new ArgumentException("Message retention cannot be enabled for a non-durable queue.", nameof(queueOptions));
     }
-    
-    public ValueTask DisposeAsync() 
+
+    public ValueTask DisposeAsync()
         => _connection.DisposeAsync();
 }

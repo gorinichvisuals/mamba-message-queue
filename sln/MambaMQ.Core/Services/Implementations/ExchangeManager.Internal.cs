@@ -2,7 +2,7 @@
 
 internal sealed partial class ExchangeManager
 {
-    private async Task PersistExchange(MambaExchange exchange, CancellationToken cancellationToken = default)
+    private async Task<CommandResponse> PersistExchange(MambaExchange exchange, CancellationToken cancellationToken = default)
     {
         StoredMambaExchange storedExchange = new(
             exchange.Id,
@@ -18,19 +18,14 @@ internal sealed partial class ExchangeManager
         try
         {
             await serverStorageService.SaveExchange(storedExchange, cancellationToken);
+
+            return CommandResponse.Success();
         }
         catch (Exception exception)
         {
             mambaLogger.Exchange(exchange.Name).LogError(exception, "Failed to persist exchange.");
 
-            throw;
+            return CommandResponse.Fail(ErrorCode.PersistenceError, "Failed to persist exchange.");
         }
-    }
-    
-    private MambaExchange GetRequiredExchange(string name)
-    {
-        return _exchangesByName.TryGetValue(name, out MambaExchange? exchange) 
-            ? exchange 
-            : throw new InvalidOperationException($"Exchange '{name}' does not exist.");
     }
 }

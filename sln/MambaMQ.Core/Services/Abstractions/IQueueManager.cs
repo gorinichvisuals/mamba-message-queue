@@ -2,12 +2,12 @@
 
 public interface IQueueManager
 {
-    Task PublishMessage(string queueName, MambaMessage message, IClientConnection connection, CancellationToken cancellationToken = default);
-    Task SubscribeQueue(string queueName, IClientConnection connection, CancellationToken cancellationToken = default);
-    Task DeleteMessage(string queueName, Guid messageId, IClientConnection connection, CancellationToken cancellationToken = default);
+    Task<CommandResponse> PublishMessage(string queueName, MambaMessage message, IClientConnection connection, CancellationToken cancellationToken = default);
+    Task<CommandResponse> SubscribeQueue(string queueName, IClientConnection connection, CancellationToken cancellationToken = default);
+    Task<CommandResponse> DeleteMessage(string queueName, Guid messageId, IClientConnection connection, CancellationToken cancellationToken = default);
     Task RestoreQueues(CancellationToken cancellationToken = default);
 
-    Task CreateQueue(
+    Task<CommandResponse> CreateQueue(
         string queueName, 
         bool isDurable, 
         LoadBalancingAlgorithm loadBalancingAlgorithm,
@@ -15,7 +15,7 @@ public interface IQueueManager
         bool messageRetentionEnabled,
         TimeSpan messageRetentionPeriod);
 
-    Task SubscribeQueueWithBatch(
+    Task<CommandResponse> SubscribeQueueWithBatch(
         string queueName,
         IClientConnection connection,
         int maxMessages,

@@ -23,7 +23,7 @@ global using MambaMQ.Protocol.Responses;
 global using MambaMQ.Protocol.Serialization.Frames;
 global using MambaMQ.Protocol.Commands.Abstractions;
 global using MambaMQ.Protocol.Serialization.Commands;
-global using MambaMQ.Protocol.Serialization.Authentication;
+global using MambaMQ.Protocol.Serialization.Responses;
 
 global using MambaMQ.Persistence.Extensions;
 global using MambaMQ.Persistence.Services.Abstractions;

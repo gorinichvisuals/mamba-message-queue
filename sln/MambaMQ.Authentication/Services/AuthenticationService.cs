@@ -15,13 +15,13 @@ internal sealed class AuthenticationService(
         logger.LogInformation("User credentials initialized for user '{Username}'.", _username);
     }
 
-    public AuthenticationResponse Authenticate(string username, string password, CancellationToken cancellationToken = default)
+    public CommandResponse Authenticate(string username, string password, CancellationToken cancellationToken = default)
     {
         if (!string.Equals(username, _username, StringComparison.Ordinal))
         {
             logger.LogWarning( "Authentication failed for user '{Username}'.", username); 
             
-            return new AuthenticationResponse(false, "Authentication failed.");
+            return CommandResponse.Fail(ErrorCode.AuthenticationFailed, "Authentication failed.");        
         }
 
         bool passwordValid = Argon2.Verify(PasswordHash, password);
@@ -30,11 +30,11 @@ internal sealed class AuthenticationService(
         {
             logger.LogWarning( "Authentication failed for user '{Username}'.", username); 
             
-            return new AuthenticationResponse(false, "Authentication failed.");
+            return CommandResponse.Fail(ErrorCode.AuthenticationFailed, "Authentication failed.");        
         } 
         
         logger.LogInformation( "User '{Username}' authenticated successfully.", username); 
         
-        return new AuthenticationResponse(true);
+        return CommandResponse.Success();
     }
 }

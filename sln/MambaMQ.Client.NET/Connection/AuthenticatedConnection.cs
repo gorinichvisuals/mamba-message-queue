@@ -1,8 +1,6 @@
 ﻿namespace MambaMQ.Client.NET.Connection;
 
-internal sealed class AuthenticatedConnection(
-    IConnection connection, 
-    MambaClientOptions options) : IConnection
+internal sealed class AuthenticatedConnection(IConnection connection, MambaClientOptions options) : IConnection
 {
     public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
@@ -11,12 +9,14 @@ internal sealed class AuthenticatedConnection(
         try
         {
             await AuthenticateAsync(cancellationToken);
-            await IdentifyServiceAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(options.ServiceName))
+                await IdentifyServiceAsync(cancellationToken);
         }
         catch
         {
             await connection.DisposeAsync();
-            
+
             throw;
         }
     }
@@ -27,8 +27,9 @@ internal sealed class AuthenticatedConnection(
     public ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         => connection.ReceiveAsync(buffer, cancellationToken);
 
-    public ValueTask DisposeAsync() => connection.DisposeAsync();
-    
+    public ValueTask DisposeAsync()
+        => connection.DisposeAsync();
+
     private async Task AuthenticateAsync(CancellationToken cancellationToken)
     {
         AuthenticationCommand command = new(options.Credentials.Username, options.Credentials.Password);
@@ -41,25 +42,37 @@ internal sealed class AuthenticatedConnection(
 
         await connection.SendAsync(buffer, cancellationToken);
 
-        Frame responseFrame = await FrameReader.ReadAsync(connection, options.MaxMessageSizeInBytes, cancellationToken);
+        CommandResponse response = await ReadCommandResponseAsync(cancellationToken);
 
-        if (responseFrame.Type is not FrameType.Authentication)
-            throw new InvalidDataException($"Expected authentication response, received '{responseFrame.Type}'.");
-
-        AuthenticationResponse response = AuthenticationResponseDecoder.Decode(responseFrame.Payload.Span);
-
-        if (!response.Success)
+        if (!response.IsSucceed)
             throw new AuthenticationException(response.ErrorMessage ?? "Authentication failed.");
     }
-    
+
     private async Task IdentifyServiceAsync(CancellationToken cancellationToken)
     {
-        ServiceIdentityCommand command = new(options.ServiceName);
+        ServiceIdentityCommand command = new(options.ServiceName!);
 
         byte[] payload = CommandEncoder.Encode(command);
+
         Frame frame = new(FrameType.ServiceIdentity, payload);
+
         byte[] buffer = FrameEncoder.Encode(frame);
 
         await connection.SendAsync(buffer, cancellationToken);
+
+        CommandResponse response = await ReadCommandResponseAsync(cancellationToken);
+
+        if (!response.IsSucceed)
+            throw new InvalidOperationException(response.ErrorMessage ?? "Service identification failed.");
+    }
+
+    private async Task<CommandResponse> ReadCommandResponseAsync(CancellationToken cancellationToken)
+    {
+        Frame responseFrame = await FrameReader.ReadAsync(connection, options.MaxMessageSizeInBytes, cancellationToken);
+
+        if (responseFrame.Type is not FrameType.CommandResponse)
+            throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.");
+
+        return CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 }

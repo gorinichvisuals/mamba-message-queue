@@ -3,5 +3,13 @@
 internal sealed class BindExchangeCommandHandler(IExchangeManager exchangeManager) : ICommandHandler<BindExchangeCommand>
 {
     public async Task Handle(BindExchangeCommand command, IClientConnection connection, CancellationToken cancellationToken)
-        => await exchangeManager.Bind(command.ExchangeName, command.QueueName, command.RoutingKey);
+    {
+        CommandResponse response = await exchangeManager.Bind(command.ExchangeName, command.QueueName, command.RoutingKey);
+
+        byte[] payload = CommandResponseEncoder.Encode(response);
+
+        Frame frame = new(FrameType.CommandResponse, payload);
+
+        await connection.SendAsync(frame, cancellationToken);
+    }
 }

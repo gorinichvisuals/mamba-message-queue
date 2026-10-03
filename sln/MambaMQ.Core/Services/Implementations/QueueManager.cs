@@ -11,24 +11,28 @@ internal sealed partial class QueueManager(
     private readonly Dictionary<Guid, ILoadBalancingStrategy> _loadBalancingStrategies = [];
     private readonly Dictionary<Guid, SemaphoreSlim> _batchLocks = [];
 
-    public async Task CreateQueue(string queueName, 
+    public async Task<CommandResponse> CreateQueue(
+        string queueName,
         bool isDurable,
         LoadBalancingAlgorithm loadBalancingAlgorithm,
         Dictionary<string, QueuePermission> permissions,
         bool messageRetentionEnabled,
         TimeSpan messageRetentionPeriod)
     {
-        ValidateQueueOptions(isDurable, messageRetentionEnabled);
+        CommandResponse validationResponse = ValidateQueueOptions(isDurable, messageRetentionEnabled);
 
-        MambaQueue? queue = GetQueue(queueName);
+        if (!validationResponse.IsSucceed)
+            return validationResponse;
         
+        MambaQueue? queue = GetQueue(queueName);
+
         if (queue is not null)
         {
-            mambaLogger.Server.LogInformation("Queue '{QueueName}' already exists.", queueName);     
-            
-            return;
+            mambaLogger.Server.LogInformation("Queue '{QueueName}' already exists.", queueName);
+
+            return CommandResponse.Success();
         }
-        
+
         MambaQueue newQueue = new(
             Guid.CreateVersion7(),
             queueName,
@@ -37,84 +41,89 @@ internal sealed partial class QueueManager(
             permissions,
             messageRetentionEnabled,
             messageRetentionPeriod);
-        
+
         if (isDurable)
         {
-            StoredMambaQueue storedQueue = new(
-                newQueue.Id,
-                newQueue.Name,
-                newQueue.IsDurable,
-                (byte)newQueue.LoadBalancingAlgorithm,
-                permissions.ToDictionary(
-                    x => x.Key,
-                    x => (byte)x.Value),
-                new StoredMessageRetentionOptions(
-                    newQueue.MessageRetentionEnabled,
-                    newQueue.MessageRetentionPeriod));
+            CommandResponse response = await PersistQueue(newQueue);
 
-            try
-            {
-                await serverStorageService.SaveQueue(storedQueue);
-            }
-            catch (Exception exception)
-            {
-                mambaLogger.Queue(newQueue.Name).LogError(exception, "Failed to persist queue.");
-                
-                throw;
-            }
+            if (!response.IsSucceed)
+                return response;
         }
-        
+
         _queues.Add(newQueue.Id, newQueue);
         _queueNames.Add(newQueue.Name, newQueue.Id);
         _loadBalancingStrategies.Add(newQueue.Id, LoadBalancingStrategyFactory.Create(newQueue.LoadBalancingAlgorithm));
         _batchLocks.Add(newQueue.Id, new SemaphoreSlim(1, 1));
-        
+
         mambaLogger.Queue(newQueue.Name).LogInformation("Queue was created.");
+
+        return CommandResponse.Success();
     }
 
-    public async Task PublishMessage(
-        string queueName, 
+    public async Task<CommandResponse> PublishMessage(
+        string queueName,
         MambaMessage message,
         IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
-        MambaQueue queue = GetRequiredQueue(queueName);
-        
+        MambaQueue? queue = GetQueue(queueName);
+
+        if (queue is null)
+        {
+            mambaLogger.Server.LogWarning("Queue '{QueueName}' does not exist.", queueName);
+
+            return CommandResponse.Fail(ErrorCode.QueueNotFound, $"Queue '{queueName}' does not exist.");
+        }
+
         if (!HasQueuePermission(queue, connection, QueuePermission.Write))
         {
             mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Write permission for this queue.", connection.ServiceName);
 
-            return;
+            return CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Write permission for queue '{queue.Name}'.");
         }
-        
+
         if (queue.MessageRetentionEnabled)
-            await PersistMessageIfRequired(queue, message, cancellationToken);
-        
+        {
+            CommandResponse response = await PersistMessageIfRequired(queue, message, cancellationToken);
+            
+            if (!response.IsSucceed)
+                return response;
+        }
+
         queue.PublishMessage(message);
-        
+
         mambaLogger.Queue(queue.Name).LogDebug("Message {MessageId} has been published to queue.", message.MessageId);
+
+        return CommandResponse.Success();
     }
 
-    public Task SubscribeQueue(
-        string queueName, 
-        IClientConnection connection, 
+    public Task<CommandResponse> SubscribeQueue(
+        string queueName,
+        IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
-        MambaQueue queue = GetRequiredQueue(queueName);
-        
+        MambaQueue? queue = GetQueue(queueName);
+
+        if (queue is null)
+        {
+            mambaLogger.Server.LogWarning("Queue '{QueueName}' does not exist.", queueName);
+
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.QueueNotFound, $"Queue '{queueName}' does not exist."));
+        }
+
         if (!HasQueuePermission(queue, connection, QueuePermission.Read))
         {
             mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Read permission for this queue.", connection.ServiceName);
 
-            return Task.CompletedTask;
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Read permission for queue '{queue.Name}'."));
         }
-        
+
         _ = Consume(queue, connection, cancellationToken);
-        
-        return Task.CompletedTask;
+
+        return Task.FromResult(CommandResponse.Success());
     }
 
-    public Task SubscribeQueueWithBatch(
+    public Task<CommandResponse> SubscribeQueueWithBatch(
         string queueName,
         IClientConnection connection,
         int maxMessages,
@@ -123,15 +132,23 @@ internal sealed partial class QueueManager(
         int weight,
         CancellationToken cancellationToken = default)
     {
-        MambaQueue queue = GetRequiredQueue(queueName);
-        
-        if (!HasQueuePermission(queue, connection, QueuePermission.Read))
+        MambaQueue? queue = GetQueue(queueName);
+
+        if (queue is null)
+        {
+            mambaLogger.Server.LogWarning("Queue '{QueueName}' does not exist.", queueName);
+
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.QueueNotFound, $"Queue '{queueName}' does not exist."));
+        }
+
+        if (!HasQueuePermission(
+                queue, connection, QueuePermission.Read))
         {
             mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Read permission for this queue.", connection.ServiceName);
 
-            return Task.CompletedTask;
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Read permission for queue '{queue.Name}'."));
         }
-        
+
         Subscriber subscriber = new(
             connection,
             maxMessages,
@@ -144,43 +161,52 @@ internal sealed partial class QueueManager(
         _ = ConsumeWithBatch(queue, subscriber, cancellationToken);
 
         StartNextBatch(queue);
-        
+
         mambaLogger.Queue(queue.Name).LogInformation("Subscriber {ConnectionId} is subscribed.", subscriber.Connection.Id);
 
-        return Task.CompletedTask;
+        return Task.FromResult(CommandResponse.Success());
     }
     
-    public async Task DeleteMessage(
+    public async Task<CommandResponse> DeleteMessage(
         string queueName,
         Guid messageId,
         IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
-        MambaQueue queue = GetRequiredQueue(queueName);
-        
+        MambaQueue? queue = GetQueue(queueName);
+
+        if (queue is null)
+        {
+            mambaLogger.Server.LogWarning("Queue {QueueName} does not exist.", queueName);
+
+            return CommandResponse.Fail(ErrorCode.QueueNotFound, $"Queue '{queueName}' does not exist.");
+        }
+
         if (!HasQueuePermission(queue, connection, QueuePermission.Delete))
         {
             mambaLogger.Queue(queue.Name).LogWarning("Service '{ServiceName}' has no Delete permission for this queue.", connection.ServiceName);
 
-            return;
+            return CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Delete permission for queue '{queue.Name}'.");
         }
-        
+
         try
         {
             await serverStorageService.MarkAsDeleteMessage(queue.Id, messageId, cancellationToken);
         }
         catch (Exception exception)
         {
-            mambaLogger.Queue(queue.Name).LogError(exception,"MessageId - {MessageId}", messageId);
+            mambaLogger.Queue(queue.Name).LogError(exception, "Failed to delete message {MessageId}.", messageId);
 
-            throw;
+            return CommandResponse.Fail(ErrorCode.PersistenceError, "Failed to delete message.");
         }
 
         queue.DeleteMessage(messageId);
 
         DecrementInFlight(queue.Id, connection.Id);
-        
+
         mambaLogger.Queue(queue.Name).LogDebug("Message {MessageId} has been deleted.", messageId);
+
+        return CommandResponse.Success();
     }
 
     public async Task RestoreQueues(CancellationToken cancellationToken = default)

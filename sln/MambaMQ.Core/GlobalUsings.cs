@@ -10,6 +10,7 @@ global using MambaMQ.Protocol.Enums;
 global using MambaMQ.Protocol.Frames;
 global using MambaMQ.Protocol.Messages;
 global using MambaMQ.Protocol.Constants;
+global using MambaMQ.Protocol.Responses;
 global using MambaMQ.Protocol.Serialization.Frames;
 global using MambaMQ.Protocol.Serialization.Messages;
 
