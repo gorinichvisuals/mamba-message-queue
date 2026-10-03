@@ -10,5 +10,9 @@ public enum FrameType : byte
     Authentication = 6,
     SubscribeQueueWithBatch = 7,
     BatchMessages = 8,
-    ServiceIdentity
+    ServiceIdentity = 9,
+    CreateExchange = 10,
+    BindExchange = 11,
+    UnbindExchange = 12,
+    PublishToExchange = 13
 }

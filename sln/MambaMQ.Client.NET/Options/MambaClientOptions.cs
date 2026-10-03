@@ -2,7 +2,7 @@
 
 public sealed class MambaClientOptions
 {
-    public string? ServiceName { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
     public string Host { get; set; } = string.Empty;
     public int Port { get; set; } = 24;
     public int MaxMessageSizeInBytes { get; set; } = 1 * 1024 * 1024;

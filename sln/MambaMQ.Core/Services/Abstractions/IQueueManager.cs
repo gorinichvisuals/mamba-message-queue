@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Core.Services;
+﻿namespace MambaMQ.Core.Services.Abstractions;
 
 public interface IQueueManager
 {
