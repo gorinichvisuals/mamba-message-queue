@@ -8,20 +8,27 @@ internal sealed class MambaConsoleFormatter() : ConsoleFormatter("Mamba")
         TextWriter textWriter)
     {
         string source = "Server";
+        string? name = null;
 
-        scopeProvider?.ForEachScope(
-            (scope, _) =>
-            {
-                if (scope is MambaLogScope mambaScope)
-                    source = mambaScope.Source;
-            },
-            0);
+        scopeProvider?.ForEachScope((scope, _) =>
+        {
+            if (scope is not MambaLogScope mambaScope) 
+                return;
+            
+            source = mambaScope.Source;
+            name = mambaScope.Name;
+        },
+        0);
 
         string message = logEntry.Formatter(logEntry.State, logEntry.Exception);
 
         if (logEntry.Exception is not null)
             message += $"{Environment.NewLine}{logEntry.Exception}";
 
-        textWriter.WriteLine($"[{source}][{DateTimeOffset.UtcNow:O}][{logEntry.LogLevel}][{message}]");
+        string prefix = name is null
+            ? $"[{source}]"
+            : $"[{source}][{name}]";
+
+        textWriter.WriteLine($"{prefix}[{DateTimeOffset.UtcNow:O}][{logEntry.LogLevel}][{message}]");
     }
 }

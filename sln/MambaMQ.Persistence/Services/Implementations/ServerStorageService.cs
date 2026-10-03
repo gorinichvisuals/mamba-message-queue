@@ -13,6 +13,9 @@ internal sealed partial class ServerStorageService(
     private const string SegmentPrefix = "segment-";
     private const string SegmentExtension = ".dat";
     private const string QueueMetadataFile = "queue.dat";
+    
+    private const string ExchangesDirectory = "exchanges";
+    private const string ExchangeMetadataFile = "exchange.dat";
 
     private const int MessageRecordLengthSize = sizeof(int);
     private const int MessageRecordTypeSize = sizeof(byte);

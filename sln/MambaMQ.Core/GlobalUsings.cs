@@ -15,7 +15,10 @@ global using MambaMQ.Protocol.Serialization.Messages;
 
 global using MambaMQ.Core.Models;
 global using MambaMQ.Core.Queues;
-global using MambaMQ.Core.Services;
+global using MambaMQ.Core.Exchange;
+global using MambaMQ.Core.Exchange.Bindings;
+global using MambaMQ.Core.Services.Abstractions;
+global using MambaMQ.Core.Services.Implementations;
 
 global using MambaMQ.LoadBalancer.Models;
 global using MambaMQ.LoadBalancer.Factories;

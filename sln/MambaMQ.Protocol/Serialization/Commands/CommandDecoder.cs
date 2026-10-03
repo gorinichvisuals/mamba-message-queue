@@ -13,6 +13,10 @@ public static class CommandDecoder
             FrameType.DeleteMessage => DecodeDelete(buffer),
             FrameType.Authentication => DecodeAuthentication(buffer),
             FrameType.ServiceIdentity => DecodeServiceIdentity(buffer),
+            FrameType.CreateExchange => DecodeCreateExchange(buffer),
+            FrameType.BindExchange => DecodeBindExchange(buffer),
+            FrameType.UnbindExchange => DecodeUnbindExchange(buffer),
+            FrameType.PublishToExchange => DecodePublishToExchange(buffer),
             
             _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
         };
@@ -20,7 +24,14 @@ public static class CommandDecoder
 
     private static CreateQueueCommand DecodeCreateQueue(ReadOnlySpan<byte> buffer)
     {
-        string queueName = DecodeQueueName(buffer, out int offset);
+        int offset = 0;
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Create queue command");
 
         ValidateIsDurable(buffer, offset);
 
@@ -30,8 +41,7 @@ public static class CommandDecoder
 
         ValidateLoadBalancingAlgorithm(buffer, offset);
 
-        LoadBalancingAlgorithm loadBalancingAlgorithm =
-            (LoadBalancingAlgorithm)buffer[offset];
+        LoadBalancingAlgorithm loadBalancingAlgorithm = (LoadBalancingAlgorithm)buffer[offset];
 
         offset += CommandConstants.LoadBalancingAlgorithmSize;
 
@@ -63,22 +73,15 @@ public static class CommandDecoder
 
         ValidateMessageRetentionEnabled(buffer, offset);
 
-        bool messageRetentionEnabled = DecodeBoolean(
-            buffer[offset],
-            "Create queue command contains invalid MessageRetentionEnabled value.");
+        bool messageRetentionEnabled = DecodeBoolean(buffer[offset], "Create queue command contains invalid MessageRetentionEnabled value.");
 
         offset += CommandConstants.MessageRetentionEnabledSize;
 
         ValidateMessageRetentionPeriod(buffer, offset);
 
-        long messageRetentionPeriodTicks =
-            BinaryPrimitives.ReadInt64BigEndian(
-                buffer.Slice(
-                    offset,
-                    CommandConstants.MessageRetentionPeriodSize));
+        long messageRetentionPeriodTicks = BinaryPrimitives.ReadInt64BigEndian(buffer.Slice(offset, CommandConstants.MessageRetentionPeriodSize));
 
-        TimeSpan messageRetentionPeriod =
-            TimeSpan.FromTicks(messageRetentionPeriodTicks);
+        TimeSpan messageRetentionPeriod = TimeSpan.FromTicks(messageRetentionPeriodTicks);
 
         return new CreateQueueCommand(
             queueName,
@@ -91,7 +94,14 @@ public static class CommandDecoder
 
     private static PublishMessageCommand DecodePublish(ReadOnlySpan<byte> buffer)
     {
-        string queueName = DecodeQueueName(buffer, out int offset);
+        int offset = 0;
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Publish message command");
 
         MambaMessage mambaMessage = MessageDecoder.Decode(buffer[offset..]);
 
@@ -100,14 +110,28 @@ public static class CommandDecoder
 
     private static SubscribeQueueCommand DecodeSubscribeQueue(ReadOnlySpan<byte> buffer)
     {
-        string queueName = DecodeQueueName(buffer, out _);
+        int offset = 0;
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Subscribe queue command");
 
         return new SubscribeQueueCommand(queueName);
     }
 
     private static SubscribeQueueWithBatchCommand DecodeSubscribeQueueWithBatch(ReadOnlySpan<byte> buffer)
     {
-        string queueName = DecodeQueueName(buffer, out int offset);
+        int offset = 0;
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Subscribe with batch command");
 
         ValidateMaxMessages(buffer, offset);
 
@@ -133,17 +157,19 @@ public static class CommandDecoder
 
         int weight = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, CommandConstants.WeightSize));
 
-        return new SubscribeQueueWithBatchCommand(
-            queueName,
-            maxMessages,
-            maxBytes,
-            maxWaitTime,
-            weight);
+        return new SubscribeQueueWithBatchCommand(queueName, maxMessages, maxBytes, maxWaitTime, weight);
     }
-    
+
     private static DeleteMessageCommand DecodeDelete(ReadOnlySpan<byte> buffer)
     {
-        string queueName = DecodeQueueName(buffer, out int offset);
+        int offset = 0;
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Delete message command");
 
         ValidateMessageId(buffer, offset);
 
@@ -151,79 +177,182 @@ public static class CommandDecoder
 
         return new DeleteMessageCommand(queueName, messageId);
     }
-    
+
     private static AuthenticationCommand DecodeAuthentication(ReadOnlySpan<byte> buffer)
     {
-        const int lengthSize = sizeof(int);
+        int offset = 0;
 
-        if (buffer.Length < lengthSize)
-            throw new InvalidDataException("Command does not contain username length.");
+        string username = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.UsernameLengthSize,
+            "username",
+            "Authentication command");
 
-        int usernameLength = BinaryPrimitives.ReadInt32BigEndian(buffer[..lengthSize]);
-
-        if (usernameLength <= 0)
-            throw new InvalidDataException("Invalid username length.");
-
-        int offset = lengthSize;
-
-        if (buffer.Length < offset + usernameLength + lengthSize)
-            throw new InvalidDataException("Command does not contain complete username.");
-
-        string username = Encoding.UTF8.GetString(buffer.Slice(offset, usernameLength));
-
-        offset += usernameLength;
-
-        int passwordLength = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, lengthSize));
-
-        if (passwordLength <= 0)
-            throw new InvalidDataException("Invalid password length.");
-
-        offset += lengthSize;
-
-        if (buffer.Length < offset + passwordLength)
-            throw new InvalidDataException("Command does not contain complete password.");
-
-        string password = Encoding.UTF8.GetString(buffer.Slice(offset, passwordLength));
+        string password = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.PasswordLengthSize,
+            "password",
+            "Authentication command");
 
         return new AuthenticationCommand(username, password);
     }
-    
+
     private static ServiceIdentityCommand DecodeServiceIdentity(ReadOnlySpan<byte> buffer)
     {
-        const int lengthSize = sizeof(int);
+        int offset = 0;
 
-        if (buffer.Length < lengthSize)
-            throw new InvalidDataException("Command does not contain service name length.");
-
-        int serviceNameLength = BinaryPrimitives.ReadInt32BigEndian(buffer[..lengthSize]);
-
-        if (serviceNameLength <= 0)
-            throw new InvalidDataException("Invalid service name length.");
-
-        int offset = lengthSize;
-
-        if (buffer.Length < offset + serviceNameLength)
-            throw new InvalidDataException("Command does not contain complete service name.");
-
-        string serviceName = Encoding.UTF8.GetString(buffer.Slice(offset, serviceNameLength));
+        string serviceName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.ServiceNameLengthSize,
+            "service name",
+            "Service identity command");
 
         return new ServiceIdentityCommand(serviceName);
     }
 
-    private static string DecodeQueueName(ReadOnlySpan<byte> buffer, out int offset)
+    private static CreateExchangeCommand DecodeCreateExchange(
+        ReadOnlySpan<byte> buffer)
     {
-        ValidateQueueNameLength(buffer);
+        int offset = 0;
 
-        int queueNameLength = BinaryPrimitives.ReadInt32BigEndian(buffer[..CommandConstants.QueueNameLengthSize]);
+        string exchangeName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.ExchangeNameLengthSize,
+            "exchange name",
+            "Create exchange command");
 
-        if (queueNameLength is 0)
-            throw new InvalidDataException("Invalid queue name length.");
+        ValidateIsDurable(buffer, offset);
 
-        offset = CommandConstants.QueueNameLengthSize + queueNameLength;
+        bool isDurable = DecodeBoolean(buffer[offset], "Create exchange command contains invalid IsDurable value.");
 
-        return buffer.Length < offset
-            ? throw new InvalidDataException("Command does not contain complete queue name.")
-            : Encoding.UTF8.GetString(buffer.Slice(CommandConstants.QueueNameLengthSize, queueNameLength));
+        offset += CommandConstants.IsDurableSize;
+
+        ValidateExchangeType(buffer, offset);
+
+        ExchangeType exchangeType = (ExchangeType)buffer[offset];
+
+        return new CreateExchangeCommand(exchangeName, isDurable, exchangeType);
+    }
+
+    private static BindExchangeCommand DecodeBindExchange(ReadOnlySpan<byte> buffer)
+    {
+        int offset = 0;
+
+        string exchangeName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.ExchangeNameLengthSize,
+            "exchange name",
+            "Bind exchange command");
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Bind exchange command");
+
+        string routingKey = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.RoutingKeyLengthSize,
+            "routing key",
+            "Bind exchange command");
+
+        return new BindExchangeCommand(exchangeName, queueName, routingKey);
+    }
+
+    private static UnbindExchangeCommand DecodeUnbindExchange(ReadOnlySpan<byte> buffer)
+    {
+        int offset = 0;
+
+        string exchangeName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.ExchangeNameLengthSize,
+            "exchange name",
+            "Unbind exchange command");
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Unbind exchange command");
+
+        string routingKey = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.RoutingKeyLengthSize,
+            "routing key",
+            "Unbind exchange command");
+
+        return new UnbindExchangeCommand(exchangeName, queueName, routingKey);
+    }
+    
+    private static PublishToExchangeCommand DecodePublishToExchange(ReadOnlySpan<byte> buffer)
+    {
+        int offset = 0;
+
+        string exchangeName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.ExchangeNameLengthSize,
+            "exchange name",
+            "Publish to exchange command");
+
+        string routingKey = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.RoutingKeyLengthSize,
+            "routing key",
+            "Publish to exchange command");
+
+        MambaMessage mambaMessage = MessageDecoder.Decode(buffer[offset..]);
+
+        return new PublishToExchangeCommand(exchangeName, routingKey, mambaMessage);
+    }
+
+    private static string DecodeString(
+        ReadOnlySpan<byte> buffer,
+        ref int offset,
+        int lengthSize,
+        string fieldName,
+        string commandName)
+    {
+        if (buffer.Length < offset + lengthSize)
+            throw new InvalidDataException($"{commandName} does not contain {fieldName} length.");
+
+        int length = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, lengthSize));
+
+        if (length < 0)
+            throw new InvalidDataException($"{commandName} contains invalid {fieldName} length.");
+
+        offset += lengthSize;
+
+        if (buffer.Length < offset + length)
+            throw new InvalidDataException($"{commandName} does not contain complete {fieldName}.");
+
+        string value = Encoding.UTF8.GetString(buffer.Slice(offset, length));
+
+        offset += length;
+
+        return value;
+    }
+
+    private static void ValidateLoadBalancingAlgorithm(ReadOnlySpan<byte> buffer, int offset)
+    {
+        if (buffer.Length < offset + CommandConstants.LoadBalancingAlgorithmSize)
+            throw new InvalidDataException("Create queue command does not contain LoadBalancingAlgorithm.");
+
+        byte value = buffer[offset];
+
+        if (!Enum.IsDefined((LoadBalancingAlgorithm)value))
+            throw new InvalidDataException("Create queue command contains invalid LoadBalancingAlgorithm value.");
     }
     
     private static void ValidatePermissions(ReadOnlySpan<byte> buffer, int offset, out int permissionsCount)
@@ -236,7 +365,7 @@ public static class CommandDecoder
         if (permissionsCount < 0)
             throw new InvalidDataException("Create queue command contains invalid permissions count.");
     }
-    
+
     private static void ValidateServiceNameLength(ReadOnlySpan<byte> buffer, int offset, out int serviceNameLength)
     {
         if (buffer.Length < offset + CommandConstants.ServiceNameLengthSize)
@@ -247,7 +376,7 @@ public static class CommandDecoder
         if (serviceNameLength <= 0)
             throw new InvalidDataException("Create queue command contains invalid service name length.");
     }
-    
+
     private static bool DecodeBoolean(byte value, string errorMessage)
     {
         if (value is not 0 and not 1)
@@ -273,17 +402,17 @@ public static class CommandDecoder
         if (buffer.Length < offset + CommandConstants.MaxWaitTimeSize)
             throw new InvalidDataException("Subscribe with batch command does not contain MaxWaitTime.");
     }
-    
+
     private static void ValidateWeight(ReadOnlySpan<byte> buffer, int offset)
     {
         if (buffer.Length < offset + CommandConstants.WeightSize)
             throw new InvalidDataException("Subscribe with batch command does not contain Weight.");
     }
-    
-    private static void ValidateQueueNameLength(ReadOnlySpan<byte> buffer)
+
+    private static void ValidateMessageId(ReadOnlySpan<byte> buffer, int offset)
     {
-        if (buffer.Length < CommandConstants.QueueNameLengthSize)
-            throw new InvalidDataException("Command does not contain queue name length.");
+        if (buffer.Length < offset + CommandConstants.MessageIdSize)
+            throw new InvalidDataException("Command does not contain MessageId.");
     }
 
     private static void ValidateIsDurable(ReadOnlySpan<byte> buffer, int offset)
@@ -294,7 +423,7 @@ public static class CommandDecoder
 
     private static void ValidateMessageRetentionEnabled(ReadOnlySpan<byte> buffer, int offset)
     {
-        if (buffer.Length < offset + CommandConstants.MessageRetentionEnabledSize)
+        if (buffer.Length <offset + CommandConstants.MessageRetentionEnabledSize)
             throw new InvalidDataException("Command does not contain MessageRetentionEnabled.");
     }
 
@@ -304,20 +433,14 @@ public static class CommandDecoder
             throw new InvalidDataException("Command does not contain MessageRetentionPeriod.");
     }
 
-    private static void ValidateMessageId(ReadOnlySpan<byte> buffer, int offset)
+    private static void ValidateExchangeType(ReadOnlySpan<byte> buffer, int offset)
     {
-        if (buffer.Length < offset + CommandConstants.MessageIdSize)
-            throw new InvalidDataException("Command does not contain MessageId.");
-    }
-    
-    private static void ValidateLoadBalancingAlgorithm(ReadOnlySpan<byte> buffer, int offset)
-    {
-        if (offset + CommandConstants.LoadBalancingAlgorithmSize > buffer.Length)
-            throw new InvalidDataException("Create queue command does not contain LoadBalancingAlgorithm.");
+        if (buffer.Length < offset + CommandConstants.ExchangeTypeSize)
+            throw new InvalidDataException("Create exchange command does not contain ExchangeType.");
 
         byte value = buffer[offset];
 
-        if (!Enum.IsDefined((LoadBalancingAlgorithm)value))
-            throw new InvalidDataException("Create queue command contains invalid LoadBalancingAlgorithm value.");
+        if (!Enum.IsDefined((ExchangeType)value))
+            throw new InvalidDataException("Create exchange command contains invalid ExchangeType value.");
     }
 }

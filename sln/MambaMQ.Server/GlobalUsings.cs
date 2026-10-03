@@ -25,7 +25,6 @@ global using MambaMQ.Protocol.Commands.Abstractions;
 global using MambaMQ.Protocol.Serialization.Commands;
 global using MambaMQ.Protocol.Serialization.Authentication;
 
-global using MambaMQ.Persistence.Enums;
 global using MambaMQ.Persistence.Extensions;
 global using MambaMQ.Persistence.Services.Abstractions;
 
@@ -33,8 +32,8 @@ global using MambaMQ.Abstractions.Connections;
 global using MambaMQ.Abstractions.Dispatchers;
 
 global using MambaMQ.Core.Readers;
-global using MambaMQ.Core.Services;
 global using MambaMQ.Core.Extensions;
+global using MambaMQ.Core.Services.Abstractions;
 
 global using MambaMQ.Authentication.Options;
 global using MambaMQ.Authentication.Services;

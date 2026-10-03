@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Core.Services;
+﻿namespace MambaMQ.Core.Services.Implementations;
 
 internal sealed partial class QueueManager(
     bool authorizationEnabled,
@@ -24,7 +24,7 @@ internal sealed partial class QueueManager(
         
         if (queue is not null)
         {
-            mambaLogger.Queue(queue.Name).LogInformation("Queue already exists.");     
+            mambaLogger.Server.LogInformation("Queue '{QueueName}' already exists.", queueName);     
             
             return;
         }

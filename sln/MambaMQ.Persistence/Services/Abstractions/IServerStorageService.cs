@@ -2,6 +2,10 @@
 
 public interface IServerStorageService
 {
+    Task SaveExchange(StoredMambaExchange storedExchange, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<StoredMambaExchange>> RestoreExchanges(CancellationToken cancellationToken = default);
+    Task DeleteExchange(Guid exchangeId, CancellationToken cancellationToken = default);
+    
     Task SaveQueue(StoredMambaQueue storedQueue, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<StoredMambaQueueState>> RestoreQueues(CancellationToken cancellationToken = default);
     Task DeleteQueue(Guid queueId, CancellationToken cancellationToken = default);

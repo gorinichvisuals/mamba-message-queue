@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Core.Services;
+﻿namespace MambaMQ.Core.Services.Implementations;
 
 internal sealed partial class QueueManager
 {
@@ -7,7 +7,7 @@ internal sealed partial class QueueManager
         if (!authorizationEnabled)
             return true;
 
-        return connection.ServiceName is not null && queue.HasPermission(connection.ServiceName, permission);
+        return connection?.ServiceName is not null && queue.HasPermission(connection.ServiceName, permission);
     }
     
     private async Task Consume(

@@ -1,6 +1,9 @@
 ﻿namespace MambaMQ.Logging.Source;
 
-internal sealed class MambaSourceLogger(ILogger logger, string source) : ILogger
+internal sealed class MambaSourceLogger(
+    ILogger logger, 
+    string source,
+    string? name = null) : ILogger
 {
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         => logger.BeginScope(state);
@@ -15,7 +18,7 @@ internal sealed class MambaSourceLogger(ILogger logger, string source) : ILogger
         Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
-        using IDisposable? scope = logger.BeginScope(new MambaLogScope(source));
+        using IDisposable? scope = logger.BeginScope(new MambaLogScope(source, name));
 
         logger.Log(logLevel, eventId, state, exception, formatter);
     }

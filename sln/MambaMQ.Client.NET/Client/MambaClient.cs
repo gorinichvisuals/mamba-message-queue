@@ -34,7 +34,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         await SendCommandAsync(command, cancellationToken);
     }
     
-    public async Task PublishAsync<T>(
+    public async Task PublishToQueueAsync<T>(
         string queueName, 
         T message, 
         CancellationToken cancellationToken = default)
@@ -70,7 +70,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         }
     }
     
-    public async IAsyncEnumerable<IReadOnlyList<MambaMessage>> SubscribeWithBatchAsync(
+    public async IAsyncEnumerable<IReadOnlyList<MambaMessage>> SubscribeQueueWithBatchAsync(
         string queueName,
         BatchSubscribeOptions options,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -110,7 +110,61 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 
         await SendCommandAsync(command, cancellationToken);
     }
-    
+
+    public async Task CreateExchangeAsync(
+        ExchangeOptions exchangeOptions,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync(cancellationToken);
+
+        CreateExchangeCommand command = new(exchangeOptions.Name, exchangeOptions.IsDurable, exchangeOptions.Type);
+
+        await SendCommandAsync(command, cancellationToken);
+    }
+
+    public async Task BindExchangeAsync(
+        string exchangeName,
+        string queueName,
+        string routingKey,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync(cancellationToken);
+
+        BindExchangeCommand command = new(exchangeName, queueName, routingKey);
+
+        await SendCommandAsync(command, cancellationToken);
+    }
+
+    public async Task UnbindExchangeAsync(
+        string exchangeName,
+        string queueName,
+        string routingKey,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync(cancellationToken);
+
+        UnbindExchangeCommand command = new(exchangeName, queueName, routingKey);
+
+        await SendCommandAsync(command, cancellationToken);
+    }
+
+    public async Task PublishToExchangeAsync<T>(
+        string exchangeName,
+        string routingKey,
+        T message,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync(cancellationToken);
+
+        byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
+
+        MambaMessage mambaMessage = new(body);
+
+        PublishToExchangeCommand command = new(exchangeName, routingKey, mambaMessage);
+
+        await SendCommandAsync(command, cancellationToken);
+    }
+
     private Task EnsureConnectedAsync(CancellationToken cancellationToken)
         => _connectTask ??= _connection.ConnectAsync(_options.Host, _options.Port, cancellationToken);
     
