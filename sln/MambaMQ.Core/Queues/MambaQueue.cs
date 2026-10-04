@@ -93,15 +93,6 @@ public sealed class MambaQueue(
         return null;
     }
     
-    public void RequeueDelivery(MessageDelivery delivery)
-    {
-        _inFlight.TryRemove(delivery.DeliveryId, out _);
-        _deliveryByMessage.TryRemove(delivery.Message.MessageId, out _);
-
-        _available.Enqueue(delivery.Message.MessageId);
-        _messageAvailable.Release();
-    }
-    
     private MessageDelivery CreateDelivery(MambaMessage message, Guid connectionId)
     {
         DeliveryId deliveryId = new(Interlocked.Increment(ref _nextDeliveryId));

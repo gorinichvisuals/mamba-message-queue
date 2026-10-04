@@ -6,7 +6,7 @@ internal sealed class PublishToExchangeCommandHandler(
 {
     public async Task Handle(PublishToExchangeCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {
-        CommandResponse<IReadOnlyList<string>> response = exchangeManager.ResolveQueues(command.ExchangeName, command.RoutingKey);
+        CommandResponse<IReadOnlyList<string>> response = exchangeManager.ResolveQueues(command.ExchangeName, command.RoutingKey, connection);
 
         if (!response.IsSucceed)
         {

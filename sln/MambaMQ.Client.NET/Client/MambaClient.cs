@@ -110,16 +110,12 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        CreateExchangeCommand command = new(exchangeOptions.Name, exchangeOptions.IsDurable, exchangeOptions.Type);
+        CreateExchangeCommand command = new(exchangeOptions.Name, exchangeOptions.IsDurable, exchangeOptions.Type, exchangeOptions.Permissions);
 
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async Task BindExchangeAsync(
-        string exchangeName,
-        string queueName,
-        string routingKey,
-        CancellationToken cancellationToken = default)
+    public async Task BindExchangeAsync(string exchangeName, string queueName, string routingKey, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
 
@@ -128,11 +124,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async Task UnbindExchangeAsync(
-        string exchangeName,
-        string queueName,
-        string routingKey,
-        CancellationToken cancellationToken = default)
+    public async Task UnbindExchangeAsync(string exchangeName, string queueName, string routingKey, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
 
@@ -141,11 +133,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async Task PublishToExchangeAsync<T>(
-        string exchangeName,
-        string routingKey,
-        T message,
-        CancellationToken cancellationToken = default)
+    public async Task PublishToExchangeAsync<T>(string exchangeName, string routingKey, T message, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
 

@@ -4,7 +4,8 @@ internal sealed class MambaExchange(
     Guid id,
     string name,
     bool isDurable,
-    ExchangeType type)
+    ExchangeType type,
+    Dictionary<string, ExchangePermission> permissions)
 {
     private readonly List<ExchangeBinding> _bindings = [];
 
@@ -12,6 +13,8 @@ internal sealed class MambaExchange(
     public string Name { get; } = name;
     public bool IsDurable { get; } = isDurable;
     public ExchangeType Type { get; } = type;
+    
+    public Dictionary<string, ExchangePermission> Permissions { get; } = permissions;
 
     public IReadOnlyList<ExchangeBinding> Bindings => _bindings;
 
@@ -44,4 +47,7 @@ internal sealed class MambaExchange(
             _ => throw new ArgumentOutOfRangeException()
         };
     }
+    
+    public bool HasPermission(string serviceName, ExchangePermission permission)
+        => Permissions.TryGetValue(serviceName, out ExchangePermission permissions) && permissions.HasFlag(permission);
 }

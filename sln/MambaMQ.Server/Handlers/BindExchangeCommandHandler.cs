@@ -4,7 +4,7 @@ internal sealed class BindExchangeCommandHandler(IExchangeManager exchangeManage
 {
     public async Task Handle(BindExchangeCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {
-        CommandResponse response = await exchangeManager.Bind(command.ExchangeName, command.QueueName, command.RoutingKey);
+        CommandResponse response = await exchangeManager.Bind(command.ExchangeName, command.QueueName, command.RoutingKey, connection);
 
         byte[] payload = CommandResponseEncoder.Encode(response);
 

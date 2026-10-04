@@ -213,8 +213,7 @@ public static class CommandDecoder
         return new ServiceIdentityCommand(serviceName);
     }
 
-    private static CreateExchangeCommand DecodeCreateExchange(
-        ReadOnlySpan<byte> buffer)
+    private static CreateExchangeCommand DecodeCreateExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -235,7 +234,35 @@ public static class CommandDecoder
 
         ExchangeType exchangeType = (ExchangeType)buffer[offset];
 
-        return new CreateExchangeCommand(exchangeName, isDurable, exchangeType);
+        offset += CommandConstants.ExchangeTypeSize;
+
+        ValidatePermissions(buffer, offset, out int permissionsCount);
+
+        offset += CommandConstants.PermissionsCountSize;
+
+        Dictionary<string, ExchangePermission> permissions = [];
+
+        for (int i = 0; i < permissionsCount; i++)
+        {
+            ValidateServiceNameLength(buffer, offset, out int serviceNameLength);
+
+            offset += CommandConstants.ServiceNameLengthSize;
+
+            if (buffer.Length < offset + serviceNameLength + CommandConstants.PermissionSize)
+                throw new InvalidDataException("Create exchange command does not contain complete permission.");
+
+            string serviceName = Encoding.UTF8.GetString(buffer.Slice(offset, serviceNameLength));
+
+            offset += serviceNameLength;
+
+            ExchangePermission permission = (ExchangePermission)buffer[offset];
+
+            offset += CommandConstants.PermissionSize;
+
+            permissions.Add(serviceName, permission);
+        }
+
+        return new CreateExchangeCommand(exchangeName, isDurable, exchangeType, permissions);
     }
 
     private static BindExchangeCommand DecodeBindExchange(ReadOnlySpan<byte> buffer)

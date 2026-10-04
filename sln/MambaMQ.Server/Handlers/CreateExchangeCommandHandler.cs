@@ -4,7 +4,11 @@ internal sealed class CreateExchangeCommandHandler(IExchangeManager exchangeMana
 {
     public async Task Handle(CreateExchangeCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {
-        CommandResponse response = await exchangeManager.CreateExchange(command.ExchangeName, command.IsDurable, command.ExchangeType);
+        CommandResponse response = await exchangeManager.CreateExchange(
+            command.ExchangeName, 
+            command.IsDurable, 
+            command.ExchangeType, 
+            command.Permissions);
 
         byte[] payload = CommandResponseEncoder.Encode(response);
 

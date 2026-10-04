@@ -1,13 +1,15 @@
 ﻿namespace MambaMQ.Core.Services.Implementations;
 
 internal sealed partial class ExchangeManager(
+    bool authorizationEnabled,
     IServerStorageService serverStorageService, 
     IMambaLogger mambaLogger) : IExchangeManager
 {
     private readonly Dictionary<Guid, MambaExchange> _exchangesById = [];
     private readonly Dictionary<string, MambaExchange> _exchangesByName = [];
     
-    public async Task<CommandResponse> CreateExchange(string name, bool isDurable, ExchangeType type)
+    public async Task<CommandResponse> CreateExchange(string name, bool isDurable, ExchangeType type,
+        Dictionary<string, ExchangePermission> permissions)
     {
         if (_exchangesByName.ContainsKey(name))
         {
@@ -20,26 +22,30 @@ internal sealed partial class ExchangeManager(
             Guid.CreateVersion7(), 
             name, 
             isDurable, 
-            type);
+            type,
+            permissions);
 
         if (isDurable)
             await PersistExchange(exchange);
         
-        _exchangesById.Add(exchange.Id, exchange);
-        _exchangesByName.Add(exchange.Name, exchange);
+        RegisterExchange(exchange);
         
         mambaLogger.Exchange(exchange.Name).LogInformation("Exchange was created.");
         
         return CommandResponse.Success();
     }
     
-    public async Task<CommandResponse> Bind(
-        string exchangeName,
-        string queueName,
-        string routingKey)
+    public async Task<CommandResponse> Bind(string exchangeName, string queueName, string routingKey, IClientConnection connection)
     {
         if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
             return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
+        
+        if (!HasExchangePermission(exchange, connection, ExchangePermission.Write))
+        {
+            mambaLogger.Exchange(exchange.Name).LogWarning("Service '{ServiceName}' has no Write permission for this exchange.", connection.ServiceName);
+
+            return CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Write permission for exchange '{exchange.Name}'.");
+        }
         
         if (exchange.IsDurable)
             await PersistExchange(exchange);
@@ -51,10 +57,17 @@ internal sealed partial class ExchangeManager(
         return CommandResponse.Success();
     }
 
-    public async Task<CommandResponse> Unbind(string exchangeName, string queueName, string routingKey)
+    public async Task<CommandResponse> Unbind(string exchangeName, string queueName, string routingKey, IClientConnection connection)
     {
         if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
             return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
+        
+        if (!HasExchangePermission(exchange, connection, ExchangePermission.Delete))
+        {
+            mambaLogger.Exchange(exchange.Name).LogWarning("Service '{ServiceName}' has no Delete permission for this exchange.", connection.ServiceName);
+
+            return CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Delete permission for exchange '{exchange.Name}'.");
+        }
         
         if (exchange.IsDurable)
         {
@@ -71,11 +84,18 @@ internal sealed partial class ExchangeManager(
         return CommandResponse.Success();
     }
 
-    public CommandResponse<IReadOnlyList<string>> ResolveQueues(string exchangeName, string routingKey)
+    public CommandResponse<IReadOnlyList<string>> ResolveQueues(string exchangeName, string routingKey, IClientConnection connection)
     {
         if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
             return CommandResponse<IReadOnlyList<string>>.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
 
+        if (!HasExchangePermission(exchange, connection, ExchangePermission.Write))
+        {
+            mambaLogger.Exchange(exchange.Name).LogWarning("Service '{ServiceName}' has no Write permission for this exchange.", connection.ServiceName);
+
+            return CommandResponse<IReadOnlyList<string>>.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Write permission for exchange '{exchange.Name}'.");
+        }
+        
         IReadOnlyList<string> queueNames = exchange.ResolveQueues(routingKey);
 
         return CommandResponse<IReadOnlyList<string>>.Success(queueNames);
@@ -91,20 +111,11 @@ internal sealed partial class ExchangeManager(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            MambaExchange exchange = new(
-                storedExchange.Id,
-                storedExchange.Name,
-                storedExchange.IsDurable,
-                (ExchangeType)storedExchange.Type);
+            MambaExchange exchange = RestoreExchange(storedExchange);
 
-            foreach (StoredExchangeBinding binding in storedExchange.Bindings)
-                exchange.Bind(binding.QueueName, binding.RoutingKey);
-
-            _exchangesById.Add(exchange.Id, exchange);
-            _exchangesByName.Add(exchange.Name, exchange);
+            RegisterExchange(exchange);
 
             mambaLogger.Exchange(exchange.Name).LogInformation("Restored {BindingsCount} bindings.", storedExchange.Bindings.Count);
-
             mambaLogger.Exchange(exchange.Name).LogInformation("Exchange was successfully restored.");
         }
     }

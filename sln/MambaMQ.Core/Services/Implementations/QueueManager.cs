@@ -50,10 +50,7 @@ internal sealed partial class QueueManager(
                 return response;
         }
 
-        _queues.Add(newQueue.Id, newQueue);
-        _queueNames.Add(newQueue.Name, newQueue.Id);
-        _loadBalancingStrategies.Add(newQueue.Id, LoadBalancingStrategyFactory.Create(newQueue.LoadBalancingAlgorithm));
-        _batchLocks.Add(newQueue.Id, new SemaphoreSlim(1, 1));
+        RegisterQueue(newQueue);
 
         mambaLogger.Queue(newQueue.Name).LogInformation("Queue was created.");
 
@@ -219,24 +216,9 @@ internal sealed partial class QueueManager(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            MambaQueue queue = new(
-                storedQueue.Queue.Id, 
-                storedQueue.Queue.Name,
-                storedQueue.Queue.IsDurable, 
-                (LoadBalancingAlgorithm)storedQueue.Queue.LoadBalancingAlgorithm,
-                storedQueue.Queue.Permissions.ToDictionary(
-                    x => x.Key,
-                    x => (QueuePermission)x.Value),
-                storedQueue.Queue.MessageRetention.RetentionEnabled,
-                storedQueue.Queue.MessageRetention.RetentionPeriod);
+            MambaQueue queue = RestoreQueue(storedQueue);
 
-            foreach (StoredMambaMessage message in storedQueue.Messages)
-                queue.PublishMessage(new MambaMessage(message.Id, message.ReceivedAt, message.Body));
-            
-            _queues.Add(queue.Id, queue);
-            _queueNames.Add(queue.Name, queue.Id);
-            _loadBalancingStrategies.Add(queue.Id, LoadBalancingStrategyFactory.Create(queue.LoadBalancingAlgorithm));
-            _batchLocks.Add(queue.Id, new SemaphoreSlim(1, 1));
+            RegisterQueue(queue);
             
             mambaLogger.Queue(queue.Name).LogInformation("Restored {MessagesCount} messages.", storedQueue.Messages.Count);
             mambaLogger.Queue(queue.Name).LogInformation("Queue was successfully restored.");
