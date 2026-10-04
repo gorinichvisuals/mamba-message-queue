@@ -5,6 +5,7 @@ public sealed record StoredMambaExchange(
     string Name,
     bool IsDurable,
     byte Type,
+    Dictionary<string, byte> Permissions,
     List<StoredExchangeBinding> Bindings);
 
 public sealed record StoredExchangeBinding(

@@ -228,6 +228,33 @@ internal sealed partial class QueueManager
         return CommandResponse.Success();
     }
     
+    private static MambaQueue RestoreQueue(StoredMambaQueueState storedQueue)
+    {
+        MambaQueue queue = new(
+            storedQueue.Queue.Id,
+            storedQueue.Queue.Name,
+            storedQueue.Queue.IsDurable,
+            (LoadBalancingAlgorithm)storedQueue.Queue.LoadBalancingAlgorithm,
+            storedQueue.Queue.Permissions.ToDictionary(
+                x => x.Key,
+                x => (QueuePermission)x.Value),
+            storedQueue.Queue.MessageRetention.RetentionEnabled,
+            storedQueue.Queue.MessageRetention.RetentionPeriod);
+
+        foreach (StoredMambaMessage message in storedQueue.Messages)
+            queue.PublishMessage(new MambaMessage(message.Id, message.ReceivedAt, message.Body));
+
+        return queue;
+    }
+    
+    private void RegisterQueue(MambaQueue queue)
+    {
+        _queues.Add(queue.Id, queue);
+        _queueNames.Add(queue.Name, queue.Id);
+        _loadBalancingStrategies.Add(queue.Id, LoadBalancingStrategyFactory.Create(queue.LoadBalancingAlgorithm));
+        _batchLocks.Add(queue.Id, new SemaphoreSlim(1, 1));
+    }
+    
     private void StartNextBatch(MambaQueue queue)
     {
         Subscriber subscriber;

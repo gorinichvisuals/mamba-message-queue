@@ -49,13 +49,24 @@ internal sealed partial class ServerStorageService
             ? throw new InvalidDataException($"Exchange metadata ID '{storedExchange.Id}' does not match directory ID '{exchangeId}'.")
             : storedExchange;
     }
+    
     private static byte[] SerializeExchange(StoredMambaExchange exchange)
     {
         byte[] name = Encoding.UTF8.GetBytes(exchange.Name);
 
-        int bindingsSize = sizeof(int) + (from binding in exchange.Bindings let queueName = 
-            Encoding.UTF8.GetBytes(binding.QueueName) let routingKey = 
-            Encoding.UTF8.GetBytes(binding.RoutingKey) select sizeof(int) + queueName.Length + sizeof(int) + routingKey.Length).Sum();
+        int permissionsSize = sizeof(int) + (
+            from permission in exchange.Permissions
+            let serviceName = Encoding.UTF8.GetBytes(permission.Key)
+            select sizeof(int) + serviceName.Length + sizeof(byte)
+        ).Sum();
+
+        int bindingsSize = sizeof(int) + (
+            from binding in exchange.Bindings
+            let queueName = Encoding.UTF8.GetBytes(binding.QueueName)
+            let routingKey = Encoding.UTF8.GetBytes(binding.RoutingKey)
+            select sizeof(int) + queueName.Length +
+                   sizeof(int) + routingKey.Length
+        ).Sum();
 
         int size =
             sizeof(byte) +
@@ -64,6 +75,7 @@ internal sealed partial class ServerStorageService
             sizeof(byte) +
             sizeof(int) +
             name.Length +
+            permissionsSize +
             bindingsSize;
 
         byte[] buffer = new byte[size];
@@ -90,6 +102,24 @@ internal sealed partial class ServerStorageService
         name.CopyTo(span[offset..]);
         offset += name.Length;
 
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], exchange.Permissions.Count);
+
+        offset += sizeof(int);
+
+        foreach ((string serviceName, byte permission) in exchange.Permissions)
+        {
+            byte[] serviceNameBytes = Encoding.UTF8.GetBytes(serviceName);
+
+            BinaryPrimitives.WriteInt32BigEndian(span[offset..], serviceNameBytes.Length);
+
+            offset += sizeof(int);
+
+            serviceNameBytes.CopyTo(span[offset..]);
+            offset += serviceNameBytes.Length;
+
+            span[offset++] = permission;
+        }
+
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], exchange.Bindings.Count);
 
         offset += sizeof(int);
@@ -97,7 +127,6 @@ internal sealed partial class ServerStorageService
         foreach (StoredExchangeBinding binding in exchange.Bindings)
         {
             byte[] queueName = Encoding.UTF8.GetBytes(binding.QueueName);
-
             byte[] routingKey = Encoding.UTF8.GetBytes(binding.RoutingKey);
 
             BinaryPrimitives.WriteInt32BigEndian(span[offset..], queueName.Length);
@@ -118,7 +147,9 @@ internal sealed partial class ServerStorageService
         return buffer;
     }
         
-    private static async Task<StoredMambaExchange> DeserializeExchange(Stream stream, CancellationToken cancellationToken)
+    private static async Task<StoredMambaExchange> DeserializeExchange(
+        Stream stream,
+        CancellationToken cancellationToken)
     {
         const int headerSize =
             sizeof(byte) +
@@ -163,6 +194,38 @@ internal sealed partial class ServerStorageService
 
         await ReadExactly(stream, countBuffer, cancellationToken);
 
+        int permissionsCount = BinaryPrimitives.ReadInt32BigEndian(countBuffer);
+
+        if (permissionsCount < 0)
+            throw new InvalidDataException("Exchange permissions count cannot be negative.");
+
+        Dictionary<string, byte> permissions = new(permissionsCount);
+
+        for (int i = 0; i < permissionsCount; i++)
+        {
+            await ReadExactly(stream, countBuffer, cancellationToken);
+
+            int serviceNameLength = BinaryPrimitives.ReadInt32BigEndian(countBuffer);
+
+            if (serviceNameLength <= 0)
+                throw new InvalidDataException("Service name length must be greater than zero.");
+
+            byte[] serviceNameBuffer = new byte[serviceNameLength];
+
+            await ReadExactly(stream, serviceNameBuffer, cancellationToken);
+
+            string serviceName = Encoding.UTF8.GetString(serviceNameBuffer);
+
+            int permission = stream.ReadByte();
+
+            if (permission < 0)
+                throw new EndOfStreamException();
+
+            permissions.Add(serviceName, (byte)permission);
+        }
+
+        await ReadExactly(stream, countBuffer, cancellationToken);
+
         int bindingsCount = BinaryPrimitives.ReadInt32BigEndian(countBuffer);
 
         if (bindingsCount < 0)
@@ -198,10 +261,7 @@ internal sealed partial class ServerStorageService
 
             string routingKey = Encoding.UTF8.GetString(routingKeyBuffer);
 
-            bindings.Add(
-                new StoredExchangeBinding(
-                    queueName,
-                    routingKey));
+            bindings.Add(new StoredExchangeBinding(queueName, routingKey));
         }
 
         return new StoredMambaExchange(
@@ -209,6 +269,7 @@ internal sealed partial class ServerStorageService
             name,
             isDurable,
             type,
+            permissions,
             bindings);
     }
         

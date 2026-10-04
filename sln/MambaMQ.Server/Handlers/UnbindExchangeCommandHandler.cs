@@ -4,7 +4,7 @@ internal sealed class UnbindExchangeCommandHandler(IExchangeManager exchangeMana
 {
     public async Task Handle(UnbindExchangeCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {
-        CommandResponse response = await exchangeManager.Unbind(command.ExchangeName, command.QueueName, command.RoutingKey);
+        CommandResponse response = await exchangeManager.Unbind(command.ExchangeName, command.QueueName, command.RoutingKey, connection);
 
         byte[] payload = CommandResponseEncoder.Encode(response);
 

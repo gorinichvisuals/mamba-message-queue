@@ -215,11 +215,21 @@ public static class CommandEncoder
     {
         byte[] exchangeName = Encoding.UTF8.GetBytes(command.ExchangeName);
 
+        int permissionsSize = CommandConstants.PermissionsCountSize;
+
+        foreach ((string serviceName, ExchangePermission _) in command.Permissions)
+        {
+            byte[] serviceNameBytes = Encoding.UTF8.GetBytes(serviceName);
+
+            permissionsSize += CommandConstants.ServiceNameLengthSize + serviceNameBytes.Length + CommandConstants.PermissionSize;
+        }
+
         byte[] buffer = new byte[
             CommandConstants.ExchangeNameLengthSize +
             exchangeName.Length +
             CommandConstants.IsDurableSize +
-            CommandConstants.ExchangeTypeSize];
+            CommandConstants.ExchangeTypeSize +
+            permissionsSize];
 
         Span<byte> span = buffer;
 
@@ -232,6 +242,21 @@ public static class CommandEncoder
         offset += CommandConstants.IsDurableSize;
 
         span[offset] = (byte)command.ExchangeType;
+
+        offset += CommandConstants.ExchangeTypeSize;
+
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], command.Permissions.Count);
+
+        offset += CommandConstants.PermissionsCountSize;
+
+        foreach ((string serviceName, ExchangePermission permission) in command.Permissions)
+        {
+            offset = WriteString(span, offset, serviceName);
+
+            span[offset] = (byte)permission;
+
+            offset += CommandConstants.PermissionSize;
+        }
 
         return buffer;
     }
