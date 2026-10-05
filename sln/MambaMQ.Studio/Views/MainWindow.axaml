@@ -1,0 +1,11 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MambaMQ.Studio.ViewModels"
+        x:Class="MambaMQ.Studio.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="MambaMQ Studio"
+        Icon="/Assets/logo.png">
+
+    <ContentControl Content="{Binding CurrentViewModel}" />
+
+</Window>

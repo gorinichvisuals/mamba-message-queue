@@ -1,4 +1,5 @@
-﻿namespace MambaMQ.Client.NET.Configure;
+﻿
+namespace MambaMQ.Client.NET.Configure;
 
 public static class ConfigureMambaClient
 {
@@ -12,12 +13,12 @@ public static class ConfigureMambaClient
 
         services.AddSingleton(options);
         services.AddSingleton<TcpConnection>();
-
+        
         services.AddSingleton<IConnection>(serviceProvider =>
             new AuthenticatedConnection(
-                serviceProvider.GetRequiredService<TcpConnection>(), 
+                serviceProvider.GetRequiredService<TcpConnection>(),
                 serviceProvider.GetRequiredService<MambaClientOptions>()));
-        
+
         services.AddSingleton<IMamba, MambaClient>();
     }
 }

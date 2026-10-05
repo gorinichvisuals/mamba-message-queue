@@ -1,6 +1,11 @@
-﻿namespace MambaMQ.Client.NET.Connection;
+﻿using System.Security.Authentication;
+using MambaMQ.Client.NET.Readers;
 
-internal sealed class AuthenticatedConnection(IConnection connection, MambaClientOptions options) : IConnection
+namespace MambaMQ.Client.NET.Connection;
+
+internal sealed class AuthenticatedConnection(
+    IConnection connection, 
+    MambaClientOptions options) : IConnection
 {
     public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
@@ -8,7 +13,7 @@ internal sealed class AuthenticatedConnection(IConnection connection, MambaClien
 
         try
         {
-            await AuthenticateAsync(cancellationToken);
+            await AuthenticateAsync(options.Credentials.Username, options.Credentials.Password, cancellationToken);
 
             if (!string.IsNullOrWhiteSpace(options.ServiceName))
                 await IdentifyServiceAsync(cancellationToken);
@@ -29,10 +34,10 @@ internal sealed class AuthenticatedConnection(IConnection connection, MambaClien
 
     public ValueTask DisposeAsync()
         => connection.DisposeAsync();
-
-    private async Task AuthenticateAsync(CancellationToken cancellationToken)
+    
+    private async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        AuthenticationCommand command = new(options.Credentials.Username, options.Credentials.Password);
+        AuthenticationCommand command = new(username, password);
 
         byte[] payload = CommandEncoder.Encode(command);
 
@@ -42,12 +47,12 @@ internal sealed class AuthenticatedConnection(IConnection connection, MambaClien
 
         await connection.SendAsync(buffer, cancellationToken);
 
-        CommandResponse response = await ReadCommandResponseAsync(cancellationToken);
+        CommandResponse response = await ReadCommandResponseAsync(cancellationToken: cancellationToken);
 
         if (!response.IsSucceed)
             throw new AuthenticationException(response.ErrorMessage ?? "Authentication failed.");
     }
-
+    
     private async Task IdentifyServiceAsync(CancellationToken cancellationToken)
     {
         ServiceIdentityCommand command = new(options.ServiceName!);
@@ -60,19 +65,18 @@ internal sealed class AuthenticatedConnection(IConnection connection, MambaClien
 
         await connection.SendAsync(buffer, cancellationToken);
 
-        CommandResponse response = await ReadCommandResponseAsync(cancellationToken);
+        CommandResponse response = await ReadCommandResponseAsync(options.MaxMessageSizeInBytes, cancellationToken);
 
         if (!response.IsSucceed)
             throw new InvalidOperationException(response.ErrorMessage ?? "Service identification failed.");
     }
-
-    private async Task<CommandResponse> ReadCommandResponseAsync(CancellationToken cancellationToken)
+    
+    private async Task<CommandResponse> ReadCommandResponseAsync(int maxMessageSizeInBytes = 1048576, CancellationToken cancellationToken = default)
     {
-        Frame responseFrame = await FrameReader.ReadAsync(connection, options.MaxMessageSizeInBytes, cancellationToken);
+        Frame responseFrame = await FrameReader.ReadAsync(connection, maxMessageSizeInBytes, cancellationToken);
 
-        if (responseFrame.Type is not FrameType.CommandResponse)
-            throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.");
-
-        return CommandResponseDecoder.Decode(responseFrame.Payload.Span);
+        return responseFrame.Type is not FrameType.CommandResponse 
+            ? throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.") 
+            : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 }

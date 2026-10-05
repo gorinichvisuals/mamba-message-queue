@@ -1,0 +1,115 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MambaMQ.Studio.ViewModels"
+             x:Class="MambaMQ.Studio.Views.LoginView"
+             x:DataType="vm:LoginViewModel">
+
+    <Grid>
+
+        <Image
+            Source="/Assets/login-background.png"
+            Stretch="UniformToFill" />
+
+        <Border
+            Background="#70000000" />
+
+        <Border
+            Width="420"
+            Padding="32"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="#B0151820"
+            BorderBrush="#40FFFFFF"
+            BorderThickness="1"
+            CornerRadius="18">
+
+            <StackPanel Spacing="16">
+
+                <StackPanel Spacing="8">
+
+                    <Image
+                        Source="avares://MambaMQ.Studio/Assets/logo.png"
+                        Width="140"
+                        Height="140"
+                        HorizontalAlignment="Center"
+                        Stretch="Uniform"
+                        Margin="0,-20,0,-4" />
+
+                    <TextBlock
+                        Text="MambaMQ Studio"
+                        FontSize="30"
+                        FontWeight="SemiBold"
+                        HorizontalAlignment="Center" />
+
+                    <TextBlock
+                        Text="Connect to MambaMQ Server"
+                        FontSize="14"
+                        Opacity="0.65"
+                        HorizontalAlignment="Center" />
+
+                </StackPanel>
+
+                <TextBox
+                    Watermark="Host:Port"
+                    Text="{Binding Host}"
+                    MinHeight="42"
+                    Padding="12,0"
+                    VerticalContentAlignment="Center" />
+
+                <TextBox
+                    Watermark="Username"
+                    Text="{Binding Username}"
+                    MinHeight="42"
+                    Padding="12,0"
+                    VerticalContentAlignment="Center" />
+
+                <Grid Height="42">
+
+                    <TextBox
+                        Watermark="Password"
+                        PasswordChar="{Binding PasswordChar}"
+                        Text="{Binding Password}"
+                        Padding="12,0,42,0"
+                        VerticalContentAlignment="Center" />
+
+                    <Button
+                        Width="36"
+                        Height="36"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Margin="0,3,4,3"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Command="{Binding TogglePasswordVisibilityCommand}"
+                        Content="👁" />
+
+                </Grid>
+
+                <TextBlock
+                    Text="{Binding ErrorMessage}"
+                    IsVisible="{Binding HasError}"
+                    TextWrapping="Wrap"
+                    HorizontalAlignment="Center"
+                    Opacity="0.9" />
+
+                <Button
+                    Content="Connect"
+                    Width="140"
+                    Height="44"
+                    HorizontalAlignment="Center"
+                    Margin="0,8,0,0"
+                    Padding="0"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Command="{Binding LoginCommand}" />
+
+            </StackPanel>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>
