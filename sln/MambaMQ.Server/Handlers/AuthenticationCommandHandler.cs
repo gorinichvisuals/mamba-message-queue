@@ -13,6 +13,6 @@ internal sealed class AuthenticationCommandHandler(IAuthenticationService authen
         await connection.SendAsync(frame, cancellationToken);
 
         if (response.IsSucceed)
-            connection.Authenticate();
+            connection.Authenticate(command.ClientType);
     }
 }

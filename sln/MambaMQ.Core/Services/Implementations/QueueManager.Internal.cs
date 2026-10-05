@@ -2,12 +2,31 @@
 
 internal sealed partial class QueueManager
 {
+    private static QueueModel ToQueueModel(MambaQueue queue)
+    {
+        return new QueueModel
+        {
+            Id = queue.Id,
+            Name = queue.Name,
+            IsDurable = queue.IsDurable,
+            CreatedAt = queue.CreatedAt,
+            LoadBalancingAlgorithm = queue.LoadBalancingAlgorithm,
+            Permissions = new Dictionary<string, QueuePermission>(
+                queue.Permissions),
+            MessageRetentionEnabled = queue.MessageRetentionEnabled,
+            MessageRetentionPeriod = queue.MessageRetentionPeriod,
+            AvailableMessageCount = queue.AvailableMessageCount,
+            InFlightMessageCount = queue.InFlightMessageCount
+        };
+    }
+    
     private async Task<CommandResponse> PersistQueue(MambaQueue queue, CancellationToken cancellationToken = default)
     {
         StoredMambaQueue storedQueue = new(
             queue.Id,
             queue.Name,
             queue.IsDurable,
+            queue.CreatedAt,
             (byte)queue.LoadBalancingAlgorithm,
             queue.Permissions.ToDictionary(
                 x => x.Key,
@@ -32,6 +51,9 @@ internal sealed partial class QueueManager
     
     private bool HasQueuePermission(MambaQueue queue, IClientConnection connection, QueuePermission permission)
     {
+        if (connection.ClientType is ClientType.Management)
+            return true;
+        
         if (!authorizationEnabled)
             return true;
 
@@ -234,6 +256,7 @@ internal sealed partial class QueueManager
             storedQueue.Queue.Id,
             storedQueue.Queue.Name,
             storedQueue.Queue.IsDurable,
+            storedQueue.Queue.CreatedAt,
             (LoadBalancingAlgorithm)storedQueue.Queue.LoadBalancingAlgorithm,
             storedQueue.Queue.Permissions.ToDictionary(
                 x => x.Key,
@@ -314,7 +337,10 @@ internal sealed partial class QueueManager
         }
     }
     
-    private MambaQueue? GetQueue(string queueName)
+    private MambaQueue? GetQueueById(Guid queueId)
+        => _queues.GetValueOrDefault(queueId);
+    
+    private MambaQueue? GetQueueByName(string queueName)
         => !_queueNames.TryGetValue(queueName, out Guid queueId) 
             ? null 
             : _queues[queueId];

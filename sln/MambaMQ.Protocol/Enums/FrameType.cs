@@ -16,4 +16,8 @@ public enum FrameType : byte
     UnbindExchange = 12,
     PublishToExchange = 13,
     CommandResponse = 14,
+    GetQueuesCommand = 15,
+    GetQueuesResponse = 16,
+    DeleteQueueCommand = 17,
+    UpdateQueueCommand = 18
 }

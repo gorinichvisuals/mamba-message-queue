@@ -4,6 +4,7 @@ public sealed class MambaQueue(
     Guid queueId,
     string queueName, 
     bool isDurable,
+    DateTimeOffset createdAt,
     LoadBalancingAlgorithm loadBalancingAlgorithm,
     Dictionary<string, QueuePermission> permissions,
     bool messageRetentionEnabled, 
@@ -11,13 +12,18 @@ public sealed class MambaQueue(
 {
     private long _nextDeliveryId = 1;
     
-    public Guid Id { get; } = queueId;
-    public string Name { get; } = queueName;
-    public bool IsDurable { get; } = isDurable;
-    public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; } = loadBalancingAlgorithm;
-    public bool MessageRetentionEnabled { get; } = messageRetentionEnabled;
-    public TimeSpan MessageRetentionPeriod { get; } = messageRetentionPeriod;
-    public Dictionary<string, QueuePermission> Permissions { get; } = permissions;
+    public Guid Id { get; private set; } = queueId;
+    public string Name { get; private set; } = queueName;
+    public bool IsDurable { get; private set; } = isDurable;
+    public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; private set; } = loadBalancingAlgorithm;
+    public bool MessageRetentionEnabled { get; private set; } = messageRetentionEnabled;
+    public TimeSpan MessageRetentionPeriod { get; private set; } = messageRetentionPeriod;
+    public Dictionary<string, QueuePermission> Permissions { get; private set; } = permissions;
+    
+    public DateTimeOffset CreatedAt { get; } = createdAt;
+    
+    public int AvailableMessageCount => _available.Count;
+    public int InFlightMessageCount => _inFlight.Count;
     
     private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
     private readonly ConcurrentQueue<Guid> _available = [];
@@ -113,6 +119,22 @@ public sealed class MambaQueue(
             _inFlight.TryRemove(delivery.DeliveryId, out _);
 
         throw new InvalidOperationException($"Message '{delivery.MessageId}' is already in flight.");
+    }
+    
+    public void Update(
+        string queueName,
+        bool isDurable,
+        LoadBalancingAlgorithm loadBalancingAlgorithm,
+        Dictionary<string, QueuePermission> permissions,
+        bool messageRetentionEnabled,
+        TimeSpan messageRetentionPeriod)
+    {
+        Name = queueName;
+        IsDurable = isDurable;
+        LoadBalancingAlgorithm = loadBalancingAlgorithm;
+        Permissions = permissions;
+        MessageRetentionEnabled = messageRetentionEnabled;
+        MessageRetentionPeriod = messageRetentionPeriod;
     }
     
     internal bool HasPermission(string serviceName, QueuePermission permission)

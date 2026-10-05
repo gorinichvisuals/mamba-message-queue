@@ -1,12 +1,11 @@
-﻿using System.Security.Authentication;
-using MambaMQ.Client.NET.Readers;
-
-namespace MambaMQ.Client.NET.Connection;
+﻿namespace MambaMQ.Client.NET.Connection;
 
 internal sealed class AuthenticatedConnection(
     IConnection connection, 
     MambaClientOptions options) : IConnection
 {
+    private const ClientType ClientTypeValue = ClientType.Service;
+    
     public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
         await connection.ConnectAsync(host, port, cancellationToken);
@@ -37,7 +36,7 @@ internal sealed class AuthenticatedConnection(
     
     private async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        AuthenticationCommand command = new(username, password);
+        AuthenticationCommand command = new(username, password, ClientTypeValue);
 
         byte[] payload = CommandEncoder.Encode(command);
 

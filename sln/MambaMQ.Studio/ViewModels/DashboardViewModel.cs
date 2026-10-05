@@ -7,8 +7,8 @@ public partial class DashboardViewModel(
     string username,
     Action onDisconnected) : ViewModelBase
 {
-    public string Host { get; } = host;
-    public int Port { get; } = port;
+    private string Host { get; } = host;
+    private int Port { get; } = port;
     public string Username { get; } = username;
 
     public string ConnectionInfo => $"{Host}:{Port}";
@@ -25,7 +25,7 @@ public partial class DashboardViewModel(
     [RelayCommand]
     private void ShowQueues()
     {
-        CurrentViewModel = new QueuesViewModel();
+        CurrentViewModel = new QueuesViewModel(mambaClient);
     }
 
     [RelayCommand]

@@ -5,13 +5,13 @@ public partial class LoginViewModel(
     Action<string, int, string> onLoginSucceeded) : ViewModelBase
 {
     [ObservableProperty]
-    public partial string Host { get; set; } = string.Empty;
+    public partial string Host { get; set; } = "localhost:24";
     
     [ObservableProperty]
-    public partial string Username { get; set; } = string.Empty;
+    public partial string Username { get; set; } = "admin";
 
     [ObservableProperty]
-    public partial string Password { get; set; } = string.Empty;
+    public partial string Password { get; set; } = "admin";
 
     [ObservableProperty] 
     private partial bool IsPasswordVisible { get; set; }

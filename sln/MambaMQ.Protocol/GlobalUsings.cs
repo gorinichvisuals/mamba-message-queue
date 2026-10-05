@@ -9,3 +9,4 @@ global using MambaMQ.Protocol.Responses;
 global using MambaMQ.Protocol.Constants;
 global using MambaMQ.Protocol.Commands.Abstractions;
 global using MambaMQ.Protocol.Serialization.Messages;
+global using MambaMQ.Protocol.Responses.Models.Queues;
