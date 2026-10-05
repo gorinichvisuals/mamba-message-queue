@@ -11,4 +11,5 @@ public enum ErrorCode : byte
     ExchangeNotFound,
     
     QueueNotFound,
+    QueueAlreadyExists
 }

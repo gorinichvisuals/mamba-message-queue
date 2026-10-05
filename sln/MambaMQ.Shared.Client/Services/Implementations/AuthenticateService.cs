@@ -2,9 +2,11 @@
 
 internal sealed class AuthenticateService(IConnection connection) : IAuthenticateService
 {
+    private const ClientType ClientTypeValue = ClientType.Management;
+
     public async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        AuthenticationCommand command = new(username, password);
+        AuthenticationCommand command = new(username, password, ClientTypeValue);
 
         byte[] payload = CommandEncoder.Encode(command);
 

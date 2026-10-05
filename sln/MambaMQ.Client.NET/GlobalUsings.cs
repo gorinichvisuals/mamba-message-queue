@@ -1,10 +1,11 @@
 ﻿global using Microsoft.Extensions.DependencyInjection;
-
 global using System.Text.Json;
 global using System.Net.Sockets;
 global using System.Buffers.Binary;
+global using System.Security.Authentication;
 global using System.Runtime.CompilerServices;
 
+global using MambaMQ.Client.NET.Readers;
 global using MambaMQ.Client.NET.Options;
 global using MambaMQ.Client.NET.Connection;
 global using MambaMQ.Client.NET.Exceptions;

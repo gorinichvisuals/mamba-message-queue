@@ -17,7 +17,10 @@ public static class CommandEncoder
             FrameType.BindExchange => EncodeBindExchange((BindExchangeCommand)command),
             FrameType.UnbindExchange => EncodeUnbindExchange((UnbindExchangeCommand)command),
             FrameType.PublishToExchange => EncodePublishToExchange((PublishToExchangeCommand)command),
-            
+            FrameType.GetQueuesCommand => EncodeGetQueues(),
+            FrameType.DeleteQueueCommand => EncodeDeleteQueue((DeleteQueueCommand)command),
+            FrameType.UpdateQueueCommand => EncodeUpdateQueue((UpdateQueueCommand)command),
+
             _ => throw new ArgumentException($"Unsupported command type: {command.Type}.", nameof(command))
         };
     }
@@ -186,6 +189,7 @@ public static class CommandEncoder
         byte[] password = Encoding.UTF8.GetBytes(command.Password);
 
         byte[] buffer = new byte[
+            sizeof(byte) +
             CommandConstants.UsernameLengthSize +
             username.Length +
             CommandConstants.PasswordLengthSize +
@@ -193,13 +197,15 @@ public static class CommandEncoder
 
         Span<byte> span = buffer;
 
-        int offset = WriteString(span, 0, command.UserName);
+        int offset = 0;
 
+        span[offset++] = (byte)command.ClientType;
+
+        offset = WriteString(span, offset, command.UserName);
         WriteString(span, offset, command.Password);
 
         return buffer;
     }
-
     private static byte[] EncodeServiceIdentity(ServiceIdentityCommand command)
     {
         byte[] serviceName = Encoding.UTF8.GetBytes(command.ServiceName);
@@ -334,7 +340,100 @@ public static class CommandEncoder
 
         return buffer;
     }
+    
+    private static byte[] EncodeGetQueues()
+    {
+        return [];
+    }
+    
+    private static byte[] EncodeDeleteQueue(DeleteQueueCommand command)
+    {
+        byte[] buffer = new byte[16];
 
+        command.QueueId.TryWriteBytes(buffer);
+
+        return buffer;
+    }
+    
+    private static byte[] EncodeUpdateQueue(UpdateQueueCommand command)
+    {
+        byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
+
+        int permissionsSize = CommandConstants.PermissionsCountSize;
+
+        foreach (KeyValuePair<string, QueuePermission> permission in command.Permissions)
+        {
+            byte[] serviceName = Encoding.UTF8.GetBytes(permission.Key);
+
+            permissionsSize +=
+                CommandConstants.ServiceNameLengthSize +
+                serviceName.Length +
+                CommandConstants.PermissionSize;
+        }
+
+        int payloadSize =
+            CommandConstants.QueueIdSize +
+            CommandConstants.QueueNameLengthSize +
+            queueName.Length +
+            CommandConstants.IsDurableSize +
+            CommandConstants.LoadBalancingAlgorithmSize +
+            permissionsSize +
+            CommandConstants.MessageRetentionEnabledSize +
+            CommandConstants.MessageRetentionPeriodSize;
+
+        byte[] buffer = new byte[payloadSize];
+
+        Span<byte> span = buffer;
+
+        int offset = 0;
+
+        command.QueueId.TryWriteBytes(span[offset..]);
+
+        offset += CommandConstants.QueueIdSize;
+
+        offset = WriteString(span, offset, command.QueueName);
+
+        span[offset] = command.IsDurable
+            ? (byte)1
+            : (byte)0;
+
+        offset += CommandConstants.IsDurableSize;
+
+        span[offset] = (byte)command.LoadBalancingAlgorithm;
+
+        offset += CommandConstants.LoadBalancingAlgorithmSize;
+
+        BinaryPrimitives.WriteInt32BigEndian(
+            span[offset..],
+            command.Permissions.Count);
+
+        offset += CommandConstants.PermissionsCountSize;
+
+        foreach (KeyValuePair<string, QueuePermission> permission in command.Permissions)
+        {
+            offset = WriteString(
+                span,
+                offset,
+                permission.Key);
+
+            span[offset] = (byte)permission.Value;
+
+            offset += CommandConstants.PermissionSize;
+        }
+
+        span[offset] = command.MessageRetentionEnabled
+            ? (byte)1
+            : (byte)0;
+
+        offset += CommandConstants.MessageRetentionEnabledSize;
+
+        BinaryPrimitives.WriteInt64BigEndian(
+            span[offset..],
+            command.MessageRetentionPeriod.Ticks);
+
+        return buffer;
+    }
+    
     private static int WriteString(Span<byte> buffer, int offset, string value)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(value);

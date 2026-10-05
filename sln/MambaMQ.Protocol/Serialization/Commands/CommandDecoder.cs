@@ -17,6 +17,9 @@ public static class CommandDecoder
             FrameType.BindExchange => DecodeBindExchange(buffer),
             FrameType.UnbindExchange => DecodeUnbindExchange(buffer),
             FrameType.PublishToExchange => DecodePublishToExchange(buffer),
+            FrameType.GetQueuesCommand => DecodeGetQueues(),
+            FrameType.DeleteQueueCommand => DecodeDeleteQueue(buffer),
+            FrameType.UpdateQueueCommand => DecodeUpdateQueue(buffer),
             
             _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
         };
@@ -182,6 +185,8 @@ public static class CommandDecoder
     {
         int offset = 0;
 
+        ClientType clientType = (ClientType)buffer[offset++];
+
         string username = DecodeString(
             buffer,
             ref offset,
@@ -196,7 +201,7 @@ public static class CommandDecoder
             "password",
             "Authentication command");
 
-        return new AuthenticationCommand(username, password);
+        return new AuthenticationCommand(username, password, clientType);
     }
 
     private static ServiceIdentityCommand DecodeServiceIdentity(ReadOnlySpan<byte> buffer)
@@ -344,6 +349,96 @@ public static class CommandDecoder
         return new PublishToExchangeCommand(exchangeName, routingKey, mambaMessage);
     }
 
+    private static GetQueuesCommand DecodeGetQueues()
+    {
+        return new GetQueuesCommand();
+    }
+    
+    private static DeleteQueueCommand DecodeDeleteQueue(ReadOnlySpan<byte> buffer)
+    {
+        return buffer.Length != 16 
+            ? throw new InvalidDataException($"Invalid DeleteQueueCommand payload length: {buffer.Length}.") 
+            : new DeleteQueueCommand(new Guid(buffer));
+    }
+    
+    private static UpdateQueueCommand DecodeUpdateQueue(ReadOnlySpan<byte> buffer)
+    {
+        int offset = 0;
+
+        if (buffer.Length < CommandConstants.QueueIdSize)
+            throw new InvalidDataException("Update queue command does not contain QueueId.");
+
+        Guid queueId = new(buffer.Slice(offset, CommandConstants.QueueIdSize));
+
+        offset += CommandConstants.QueueIdSize;
+
+        string queueName = DecodeString(
+            buffer,
+            ref offset,
+            CommandConstants.QueueNameLengthSize,
+            "queue name",
+            "Update queue command");
+
+        ValidateIsDurable(buffer, offset);
+
+        bool isDurable = DecodeBoolean(buffer[offset], "Update queue command contains invalid IsDurable value.");
+
+        offset += CommandConstants.IsDurableSize;
+
+        ValidateLoadBalancingAlgorithm(buffer, offset);
+
+        LoadBalancingAlgorithm loadBalancingAlgorithm = (LoadBalancingAlgorithm)buffer[offset];
+
+        offset += CommandConstants.LoadBalancingAlgorithmSize;
+
+        ValidatePermissions(buffer, offset, out int permissionsCount);
+
+        offset += CommandConstants.PermissionsCountSize;
+
+        Dictionary<string, QueuePermission> permissions = [];
+
+        for (int i = 0; i < permissionsCount; i++)
+        {
+            ValidateServiceNameLength(buffer, offset, out int serviceNameLength);
+
+            offset += CommandConstants.ServiceNameLengthSize;
+
+            if (buffer.Length < offset + serviceNameLength + CommandConstants.PermissionSize)
+                throw new InvalidDataException("Update queue command does not contain complete permission.");
+
+            string serviceName = Encoding.UTF8.GetString(buffer.Slice(offset, serviceNameLength));
+
+            offset += serviceNameLength;
+
+            QueuePermission permission = (QueuePermission)buffer[offset];
+
+            offset += CommandConstants.PermissionSize;
+
+            permissions.Add(serviceName, permission);
+        }
+
+        ValidateMessageRetentionEnabled(buffer, offset);
+
+        bool messageRetentionEnabled = DecodeBoolean(buffer[offset], "Update queue command contains invalid MessageRetentionEnabled value.");
+
+        offset += CommandConstants.MessageRetentionEnabledSize;
+
+        ValidateMessageRetentionPeriod(buffer, offset);
+
+        long messageRetentionPeriodTicks = BinaryPrimitives.ReadInt64BigEndian(buffer.Slice(offset, CommandConstants.MessageRetentionPeriodSize));
+
+        TimeSpan messageRetentionPeriod = TimeSpan.FromTicks(messageRetentionPeriodTicks);
+
+        return new UpdateQueueCommand(
+            queueId,
+            queueName,
+            isDurable,
+            loadBalancingAlgorithm,
+            permissions,
+            messageRetentionEnabled,
+            messageRetentionPeriod);
+    }
+        
     private static string DecodeString(
         ReadOnlySpan<byte> buffer,
         ref int offset,

@@ -1,0 +1,363 @@
+﻿<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:MambaMQ.Studio.ViewModels"
+    mc:Ignorable="d"
+    x:Class="MambaMQ.Studio.Views.UpdateQueueWindow"
+    x:DataType="vm:UpdateQueueViewModel"
+    Title="Update Queue"
+    Icon="avares://MambaMQ.Studio/Assets/logo.ico"
+    Width="560"
+    Height="700"
+    MinWidth="560"
+    MinHeight="700"
+    WindowStartupLocation="CenterOwner"
+    Background="#10131A">
+
+    <Window.Styles>
+
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBlock.description">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.55" />
+        </Style>
+
+        <Style Selector="Border.section">
+            <Setter Property="Background" Value="#151922" />
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+
+        <Style Selector="Border.permission-item">
+            <Setter Property="Background" Value="#1B202B" />
+            <Setter Property="BorderBrush" Value="#25FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="#1B202B" />
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="18,9" />
+        </Style>
+
+        <Style Selector="Button.primary">
+            <Setter Property="Padding" Value="18,9" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Border
+            Grid.Row="0"
+            Background="#151922"
+            BorderBrush="#30FFFFFF"
+            BorderThickness="0,0,0,1"
+            Padding="24,16">
+
+            <Grid ColumnDefinitions="Auto,*"
+                  ColumnSpacing="12">
+
+                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Spacing="2">
+
+                    <TextBlock
+                        Text="Update Queue"
+                        FontSize="20"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Text="Update queue settings and permissions"
+                        Classes="description" />
+
+                </StackPanel>
+
+            </Grid>
+
+        </Border>
+
+        <!-- Form -->
+        <ScrollViewer
+            Grid.Row="1"
+            Margin="24,20"
+            VerticalScrollBarVisibility="Auto">
+
+            <StackPanel Spacing="12">
+
+                <!-- General -->
+                <Border Classes="section">
+
+                    <StackPanel Spacing="12">
+
+                        <TextBlock
+                            Classes="section-title"
+                            Text="General" />
+
+                        <StackPanel Spacing="6">
+
+                            <TextBlock
+                                Classes="description"
+                                Text="Queue name" />
+
+                            <TextBox
+                                Text="{Binding QueueName}"
+                                Watermark="Enter queue name"
+                                Height="38" />
+
+                        </StackPanel>
+
+                        <Grid
+                            ColumnDefinitions="Auto,*"
+                            ColumnSpacing="12">
+
+                            <CheckBox
+                                IsChecked="{Binding IsDurable}"
+                                VerticalAlignment="Center">
+
+                                <TextBlock Text="Durable" />
+
+                            </CheckBox>
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="{Binding IsDurable,
+                                    Converter={StaticResource BooleanToIconConverter}}"
+                                Foreground="{Binding IsDurable,
+                                    Converter={StaticResource BooleanToColorConverter}}"
+                                VerticalAlignment="Center" />
+
+                        </Grid>
+
+                        <TextBlock
+                            Classes="description"
+                            Text="Durable queues survive server restart." />
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Load balancing -->
+                <Border Classes="section">
+
+                    <StackPanel Spacing="12">
+
+                        <TextBlock
+                            Classes="section-title"
+                            Text="Load balancing" />
+
+                        <ComboBox
+                            ItemsSource="{Binding LoadBalancingAlgorithms}"
+                            SelectedItem="{Binding LoadBalancingAlgorithm}"
+                            Height="38" />
+
+                        <TextBlock
+                            Classes="description"
+                            Text="Controls how messages are distributed between consumers." />
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Message retention -->
+                <Border Classes="section">
+
+                    <StackPanel Spacing="12">
+
+                        <TextBlock
+                            Classes="section-title"
+                            Text="Message retention" />
+
+                        <Grid
+                            ColumnDefinitions="Auto,*"
+                            ColumnSpacing="12">
+
+                            <CheckBox
+                                IsChecked="{Binding MessageRetentionEnabled}"
+                                VerticalAlignment="Center">
+
+                                <TextBlock Text="Enable message retention" />
+
+                            </CheckBox>
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="{Binding MessageRetentionEnabled,
+                                    Converter={StaticResource BooleanToIconConverter}}"
+                                Foreground="{Binding MessageRetentionEnabled,
+                                    Converter={StaticResource BooleanToColorConverter}}"
+                                VerticalAlignment="Center" />
+
+                        </Grid>
+
+                        <Grid
+                            ColumnDefinitions="*,120"
+                            ColumnSpacing="12"
+                            IsEnabled="{Binding IsRetentionPeriodEnabled}">
+
+                            <TextBlock
+                                Text="Retention period (minutes)"
+                                Classes="description"
+                                VerticalAlignment="Center" />
+
+                            <NumericUpDown
+                                Grid.Column="1"
+                                Minimum="1"
+                                Maximum="100000"
+                                Value="{Binding RetentionPeriod}"
+                                Height="38"
+                                VerticalContentAlignment="Center"
+                                HorizontalContentAlignment="Center" />
+
+                        </Grid>
+
+                        <TextBlock
+                            Classes="description"
+                            Text="Messages are retained for the specified period." />
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Permissions -->
+                <Border Classes="section">
+
+                    <StackPanel Spacing="12">
+
+                        <TextBlock
+                            Classes="section-title"
+                            Text="Permissions" />
+
+                        <TextBlock
+                            Classes="description"
+                            Text="Grant specific permissions to services." />
+
+                        <TextBox
+                            Text="{Binding ServiceName}"
+                            Watermark="Service name"
+                            Height="38" />
+
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="18">
+
+                            <CheckBox
+                                Content="Read"
+                                IsChecked="{Binding CanRead}" />
+
+                            <CheckBox
+                                Content="Write"
+                                IsChecked="{Binding CanWrite}" />
+
+                            <CheckBox
+                                Content="Delete"
+                                IsChecked="{Binding CanDelete}" />
+
+                        </StackPanel>
+
+                        <Button
+                            Content="Add permission"
+                            Command="{Binding AddPermissionCommand}"
+                            HorizontalAlignment="Left"
+                            Padding="14,7" />
+
+                        <ItemsControl
+                            ItemsSource="{Binding Permissions}">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Border
+                                        Classes="permission-item"
+                                        Margin="0,3">
+
+                                        <Grid
+                                            ColumnDefinitions="*,Auto,Auto"
+                                            ColumnSpacing="12">
+
+                                            <TextBlock
+                                                Text="{Binding ServiceName}"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Permissions}"
+                                                Opacity="0.65"
+                                                VerticalAlignment="Center" />
+                                            
+                                            <Button
+                                                Grid.Column="2"
+                                                Content="✕"
+                                                Width="28"
+                                                Height="28"
+                                                Padding="0"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
+                                                Tag="{Binding}"
+                                                Click="RemovePermissionButton_OnClick" />
+
+                                        </Grid>
+
+                                    </Border>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                </Border>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border
+            Grid.Row="2"
+            Background="#151922"
+            BorderBrush="#30FFFFFF"
+            BorderThickness="0,1,0,0"
+            Padding="24,14">
+
+            <StackPanel
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="8">
+
+                <Button
+                    Classes="secondary"
+                    Content="Cancel"
+                    Click="CancelButton_OnClick" />
+
+                <Button
+                    Classes="primary"
+                    Content="Update"
+                    Click="UpdateButton_OnClick"
+                    IsDefault="True" />
+
+            </StackPanel>
+
+        </Border>
+
+    </Grid>
+
+</Window>

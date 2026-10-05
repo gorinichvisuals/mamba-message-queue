@@ -115,6 +115,7 @@ internal sealed partial class ServerStorageService
         int size =
             sizeof(byte) +
             16 +
+            sizeof(long) +
             sizeof(byte) +
             sizeof(byte) +
             sizeof(byte) +
@@ -133,6 +134,10 @@ internal sealed partial class ServerStorageService
 
         queue.Id.TryWriteBytes(span[offset..]);
         offset += 16;
+
+        BinaryPrimitives.WriteInt64BigEndian(span[offset..], queue.CreatedAt.UtcDateTime.Ticks);
+
+        offset += sizeof(long);
 
         span[offset++] = queue.IsDurable
             ? (byte)1
@@ -183,6 +188,7 @@ internal sealed partial class ServerStorageService
         const int headerSize =
             sizeof(byte) +
             16 +
+            sizeof(long) +
             sizeof(byte) +
             sizeof(byte) +
             sizeof(byte) +
@@ -205,6 +211,12 @@ internal sealed partial class ServerStorageService
         Guid queueId = new(span.Slice(offset, 16));
 
         offset += 16;
+
+        long createdAtTicks = BinaryPrimitives.ReadInt64BigEndian(span[offset..]);
+
+        offset += sizeof(long);
+
+        DateTimeOffset createdAt = new(new DateTime(createdAtTicks, DateTimeKind.Utc));
 
         bool isDurable = span[offset++] is not 0;
 
@@ -267,6 +279,7 @@ internal sealed partial class ServerStorageService
             queueId,
             name,
             isDurable,
+            createdAt,
             loadBalancingAlgorithm,
             permissions,
             new StoredMessageRetentionOptions(

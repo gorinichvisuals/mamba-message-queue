@@ -7,6 +7,9 @@ internal sealed class ClientConnection(
     IMambaLogger mambaLogger) : IClientConnection, IAsyncDisposable
 {
     public Guid Id { get; } = Guid.CreateVersion7();
+    
+    public ClientType ClientType { get; private set; }
+    
     private bool _isAuthenticated;
     private int _disposed;
     public string ServiceName { get; private set; } = string.Empty;
@@ -125,11 +128,12 @@ internal sealed class ClientConnection(
             Id);
     }
     
-    public void Authenticate()
+    public void Authenticate(ClientType clientType)
     {
         _isAuthenticated = true;
+        ClientType = clientType;
 
-        mambaLogger.Server.LogInformation("Client {ClientId} authenticated.", Id);
+        mambaLogger.Server.LogInformation("Client {ClientId} authenticated as {ClientType}.", Id, clientType);
     }
 
     public void IdentifyService(string serviceName)

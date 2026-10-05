@@ -4,7 +4,7 @@ internal sealed class CreateQueueCommandHandler(IQueueManager queueManager) : IC
 {
     public async Task Handle(CreateQueueCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {
-        CommandResponse response = await queueManager.CreateQueue(
+        CommandResponse<QueueModel> response = await queueManager.CreateQueue(
             command.QueueName,
             command.IsDurable,
             command.LoadBalancingAlgorithm,
@@ -12,7 +12,7 @@ internal sealed class CreateQueueCommandHandler(IQueueManager queueManager) : IC
             command.MessageRetentionEnabled,
             command.MessageRetentionPeriod);
 
-        byte[] payload = CommandResponseEncoder.Encode(response);
+        byte[] payload = CommandResponseEncoder.Encode(response, QueueModelEncoder.Encode);
 
         Frame frame = new(FrameType.CommandResponse, payload);
 

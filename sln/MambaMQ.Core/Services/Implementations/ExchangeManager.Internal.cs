@@ -4,6 +4,9 @@ internal sealed partial class ExchangeManager
 {
     private bool HasExchangePermission(MambaExchange exchange, IClientConnection connection, ExchangePermission permission)
     {
+        if (connection.ClientType is ClientType.Management)
+            return true;
+        
         if (!authorizationEnabled)
             return true;
 
