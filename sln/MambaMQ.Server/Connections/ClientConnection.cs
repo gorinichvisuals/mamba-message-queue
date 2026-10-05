@@ -8,6 +8,7 @@ internal sealed class ClientConnection(
 {
     public Guid Id { get; } = Guid.CreateVersion7();
     private bool _isAuthenticated;
+    private int _disposed;
     public string ServiceName { get; private set; } = string.Empty;
     
     private NetworkStream? _stream;
@@ -51,8 +52,9 @@ internal sealed class ClientConnection(
         catch (OperationCanceledException ) when (cancellationToken.IsCancellationRequested)
         {        
         }
-        catch (IOException)
-        { 
+        catch (IOException exception)
+        {
+            mambaLogger.Server.LogInformation("Client {ClientId} disconnected: {Message}", Id, exception.Message);
         }
         catch (Exception exception)
         {             
@@ -110,12 +112,17 @@ internal sealed class ClientConnection(
     
     public async ValueTask DisposeAsync()
     {
-        if(_stream is not null)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
+        if (_stream is not null)
             await _stream.DisposeAsync();
-        
+
         client.Dispose();
-        
-        mambaLogger.Server.LogDebug("Client {ClientId} connection closed.", Id);
+
+        mambaLogger.Server.LogInformation(
+            "Client {ClientId} connection closed.",
+            Id);
     }
     
     public void Authenticate()

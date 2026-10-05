@@ -1,0 +1,17 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MambaMQ.Studio.ViewModels"
+             x:Class="MambaMQ.Studio.Views.QueuesView"
+             x:DataType="vm:QueuesViewModel">
+
+    <Grid>
+
+        <TextBlock
+            Text="Queues"
+            FontSize="28"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center" />
+
+    </Grid>
+
+</UserControl>

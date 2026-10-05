@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Client.NET.Readers;
+﻿namespace MambaMQ.Shared.Client.Readers;
 
 public static class FrameReader
 {

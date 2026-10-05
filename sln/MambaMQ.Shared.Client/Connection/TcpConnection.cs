@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Client.NET.Connection;
+﻿namespace MambaMQ.Shared.Client.Connection;
 
 internal sealed class TcpConnection : IConnection
 {

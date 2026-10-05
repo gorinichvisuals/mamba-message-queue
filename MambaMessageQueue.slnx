@@ -2,6 +2,8 @@
   <Folder Name="/sln/" />
   <Folder Name="/sln/Client/">
     <Project Path="sln/MambaMQ.Client.NET/MambaMQ.Client.NET.csproj" />
+    <Project Path="sln/MambaMQ.Shared.Client/MambaMQ.Shared.Client.csproj" />
+    <Project Path="sln/MambaMQ.Studio.Client.NET/MambaMQ.Studio.Client.NET.csproj" />
   </Folder>
   <Folder Name="/sln/Protocol/">
     <Project Path="sln/MambaMQ.Protocol/MambaMQ.Protocol.csproj" />
@@ -14,5 +16,8 @@
     <Project Path="sln/MambaMQ.Logging/MambaMQ.Logging.csproj" />
     <Project Path="sln/MambaMQ.Persistence/MambaMQ.Persistence.csproj" />
     <Project Path="sln/MambaMQ.Server/MambaMQ.Server.csproj" />
+  </Folder>
+  <Folder Name="/sln/UI/">
+    <Project Path="sln/MambaMQ.Studio/MambaMQ.Studio.csproj" />
   </Folder>
 </Solution>

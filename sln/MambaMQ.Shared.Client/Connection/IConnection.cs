@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Client.NET.Connection;
+﻿namespace MambaMQ.Shared.Client.Connection;
 
 public interface IConnection : IAsyncDisposable
 {
