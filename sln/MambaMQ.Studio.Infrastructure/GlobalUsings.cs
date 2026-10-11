@@ -1,0 +1,23 @@
+﻿global using Microsoft.Extensions.DependencyInjection;
+
+global using System.Net.Sockets;
+global using System.Buffers.Binary;
+global using System.Security.Authentication;
+
+global using MambaMQ.Studio.Infrastructure.Client;
+global using MambaMQ.Studio.Infrastructure.Options;
+global using MambaMQ.Studio.Infrastructure.Readers;
+global using MambaMQ.Studio.Infrastructure.Connection;
+global using MambaMQ.Studio.Infrastructure.Services.Abstractions;
+global using MambaMQ.Studio.Infrastructure.Services.Implementations;
+
+global using MambaMQ.Protocol.Enums;
+global using MambaMQ.Protocol.Frames;
+global using MambaMQ.Protocol.Commands;
+global using MambaMQ.Protocol.Constants;
+global using MambaMQ.Protocol.Responses;
+global using MambaMQ.Protocol.Serialization.Frames;
+global using MambaMQ.Protocol.Serialization.Commands;
+global using MambaMQ.Protocol.Responses.Models.Queues;
+global using MambaMQ.Protocol.Serialization.Responses;
+global using MambaMQ.Protocol.Serialization.Responses.Queues;

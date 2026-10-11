@@ -121,22 +121,16 @@ public sealed class MambaQueue(
         throw new InvalidOperationException($"Message '{delivery.MessageId}' is already in flight.");
     }
     
-    public void Update(
-        string queueName,
-        bool isDurable,
-        LoadBalancingAlgorithm loadBalancingAlgorithm,
-        Dictionary<string, QueuePermission> permissions,
-        bool messageRetentionEnabled,
-        TimeSpan messageRetentionPeriod)
+    public void Update(QueueUpdateDto dto)
     {
-        Name = queueName;
-        IsDurable = isDurable;
-        LoadBalancingAlgorithm = loadBalancingAlgorithm;
-        Permissions = permissions;
-        MessageRetentionEnabled = messageRetentionEnabled;
-        MessageRetentionPeriod = messageRetentionPeriod;
+        Name = dto.QueueName;
+        IsDurable = dto.IsDurable;
+        LoadBalancingAlgorithm = dto.LoadBalancingAlgorithm;
+        Permissions = dto.Permissions;
+        MessageRetentionEnabled = dto.MessageRetentionEnabled;
+        MessageRetentionPeriod = dto.MessageRetentionPeriod;
     }
     
     internal bool HasPermission(string serviceName, QueuePermission permission)
-        => Permissions.TryGetValue(serviceName, out QueuePermission permissions) && permissions.HasFlag(permission);
+        => Permissions.TryGetValue(serviceName, out QueuePermission servicePermissions) && servicePermissions.HasFlag(permission);
 }

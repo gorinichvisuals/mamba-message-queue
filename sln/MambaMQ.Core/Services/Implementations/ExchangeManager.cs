@@ -8,24 +8,25 @@ internal sealed partial class ExchangeManager(
     private readonly Dictionary<Guid, MambaExchange> _exchangesById = [];
     private readonly Dictionary<string, MambaExchange> _exchangesByName = [];
     
-    public async Task<CommandResponse> CreateExchange(string name, bool isDurable, ExchangeType type,
-        Dictionary<string, ExchangePermission> permissions)
+    private readonly ILogger _serverLogger = mambaLogger.Server;
+
+    public async Task<CommandResponse> CreateExchange(ExchangeCreateDto dto)
     {
-        if (_exchangesByName.ContainsKey(name))
+        if (_exchangesByName.ContainsKey(dto.Name))
         {
-            mambaLogger.Server.LogInformation("Exchange '{Name}' already exists.", name);
+            _serverLogger.LogInformation("Exchange '{Name}' already exists.", dto.Name);
             
             return CommandResponse.Success();
         }
 
         MambaExchange exchange = new(
             Guid.CreateVersion7(), 
-            name, 
-            isDurable, 
-            type,
-            permissions);
+            dto.Name, 
+            dto.IsDurable, 
+            dto.Type,
+            dto.Permissions);
 
-        if (isDurable)
+        if (dto.IsDurable)
             await PersistExchange(exchange);
         
         RegisterExchange(exchange);
@@ -35,10 +36,10 @@ internal sealed partial class ExchangeManager(
         return CommandResponse.Success();
     }
     
-    public async Task<CommandResponse> Bind(string exchangeName, string queueName, string routingKey, IClientConnection connection)
+    public async Task<CommandResponse> Bind(ExchangeBindingDto dto, IClientConnection connection)
     {
-        if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
-            return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
+        if (!_exchangesByName.TryGetValue(dto.ExchangeName, out MambaExchange? exchange))
+            return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{dto.ExchangeName}' does not exist.");
         
         if (!HasExchangePermission(exchange, connection, ExchangePermission.Write))
         {
@@ -50,17 +51,17 @@ internal sealed partial class ExchangeManager(
         if (exchange.IsDurable)
             await PersistExchange(exchange);
         
-        exchange.Bind(queueName, routingKey);
+        exchange.Bind(dto.QueueName, dto.RoutingKey);
 
-        mambaLogger.Exchange(exchange.Name).LogInformation("Queue {QueueId} was bound with routing key '{RoutingKey}'.", queueName, routingKey);
+        mambaLogger.Exchange(exchange.Name).LogInformation("Queue {QueueId} was bound with routing key '{RoutingKey}'.", dto.QueueName, dto.RoutingKey);
 
         return CommandResponse.Success();
     }
 
-    public async Task<CommandResponse> Unbind(string exchangeName, string queueName, string routingKey, IClientConnection connection)
+    public async Task<CommandResponse> Unbind(ExchangeBindingDto dto, IClientConnection connection)
     {
-        if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
-            return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
+        if (!_exchangesByName.TryGetValue(dto.ExchangeName, out MambaExchange? exchange))
+            return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{dto.ExchangeName}' does not exist.");
         
         if (!HasExchangePermission(exchange, connection, ExchangePermission.Delete))
         {
@@ -77,9 +78,9 @@ internal sealed partial class ExchangeManager(
                 return persistResponse;
         }
 
-        exchange.Unbind(queueName, routingKey);
+        exchange.Unbind(dto.QueueName, dto.RoutingKey);
 
-        mambaLogger.Exchange(exchange.Name).LogInformation("Queue {QueueName} was unbound with routing key '{RoutingKey}'.", queueName, routingKey);
+        mambaLogger.Exchange(exchange.Name).LogInformation("Queue {QueueName} was unbound with routing key '{RoutingKey}'.", dto.QueueName, dto.RoutingKey);
 
         return CommandResponse.Success();
     }
@@ -105,7 +106,7 @@ internal sealed partial class ExchangeManager(
     {
         IReadOnlyCollection<StoredMambaExchange> storedExchanges = await serverStorageService.RestoreExchanges(cancellationToken);
 
-        mambaLogger.Server.LogInformation("Successfully restored {ExchangeCount} exchanges.", storedExchanges.Count);
+        _serverLogger.LogInformation("Successfully restored {ExchangeCount} exchanges.", storedExchanges.Count);
 
         foreach (StoredMambaExchange storedExchange in storedExchanges)
         {

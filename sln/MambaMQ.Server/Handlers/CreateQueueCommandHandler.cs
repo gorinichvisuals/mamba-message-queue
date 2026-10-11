@@ -4,18 +4,25 @@ internal sealed class CreateQueueCommandHandler(IQueueManager queueManager) : IC
 {
     public async Task Handle(CreateQueueCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {
-        CommandResponse<QueueModel> response = await queueManager.CreateQueue(
-            command.QueueName,
-            command.IsDurable,
-            command.LoadBalancingAlgorithm,
-            command.Permissions,
-            command.MessageRetentionEnabled,
-            command.MessageRetentionPeriod);
+        QueueCreateDto newQueueCreateDto = MapToQueueCreateDto(command); 
+        
+        CommandResponse<QueueModel> response = await queueManager.CreateQueue(newQueueCreateDto);
 
         byte[] payload = CommandResponseEncoder.Encode(response, QueueModelEncoder.Encode);
 
         Frame frame = new(FrameType.CommandResponse, payload);
 
         await connection.SendAsync(frame, cancellationToken);
+    }
+
+    private QueueCreateDto MapToQueueCreateDto(CreateQueueCommand command)
+    {
+        return new QueueCreateDto(
+            command.QueueName,
+            command.IsDurable,
+            command.LoadBalancingAlgorithm,
+            command.Permissions,
+            command.MessageRetentionEnabled,
+            command.MessageRetentionPeriod);
     }
 }

@@ -28,7 +28,7 @@ public sealed partial class App : Application
     {
         ServiceCollection services = new();
 
-        services.AddStudioClientServices();
+        services.AddStudioInfrastructureServices();
         services.AddSingleton<MainViewModel>();
 
         return services.BuildServiceProvider();
