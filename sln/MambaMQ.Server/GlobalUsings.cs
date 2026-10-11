@@ -30,8 +30,10 @@ global using MambaMQ.Protocol.Serialization.Responses.Queues;
 global using MambaMQ.Persistence.Extensions;
 global using MambaMQ.Persistence.Services.Abstractions;
 
+global using MambaMQ.Abstractions.Dto.Queues;
 global using MambaMQ.Abstractions.Connections;
 global using MambaMQ.Abstractions.Dispatchers;
+global using MambaMQ.Abstractions.Dto.Exchanges;
 
 global using MambaMQ.Core.Readers;
 global using MambaMQ.Core.Extensions;

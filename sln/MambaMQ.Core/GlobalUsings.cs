@@ -29,6 +29,8 @@ global using MambaMQ.LoadBalancer.Strategies.Abstractions;
 global using MambaMQ.Persistence.Models;
 global using MambaMQ.Persistence.Services.Abstractions;
 
+global using MambaMQ.Abstractions.Dto.Queues;
 global using MambaMQ.Abstractions.Connections;
+global using MambaMQ.Abstractions.Dto.Exchanges;
 
 global using MambaMQ.Logging.Services;

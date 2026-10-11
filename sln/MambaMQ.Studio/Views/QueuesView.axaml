@@ -49,16 +49,12 @@
 
             <DataGrid.Styles>
 
-                <Style Selector="DataGridRow">
-                    <Setter Property="BorderBrush"
-                            Value="#30FFFFFF" />
-                    <Setter Property="BorderThickness"
-                            Value="0,0,0,1" />
+                <Style Selector="DataGridCell">
+                    <Setter Property="Padding" Value="4,0" />
                 </Style>
 
-                <Style Selector="DataGridColumnHeader /template/ Thumb#PART_ColumnHeaderGripper">
-                    <Setter Property="Background"
-                            Value="Transparent" />
+                <Style Selector="DataGridColumnHeader">
+                    <Setter Property="Padding" Value="4,0" />
                 </Style>
 
             </DataGrid.Styles>
@@ -76,7 +72,7 @@
                     Width="180" />
 
                 <DataGridTemplateColumn
-                    Header="Durable"
+                    Header="Durability"
                     Width="90">
 
                     <DataGridTemplateColumn.CellTemplate>
