@@ -6,6 +6,8 @@
              RequestedThemeVariant="Default">
 
     <Application.Resources>
+        <SolidColorBrush x:Key="StudioBackgroundBrush" Color="#10131A" />
+        <SolidColorBrush x:Key="StudioPanelBackgroundBrush" Color="#151922" />
         <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
         <converters:BooleanToColorConverter x:Key="BooleanToColorConverter" />
     </Application.Resources>
@@ -17,8 +19,6 @@
     <Application.Styles>
         <FluentTheme />
 
-        <StyleInclude
-            Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
     </Application.Styles>
 
 </Application>

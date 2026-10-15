@@ -14,9 +14,7 @@ public partial class QueueDetailsView : UserControl
     private async void QueueDetailsView_Loaded(object? sender, RoutedEventArgs e)
     {
         if (_initialized || DataContext is not QueueDetailsViewModel viewModel)
-        {
             return;
-        }
 
         _initialized = true;
 
@@ -43,7 +41,9 @@ public partial class QueueDetailsView : UserControl
         if (DataContext is not QueueDetailsViewModel viewModel || TopLevel.GetTopLevel(this) is not Window owner)
             return;
 
-        ConfirmDeleteQueueWindow window = new(viewModel.Queue.Name);
+        ConfirmDeleteWindow window = new(
+            "Delete queue?",
+            $"Are you sure you want to delete queue \"{viewModel.Queue.Name}\"? This action cannot be undone.");
 
         bool confirmed = await window.ShowDialog<bool>(owner);
 
@@ -56,6 +56,28 @@ public partial class QueueDetailsView : UserControl
             return;
 
         viewModel.GoBackCommand.Execute(null);
+    }
+
+    private async void DeleteSelectedMessages_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not QueueDetailsViewModel viewModel || TopLevel.GetTopLevel(this) is not Window owner)
+            return;
+
+        int selectedCount = viewModel.Messages.Count(message => message.IsSelected);
+
+        if (selectedCount is 0)
+            return;
+
+        string message = selectedCount is 1
+            ? "Are you sure you want to delete the selected message? This action cannot be undone."
+            : $"Are you sure you want to delete the {selectedCount} selected messages? This action cannot be undone.";
+
+        ConfirmDeleteWindow window = new("Delete messages?", message);
+
+        bool confirmed = await window.ShowDialog<bool>(owner);
+
+        if (confirmed)
+            await viewModel.DeleteSelectedMessagesCommand.ExecuteAsync(null);
     }
 
     private async void CreateMessage_Click(object? sender, RoutedEventArgs e)
@@ -75,12 +97,8 @@ public partial class QueueDetailsView : UserControl
     
     private async void MessageRow_DoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is not Control control ||
-            control.DataContext is not MessageListItemModel item ||
-            TopLevel.GetTopLevel(this) is not Window owner)
-        {
+        if (sender is not Control control || control.DataContext is not MessageListItemModel item || TopLevel.GetTopLevel(this) is not Window owner)
             return;
-        }
 
         MessageDetailsWindow window = new(item.Message);
 

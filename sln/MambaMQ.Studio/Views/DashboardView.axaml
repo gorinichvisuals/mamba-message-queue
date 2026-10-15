@@ -6,13 +6,13 @@
 
     <Grid>
 
-        <Border Background="#10131A" />
+        <Border Background="{DynamicResource StudioBackgroundBrush}" />
 
         <Grid RowDefinitions="72,*">
 
             <Border
                 Grid.Row="0"
-                Background="#151922"
+                Background="{DynamicResource StudioPanelBackgroundBrush}"
                 BorderBrush="#30FFFFFF"
                 BorderThickness="0,0,0,1">
 

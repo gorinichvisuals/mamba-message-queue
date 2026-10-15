@@ -1,6 +1,7 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MambaMQ.Studio.ViewModels"
+             xmlns:models="using:MambaMQ.Protocol.Responses.Models.Queues"
              x:Class="MambaMQ.Studio.Views.QueuesView"
              x:DataType="vm:QueuesViewModel">
 
@@ -10,79 +11,109 @@
         <Grid ColumnDefinitions="*,Auto"
               Margin="0,0,0,16">
 
-            <TextBlock
-                Text="Queues"
-                FontSize="28"
-                FontWeight="SemiBold"
-                VerticalAlignment="Center" />
+            <TextBlock Text="{Binding QueuesTitle}"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
 
-            <StackPanel
-                Grid.Column="1"
-                Orientation="Horizontal"
-                Spacing="8">
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="8">
 
-                <Button
-                    Content="Create"
-                    Click="CreateQueueButton_OnClick"
-                    Padding="16,8" />
+                <Button Content="Create"
+                        Click="CreateQueueButton_OnClick"
+                        Padding="16,8" />
 
-                <Button
-                    Content="Refresh"
-                    Command="{Binding LoadCommand}"
-                    Padding="16,8" />
+                <Button Content="Refresh"
+                        Command="{Binding LoadCommand}"
+                        Padding="16,8" />
 
             </StackPanel>
         </Grid>
 
-        <DataGrid
-            x:Name="QueuesGrid"
-            Grid.Row="1"
-            ItemsSource="{Binding Queues}"
-            AutoGenerateColumns="False"
-            IsReadOnly="True"
-            HeadersVisibility="Column"
-            CanUserResizeColumns="True"
-            RowHeight="42"
-            ClipboardCopyMode="None"
-            CurrentCellChanged="QueuesGrid_OnCurrentCellChanged"
-            KeyDown="QueuesGrid_OnKeyDown"
-            DoubleTapped="QueuesGrid_OnDoubleTapped">
+        <Border Grid.Row="1"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                CornerRadius="8"
+                ClipToBounds="True">
 
-            <DataGrid.Styles>
+            <StackPanel Spacing="0">
 
-                <Style Selector="DataGridCell">
-                    <Setter Property="Padding" Value="4,0" />
-                </Style>
+                <!-- Column headers: same layout and styling as QueueDetails messages. -->
+                <Border Padding="12,10"
+                        Background="{DynamicResource ThemeControlLowBrush}">
 
-                <Style Selector="DataGridColumnHeader">
-                    <Setter Property="Padding" Value="4,0" />
-                </Style>
+                    <Grid ColumnDefinitions="2*,2*,*,*"
+                          ColumnSpacing="12">
 
-            </DataGrid.Styles>
+                        <TextBlock Text="Name"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
 
-            <DataGrid.Columns>
-                
-                <DataGridTextColumn
-                    Header="Name"
-                    Binding="{Binding Name}"
-                    Width="2*" />
+                        <TextBlock Grid.Column="1"
+                                   Text="Created At"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
 
-                <DataGridTextColumn
-                    Header="Created At"
-                    Binding="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
-                    Width="2*" />
+                        <TextBlock Grid.Column="2"
+                                   Text="Available"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
 
-                <DataGridTextColumn
-                    Header="Available"
-                    Binding="{Binding AvailableMessageCount}"
-                    Width="*" />
+                        <TextBlock Grid.Column="3"
+                                   Text="In Flight"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
 
-                <DataGridTextColumn
-                    Header="In Flight"
-                    Binding="{Binding InFlightMessageCount}"
-                    Width="*" />
-                
-            </DataGrid.Columns>
-        </DataGrid>
+                <!-- Queue rows -->
+                <ItemsControl x:Name="QueuesGrid"
+                              ItemsSource="{Binding Queues}"
+                              Focusable="True">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:QueueModel">
+                            <Border BorderThickness="0,1,0,0"
+                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                    Background="Transparent"
+                                    PointerEntered="QueueRow_PointerEntered"
+                                    PointerExited="QueueRow_PointerExited"
+                                    DoubleTapped="QueuesGrid_OnDoubleTapped">
+
+                                <Grid ColumnDefinitions="2*,2*,*,*"
+                                      ColumnSpacing="12"
+                                      MinHeight="36">
+
+                                    <TextBlock Text="{Binding Name}"
+                                               Tag="0"
+                                               Margin="12,0,0,0"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               PointerPressed="QueuesGrid_OnCellPointerPressed" />
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                               Tag="1"
+                                               VerticalAlignment="Center"
+                                               PointerPressed="QueuesGrid_OnCellPointerPressed" />
+
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding AvailableMessageCount}"
+                                               Tag="2"
+                                               VerticalAlignment="Center"
+                                               PointerPressed="QueuesGrid_OnCellPointerPressed" />
+
+                                    <TextBlock Grid.Column="3"
+                                               Text="{Binding InFlightMessageCount}"
+                                               Tag="3"
+                                               VerticalAlignment="Center"
+                                               PointerPressed="QueuesGrid_OnCellPointerPressed" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

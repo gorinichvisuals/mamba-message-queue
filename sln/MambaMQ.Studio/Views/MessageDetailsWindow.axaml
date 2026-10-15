@@ -10,7 +10,8 @@
         MinWidth="450"
         MinHeight="350"
         WindowStartupLocation="CenterOwner"
-        CanResize="True">
+        CanResize="True"
+        Background="{DynamicResource StudioBackgroundBrush}">
 
     <ScrollViewer>
         <StackPanel Margin="24"

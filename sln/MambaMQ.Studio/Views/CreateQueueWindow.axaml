@@ -14,7 +14,7 @@
     MinWidth="560"
     MinHeight="700"
     WindowStartupLocation="CenterOwner"
-    Background="#10131A">
+    Background="{DynamicResource StudioBackgroundBrush}">
 
     <Window.Styles>
 
@@ -29,7 +29,7 @@
         </Style>
 
         <Style Selector="Border.section">
-            <Setter Property="Background" Value="#151922" />
+            <Setter Property="Background" Value="{DynamicResource StudioPanelBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="#30FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
@@ -63,7 +63,7 @@
 
         <Border
             Grid.Row="0"
-            Background="#151922"
+            Background="{DynamicResource StudioPanelBackgroundBrush}"
             BorderBrush="#30FFFFFF"
             BorderThickness="0,0,0,1"
             Padding="24,16">
@@ -322,7 +322,7 @@
 
         <Border
             Grid.Row="2"
-            Background="#151922"
+            Background="{DynamicResource StudioPanelBackgroundBrush}"
             BorderBrush="#30FFFFFF"
             BorderThickness="0,1,0,0"
             Padding="24,14">
