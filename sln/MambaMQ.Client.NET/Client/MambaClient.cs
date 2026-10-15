@@ -1,5 +1,4 @@
-﻿using MambaMQ.Client.NET.Readers;
-using IConnection = MambaMQ.Client.NET.Connection.IConnection;
+﻿using IConnection = MambaMQ.Client.NET.Connection.IConnection;
 
 namespace MambaMQ.Client.NET;
 

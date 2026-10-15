@@ -34,7 +34,7 @@ public sealed class MambaQueue(
     
     private readonly SemaphoreSlim _messageAvailable = new(0);
     
-    public void PublishMessage(MambaMessage message)
+    internal void PublishMessage(MambaMessage message)
     {
         if(!_messages.TryAdd(message.MessageId, message))
             throw new InvalidOperationException($"Message '{message.MessageId}' already exists.");
@@ -44,7 +44,7 @@ public sealed class MambaQueue(
         _messageAvailable.Release();
     }
     
-    public async IAsyncEnumerable<MessageDelivery> SubscribeAsync(Guid connectionId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    internal async IAsyncEnumerable<MessageDelivery> SubscribeAsync(Guid connectionId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -60,7 +60,7 @@ public sealed class MambaQueue(
         }
     }
     
-    public void DeleteMessage(Guid messageId)
+    internal void DeleteMessage(Guid messageId)
     {
         _messages.TryRemove(messageId, out _);
 
@@ -68,7 +68,31 @@ public sealed class MambaQueue(
             _inFlight.TryRemove(deliveryId, out _);
     }
     
-    public async ValueTask<MessageDelivery?> DequeueAsync(Guid connectionId, CancellationToken cancellationToken = default)
+    internal void DeleteMessages(ICollection<Guid> messageIds)
+    {
+        HashSet<Guid> idsToDelete = messageIds.ToHashSet();
+
+        foreach (Guid messageId in idsToDelete)
+        {
+            _messages.TryRemove(messageId, out _);
+
+            if (_deliveryByMessage.TryRemove(messageId, out DeliveryId deliveryId))
+                _inFlight.TryRemove(deliveryId, out _);
+        }
+
+        int availableCount = _available.Count;
+
+        for (int i = 0; i < availableCount; i++)
+        {
+            if (!_available.TryDequeue(out Guid messageId))
+                break;
+
+            if (!idsToDelete.Contains(messageId))
+                _available.Enqueue(messageId);
+        }
+    }
+    
+    internal async ValueTask<MessageDelivery?> DequeueAsync(Guid connectionId, CancellationToken cancellationToken = default)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -86,7 +110,7 @@ public sealed class MambaQueue(
         return null;
     }
     
-    public MambaMessage? PeekNextMessage()
+    internal MambaMessage? PeekNextMessage()
     {
         while (_available.TryPeek(out Guid messageId))
         {
@@ -98,6 +122,33 @@ public sealed class MambaQueue(
 
         return null;
     }
+    
+    internal void Update(QueueUpdateDto dto)
+    {
+        Name = dto.QueueName;
+        IsDurable = dto.IsDurable;
+        LoadBalancingAlgorithm = dto.LoadBalancingAlgorithm;
+        Permissions = dto.Permissions;
+        MessageRetentionEnabled = dto.MessageRetentionEnabled;
+        MessageRetentionPeriod = dto.MessageRetentionPeriod;
+    }
+    
+    internal (IReadOnlyList<MambaMessage> Messages, int TotalCount) GetMessages(int skip, int take)
+    {
+        int totalCount = _messages.Count;
+
+        IReadOnlyList<MambaMessage> messages = _messages.Values
+            .OrderByDescending(message => message.ReceivedAt)
+            .ThenByDescending(message => message.MessageId)
+            .Skip(skip)
+            .Take(take)
+            .ToArray();
+
+        return (messages, totalCount);
+    }
+    
+    internal bool HasPermission(string serviceName, QueuePermission permission)
+        => Permissions.TryGetValue(serviceName, out QueuePermission servicePermissions) && servicePermissions.HasFlag(permission);
     
     private MessageDelivery CreateDelivery(MambaMessage message, Guid connectionId)
     {
@@ -116,21 +167,8 @@ public sealed class MambaQueue(
             throw new InvalidOperationException($"Delivery '{delivery.DeliveryId}' already exists.");
 
         if (_deliveryByMessage.TryAdd(delivery.MessageId, delivery.DeliveryId)) return;
-            _inFlight.TryRemove(delivery.DeliveryId, out _);
+        _inFlight.TryRemove(delivery.DeliveryId, out _);
 
         throw new InvalidOperationException($"Message '{delivery.MessageId}' is already in flight.");
     }
-    
-    public void Update(QueueUpdateDto dto)
-    {
-        Name = dto.QueueName;
-        IsDurable = dto.IsDurable;
-        LoadBalancingAlgorithm = dto.LoadBalancingAlgorithm;
-        Permissions = dto.Permissions;
-        MessageRetentionEnabled = dto.MessageRetentionEnabled;
-        MessageRetentionPeriod = dto.MessageRetentionPeriod;
-    }
-    
-    internal bool HasPermission(string serviceName, QueuePermission permission)
-        => Permissions.TryGetValue(serviceName, out QueuePermission servicePermissions) && servicePermissions.HasFlag(permission);
 }

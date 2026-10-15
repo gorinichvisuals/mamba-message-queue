@@ -25,7 +25,9 @@ global using MambaMQ.Protocol.Commands.Abstractions;
 global using MambaMQ.Protocol.Serialization.Commands;
 global using MambaMQ.Protocol.Serialization.Responses;
 global using MambaMQ.Protocol.Responses.Models.Queues;
+global using MambaMQ.Protocol.Responses.Models.Messages;
 global using MambaMQ.Protocol.Serialization.Responses.Queues;
+global using MambaMQ.Protocol.Serialization.Responses.Messages;
 
 global using MambaMQ.Persistence.Extensions;
 global using MambaMQ.Persistence.Services.Abstractions;

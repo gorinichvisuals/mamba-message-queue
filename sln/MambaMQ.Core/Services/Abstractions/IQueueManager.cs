@@ -14,4 +14,6 @@ public interface IQueueManager
     
     Task<CommandResponse> PublishMessage(string queueName, MambaMessage message, IClientConnection connection, CancellationToken cancellationToken = default);
     Task<CommandResponse> DeleteMessage(string queueName, Guid messageId, IClientConnection connection, CancellationToken cancellationToken = default);
+    Task<CommandResponse> DeleteMessages(string queueName, ICollection<Guid> messageIds, IClientConnection connection, CancellationToken cancellationToken = default);
+    Task<CommandResponse<GetMessagesResponse>> GetMessagesAsync(string queueName, int skip, int take, CancellationToken cancellationToken = default);
 }

@@ -15,6 +15,7 @@
         <StackPanel Margin="24"
                     Spacing="24">
 
+            <!-- Header -->
             <Grid ColumnDefinitions="*,Auto"
                   ColumnSpacing="16">
 
@@ -57,18 +58,17 @@
                             Foreground="White" />
 
                 </StackPanel>
-
             </Grid>
 
+            <!-- Error -->
             <TextBlock Text="{Binding ErrorMessage}"
                        Foreground="#F87171"
                        TextWrapping="Wrap"
                        IsVisible="{Binding ErrorMessage}" />
 
-            
             <Border Height="1"
-                    Background="#505050"/>
-            
+                    Background="#505050" />
+
             <!-- Statistics -->
             <Grid ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="12"
@@ -90,7 +90,6 @@
                                    FontSize="36"
                                    FontWeight="Bold" />
                     </StackPanel>
-
                 </Border>
 
                 <Border Grid.Column="1"
@@ -109,13 +108,11 @@
                                    FontSize="36"
                                    FontWeight="Bold" />
                     </StackPanel>
-
                 </Border>
-
             </Grid>
-            
+
             <Border Height="1"
-                    Background="#505050"/>
+                    Background="#505050" />
 
             <!-- Configuration -->
             <StackPanel Spacing="16">
@@ -171,7 +168,7 @@
                                                         Converter={StaticResource BooleanToColorConverter}}" />
 
                         <TextBlock Grid.Row="4"
-                                   Text="Retention period"
+                                   Text="Message retention period"
                                    Foreground="Gray" />
 
                         <TextBlock Grid.Row="4"
@@ -197,17 +194,16 @@
                                    TextWrapping="Wrap" />
 
                     </Grid>
-
                 </Border>
-
             </StackPanel>
-            
+
             <Border Height="1"
-                    Background="#505050"/>
+                    Background="#505050" />
 
             <!-- Messages -->
             <StackPanel Spacing="16">
 
+                <!-- Header -->
                 <Grid ColumnDefinitions="*,Auto"
                       ColumnSpacing="12">
 
@@ -221,38 +217,138 @@
                                 Spacing="8">
 
                         <Button Content="Create Message"
-                                IsEnabled="False" />
+                                Click="CreateMessage_Click"
+                                Padding="16,8" />
 
                         <Button Content="Refresh"
-                                IsEnabled="False" />
+                                Command="{Binding RefreshMessagesCommand}"
+                                Padding="16,8" />
 
                         <Button Content="Delete Selected"
-                                IsEnabled="False" />
+                                Command="{Binding DeleteSelectedMessagesCommand}"
+                                IsEnabled="{Binding HasSelectedMessages}"
+                                Padding="16,8" />
 
                     </StackPanel>
-
                 </Grid>
 
+                <!-- Loading -->
+                <TextBlock Text="Loading messages..."
+                           IsVisible="{Binding IsLoadingMessages}"
+                           HorizontalAlignment="Center"
+                           Foreground="Gray" />
+
+                <!-- Error -->
+                <Border Padding="16"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="IndianRed"
+                        IsVisible="{Binding HasMessagesError}">
+
+                    <TextBlock Text="{Binding MessagesError}"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <!-- Empty state -->
                 <Border Padding="24"
                         CornerRadius="8"
                         BorderThickness="1"
-                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                        IsVisible="{Binding HasNoMessages}">
 
                     <StackPanel Spacing="8"
                                 HorizontalAlignment="Center">
 
-                        <TextBlock Text="Messages will appear here"
+                        <TextBlock Text="No messages yet"
                                    FontSize="16"
                                    FontWeight="SemiBold"
                                    HorizontalAlignment="Center" />
 
-                        <TextBlock Text="Message listing is not connected yet."
+                        <TextBlock Text="Publish a message to see it here."
                                    Foreground="Gray"
                                    HorizontalAlignment="Center"
                                    TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Messages table -->
+                <Border BorderThickness="1"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                        CornerRadius="8"
+                        IsVisible="{Binding HasMessages}">
+
+                    <StackPanel Spacing="0">
+
+                        <!-- Column headers -->
+                        <Border Padding="12,10"
+                                Background="{DynamicResource ThemeControlLowBrush}">
+
+                            <Grid ColumnDefinitions="3*,100,2*,60"
+                                  ColumnSpacing="12">
+
+                                <TextBlock Text="Message ID"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+
+                                <TextBlock Grid.Column="1"
+                                           Text="Size"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+
+                                <TextBlock Grid.Column="2"
+                                           Text="Received At"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+
+                                <TextBlock Grid.Column="3"
+                                           Text="Select"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Message rows -->
+                        <ItemsControl ItemsSource="{Binding Messages}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderThickness="0,1,0,0"
+                                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                            Background="Transparent"
+                                            PointerEntered="MessageRow_PointerEntered"
+                                            PointerExited="MessageRow_PointerExited">
+
+                                        <Grid ColumnDefinitions="3*,100,2*,60"
+                                              ColumnSpacing="12"
+                                              MinHeight="36"
+                                              DoubleTapped="MessageRow_DoubleTapped">
+
+                                            <TextBlock Text="{Binding MessageId}"
+                                                       Margin="12,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding SizeInBytes, StringFormat='{}{0} bytes'}"
+                                                       VerticalAlignment="Center" />
+
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding ReceivedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
+                                                       VerticalAlignment="Center" />
+
+                                            <CheckBox Grid.Column="3"
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      DoubleTapped="MessageCheckbox_DoubleTapped" />
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
                     </StackPanel>
-
                 </Border>
 
             </StackPanel>

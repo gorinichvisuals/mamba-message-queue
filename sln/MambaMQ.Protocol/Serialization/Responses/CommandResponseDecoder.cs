@@ -39,7 +39,9 @@ public static class CommandResponseDecoder
             ? null
             : Encoding.UTF8.GetString(buffer.Slice(offset, errorMessageLength));
 
-        return success is 1 ? CommandResponse.Success() : CommandResponse.Fail(errorCode, errorMessage ?? "Command failed.");
+        return success is 1 
+            ? CommandResponse.Success() 
+            : CommandResponse.Fail(errorCode, errorMessage ?? "Command failed.");
     }
     
     public static CommandResponse<T> Decode<T>(ReadOnlySpan<byte> buffer, Func<ReadOnlySpan<byte>, T> dataDecoder)

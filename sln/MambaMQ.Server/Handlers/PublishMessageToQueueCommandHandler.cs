@@ -1,6 +1,6 @@
 ﻿namespace MambaMQ.Server.Handlers;
 
-internal sealed class PublishMessageCommandHandler(IQueueManager queueManager) : ICommandHandler<PublishMessageCommand>
+internal sealed class PublishMessageToQueueCommandHandler(IQueueManager queueManager) : ICommandHandler<PublishMessageCommand>
 {
     public async Task Handle(PublishMessageCommand command, IClientConnection connection, CancellationToken cancellationToken)
     {

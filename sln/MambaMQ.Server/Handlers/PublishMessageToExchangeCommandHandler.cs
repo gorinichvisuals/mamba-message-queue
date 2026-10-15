@@ -1,6 +1,6 @@
 ﻿namespace MambaMQ.Server.Handlers;
 
-internal sealed class PublishToExchangeCommandHandler(
+internal sealed class PublishMessageToExchangeCommandHandler(
     IExchangeManager exchangeManager,
     IQueueManager queueManager) : ICommandHandler<PublishToExchangeCommand>
 {

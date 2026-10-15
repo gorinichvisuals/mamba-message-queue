@@ -19,5 +19,8 @@ public enum FrameType : byte
     GetQueuesCommand = 15,
     GetQueuesResponse = 16,
     DeleteQueueCommand = 17,
-    UpdateQueueCommand = 18
+    UpdateQueueCommand = 18,
+    GetMessagesCommand = 19,
+    GetMessagesResponse = 20,
+    DeleteSelectedMessagesCommand = 21
 }

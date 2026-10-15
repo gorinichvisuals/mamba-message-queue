@@ -2,9 +2,25 @@
 
 public partial class QueueDetailsView : UserControl
 {
+    private bool _initialized;
+
     public QueueDetailsView()
     {
         InitializeComponent();
+
+        Loaded += QueueDetailsView_Loaded;
+    }
+
+    private async void QueueDetailsView_Loaded(object? sender, RoutedEventArgs e)
+    {
+        if (_initialized || DataContext is not QueueDetailsViewModel viewModel)
+        {
+            return;
+        }
+
+        _initialized = true;
+
+        await viewModel.LoadMessagesAsync();
     }
 
     private async void UpdateQueue_Click(object? sender, RoutedEventArgs e)
@@ -40,5 +56,51 @@ public partial class QueueDetailsView : UserControl
             return;
 
         viewModel.GoBackCommand.Execute(null);
+    }
+
+    private async void CreateMessage_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not QueueDetailsViewModel viewModel || TopLevel.GetTopLevel(this) is not Window owner)
+            return;
+
+        CreateMessageWindow window = new();
+
+        string? message = await window.ShowDialog<string?>(owner);
+
+        if (message is null)
+            return;
+
+        await viewModel.PublishMessage(message);
+    }
+    
+    private async void MessageRow_DoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not Control control ||
+            control.DataContext is not MessageListItemModel item ||
+            TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return;
+        }
+
+        MessageDetailsWindow window = new(item.Message);
+
+        await window.ShowDialog(owner);
+    }
+    
+    private void MessageCheckbox_DoubleTapped(object? sender, TappedEventArgs e)
+    {
+        e.Handled = true;
+    }
+    
+    private void MessageRow_PointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.Background = new SolidColorBrush(Color.Parse("#383838"));
+    }
+
+    private void MessageRow_PointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.Background = Brushes.Transparent;
     }
 }

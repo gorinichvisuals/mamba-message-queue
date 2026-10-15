@@ -1,0 +1,82 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:protocol="using:MambaMQ.Protocol.Responses.Models.Messages"
+        x:Class="MambaMQ.Studio.Views.MessageDetailsWindow"
+        x:DataType="protocol:QueueMessageModel"
+        Title="Message Details"
+        Icon="avares://MambaMQ.Studio/Assets/logo.ico"
+        Width="650"
+        Height="500"
+        MinWidth="450"
+        MinHeight="350"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <ScrollViewer>
+        <StackPanel Margin="24"
+                    Spacing="20">
+
+            <TextBlock Text="Message Details"
+                       FontSize="26"
+                       FontWeight="Bold" />
+
+            <Border Height="1"
+                    Background="#505050" />
+
+            <Grid ColumnDefinitions="140,*"
+                  RowDefinitions="Auto,Auto,Auto"
+                  ColumnSpacing="16"
+                  RowSpacing="16">
+
+                <TextBlock Text="Message ID"
+                           Foreground="Gray" />
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding MessageId}"
+                           TextWrapping="Wrap" />
+
+                <TextBlock Grid.Row="1"
+                           Text="Message Size"
+                           Foreground="Gray" />
+
+                <TextBlock Grid.Row="1"
+                           Grid.Column="1"
+                           Text="{Binding SizeInBytes, StringFormat='{}{0} bytes'}" />
+
+                <TextBlock Grid.Row="2"
+                           Text="Received At"
+                           Foreground="Gray" />
+
+                <TextBlock Grid.Row="2"
+                           Grid.Column="1"
+                           Text="{Binding ReceivedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss zzz}'}" />
+
+            </Grid>
+
+            <TextBlock Text="Payload"
+                       FontSize="18"
+                       FontWeight="SemiBold" />
+
+            <Border Padding="12"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+
+                <SelectableTextBlock Text="{Binding Content}"
+                                     TextWrapping="Wrap"
+                                     MinHeight="150" />
+
+            </Border>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+
+                <Button Content="Close"
+                        Click="Close_Click" />
+
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

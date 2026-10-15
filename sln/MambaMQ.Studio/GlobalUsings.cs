@@ -4,6 +4,7 @@ global using CommunityToolkit.Mvvm.Input;
 global using CommunityToolkit.Mvvm.ComponentModel;
 
 global using Avalonia;
+global using Avalonia.Media;
 global using Avalonia.Input;
 global using Avalonia.Controls;
 global using Avalonia.Markup.Xaml;
@@ -15,7 +16,9 @@ global using Avalonia.Controls.ApplicationLifetimes;
 
 global using System;
 global using System.Linq;
+global using System.Text;
 global using System.Globalization;
+global using System.ComponentModel;
 global using System.Threading.Tasks;
 global using System.Collections.Generic;
 global using System.Collections.ObjectModel;
@@ -32,3 +35,4 @@ global using MambaMQ.Studio.Infrastructure.Extensions;
 global using MambaMQ.Protocol.Enums;
 global using MambaMQ.Protocol.Responses;
 global using MambaMQ.Protocol.Responses.Models.Queues;
+global using MambaMQ.Protocol.Responses.Models.Messages;
