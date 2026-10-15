@@ -1,19 +1,18 @@
 ﻿namespace MambaMQ.Studio.Views;
 
-public partial class ConfirmDeleteQueueWindow : Window
+public partial class ConfirmDeleteWindow : Window
 {
-    public ConfirmDeleteQueueWindow(string queueName)
+    public ConfirmDeleteWindow(string title, string message)
     {
         InitializeComponent();
 
-        MessageText.Text =
-            $"Are you sure you want to delete queue \"{queueName}\"? " +
-            "This action cannot be undone.";
+        Title = title;
+        TitleText.Text = title;
+        MessageText.Text = message;
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e)
         => Close(false);
-    
 
     private void Confirm_Click(object? sender, RoutedEventArgs e)
         => Close(true);

@@ -15,6 +15,8 @@
         <StackPanel Margin="24"
                     Spacing="24">
 
+            <StackPanel Spacing="12">
+
             <!-- Header -->
             <Grid ColumnDefinitions="*,Auto"
                   ColumnSpacing="16">
@@ -113,6 +115,8 @@
 
             <Border Height="1"
                     Background="#505050" />
+
+            </StackPanel>
 
             <!-- Configuration -->
             <StackPanel Spacing="16">
@@ -225,7 +229,7 @@
                                 Padding="16,8" />
 
                         <Button Content="Delete Selected"
-                                Command="{Binding DeleteSelectedMessagesCommand}"
+                                Click="DeleteSelectedMessages_Click"
                                 IsEnabled="{Binding HasSelectedMessages}"
                                 Padding="16,8" />
 
@@ -283,7 +287,7 @@
                         <Border Padding="12,10"
                                 Background="{DynamicResource ThemeControlLowBrush}">
 
-                            <Grid ColumnDefinitions="3*,100,2*,60"
+                            <Grid ColumnDefinitions="*,*,*,*"
                                   ColumnSpacing="12">
 
                                 <TextBlock Text="Message ID"
@@ -315,16 +319,16 @@
                                     <Border BorderThickness="0,1,0,0"
                                             BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                                             Background="Transparent"
+                                            Padding="12,0"
                                             PointerEntered="MessageRow_PointerEntered"
-                                            PointerExited="MessageRow_PointerExited">
+                                            PointerExited="MessageRow_PointerExited"
+                                            DoubleTapped="MessageRow_DoubleTapped">
 
-                                        <Grid ColumnDefinitions="3*,100,2*,60"
+                                        <Grid ColumnDefinitions="*,*,*,*"
                                               ColumnSpacing="12"
-                                              MinHeight="36"
-                                              DoubleTapped="MessageRow_DoubleTapped">
+                                              MinHeight="36">
 
                                             <TextBlock Text="{Binding MessageId}"
-                                                       Margin="12,0,0,0"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis" />
 
@@ -347,6 +351,49 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+
+                        <!-- Paging footer -->
+                        <Border BorderThickness="0,1,0,0"
+                                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                Padding="12,8">
+
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto"
+                                  ColumnSpacing="8">
+
+                                <TextBlock Text="{Binding TotalMessageCount, StringFormat='Total messages: {0}'}"
+                                           VerticalAlignment="Center"
+                                           Foreground="Gray" />
+
+                                <TextBlock Grid.Column="1"
+                                           Text="Rows per page"
+                                           VerticalAlignment="Center"
+                                           Foreground="Gray" />
+
+                                <ComboBox Grid.Column="2"
+                                          Width="76"
+                                          ItemsSource="{Binding PageSizes}"
+                                          SelectedItem="{Binding PageSize, Mode=TwoWay}"
+                                          VerticalAlignment="Center" />
+
+                                <Button Grid.Column="3"
+                                        Content="Previous"
+                                        Command="{Binding PreviousPageCommand}"
+                                        IsEnabled="{Binding CanGoToPreviousPage}"
+                                        Padding="10,5" />
+
+                                <TextBlock Grid.Column="4"
+                                           Text="{Binding PageSummary}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center" />
+
+                                <Button Grid.Column="5"
+                                        Content="Next"
+                                        Command="{Binding NextPageCommand}"
+                                        IsEnabled="{Binding CanGoToNextPage}"
+                                        Padding="10,5" />
+
+                            </Grid>
+                        </Border>
 
                     </StackPanel>
                 </Border>

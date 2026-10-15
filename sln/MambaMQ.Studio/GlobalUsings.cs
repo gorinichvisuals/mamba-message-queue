@@ -27,6 +27,7 @@ global using System.Diagnostics.CodeAnalysis;
 global using MambaMQ.Studio.Views;
 global using MambaMQ.Studio.Models;
 global using MambaMQ.Studio.ViewModels;
+global using MambaMQ.Studio.Results;
 
 global using MambaMQ.Studio.Infrastructure.Client;
 global using MambaMQ.Studio.Infrastructure.Options;

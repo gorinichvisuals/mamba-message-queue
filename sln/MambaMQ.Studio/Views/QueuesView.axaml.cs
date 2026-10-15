@@ -3,6 +3,7 @@
 public partial class QueuesView : UserControl
 {
     private int _selectedColumnIndex = -1;
+    private QueueModel? _selectedQueue;
 
     public QueuesView()
     {
@@ -35,21 +36,22 @@ public partial class QueuesView : UserControl
 
     private void QueuesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (DataContext is not QueuesViewModel viewModel)
-            return;
-
-        if (QueuesGrid.SelectedItem is not QueueModel queue)
+        if (DataContext is not QueuesViewModel viewModel ||
+            sender is not Control control ||
+            control.DataContext is not QueueModel queue)
             return;
 
         viewModel.OpenQueueCommand.Execute(queue);
     }
 
-    private void QueuesGrid_OnCurrentCellChanged(object? sender, EventArgs e)
+    private void QueuesGrid_OnCellPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (QueuesGrid.CurrentColumn is null)
+        if (sender is not Control control || !int.TryParse(control.Tag?.ToString(), out int columnIndex))
             return;
 
-        _selectedColumnIndex = QueuesGrid.Columns.IndexOf(QueuesGrid.CurrentColumn);
+        _selectedColumnIndex = columnIndex;
+        _selectedQueue = control.DataContext as QueueModel;
+        QueuesGrid.Focus();
     }
 
     private async void QueuesGrid_OnKeyDown(object? sender, KeyEventArgs e)
@@ -57,7 +59,7 @@ public partial class QueuesView : UserControl
         if (e.Key != Key.C || e.KeyModifiers != KeyModifiers.Control)
             return;
 
-        if (QueuesGrid.SelectedItem is not QueueModel queue)
+        if (_selectedQueue is not QueueModel queue)
             return;
 
         string? value = _selectedColumnIndex switch
@@ -80,5 +82,17 @@ public partial class QueuesView : UserControl
         await topLevel.Clipboard.SetTextAsync(value);
 
         e.Handled = true;
+    }
+
+    private void QueueRow_PointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.Background = new SolidColorBrush(Color.Parse("#383838"));
+    }
+
+    private void QueueRow_PointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.Background = Brushes.Transparent;
     }
 }

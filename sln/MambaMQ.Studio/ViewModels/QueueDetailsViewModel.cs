@@ -18,6 +18,25 @@ public partial class QueueDetailsViewModel(
     private bool _isLoadingMessages;
 
     [ObservableProperty]
+    private int _totalMessageCount;
+
+    [ObservableProperty]
+    private int _pageSize = 10;
+
+    [ObservableProperty]
+    private int _pageIndex;
+
+    public IReadOnlyList<int> PageSizes { get; } = [10, 20];
+
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling((double)TotalMessageCount / PageSize));
+
+    public string PageSummary => $"Page {PageIndex + 1} of {TotalPages}";
+
+    public bool CanGoToPreviousPage => PageIndex > 0 && !IsLoadingMessages;
+
+    public bool CanGoToNextPage => PageIndex + 1 < TotalPages && !IsLoadingMessages;
+
+    [ObservableProperty]
     private bool _hasMessages;
 
     [ObservableProperty]
@@ -35,6 +54,29 @@ public partial class QueueDetailsViewModel(
 
     private ObservableCollection<MessageListItemModel>? _observedMessages;
 
+    partial void OnTotalMessageCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(TotalPages));
+        OnPropertyChanged(nameof(PageSummary));
+        OnPropertyChanged(nameof(CanGoToNextPage));
+    }
+
+    partial void OnPageSizeChanged(int value)
+    {
+        PageIndex = 0;
+        OnPropertyChanged(nameof(TotalPages));
+        OnPropertyChanged(nameof(PageSummary));
+        OnPropertyChanged(nameof(CanGoToNextPage));
+        _ = LoadMessagesAsync();
+    }
+
+    partial void OnPageIndexChanged(int value)
+    {
+        OnPropertyChanged(nameof(PageSummary));
+        OnPropertyChanged(nameof(CanGoToPreviousPage));
+        OnPropertyChanged(nameof(CanGoToNextPage));
+    }
+
     [RelayCommand]
     private void GoBack()
     {
@@ -44,6 +86,26 @@ public partial class QueueDetailsViewModel(
     [RelayCommand]
     private async Task RefreshMessages()
     {
+        await LoadMessagesAsync();
+    }
+
+    [RelayCommand]
+    private async Task PreviousPage()
+    {
+        if (!CanGoToPreviousPage || IsLoadingMessages)
+            return;
+
+        PageIndex--;
+        await LoadMessagesAsync();
+    }
+
+    [RelayCommand]
+    private async Task NextPage()
+    {
+        if (!CanGoToNextPage || IsLoadingMessages)
+            return;
+
+        PageIndex++;
         await LoadMessagesAsync();
     }
 
@@ -79,6 +141,8 @@ public partial class QueueDetailsViewModel(
 
     partial void OnIsLoadingMessagesChanged(bool value)
     {
+        OnPropertyChanged(nameof(CanGoToPreviousPage));
+        OnPropertyChanged(nameof(CanGoToNextPage));
         OnPropertyChanged(nameof(HasNoMessages));
     }
 
@@ -95,13 +159,30 @@ public partial class QueueDetailsViewModel(
             IsLoadingMessages = true;
             MessagesError = null;
 
-            CommandResponse<GetMessagesResponse> response = await mambaClient.GetMessagesAsync(Queue.Name, skip: 0, take: 20);
+            CommandResponse<GetMessagesResponse> response = await FetchMessagesAsync();
 
             if (!response.IsSucceed || response.Data is null)
             {
                 MessagesError = response.ErrorMessage ?? "Failed to load messages.";
 
                 return;
+            }
+
+            TotalMessageCount = response.Data.TotalCount;
+
+            if (PageIndex > 0 && PageIndex * PageSize >= TotalMessageCount)
+            {
+                PageIndex = TotalMessageCount == 0 ? 0 : (TotalMessageCount - 1) / PageSize;
+                response = await FetchMessagesAsync();
+
+                if (!response.IsSucceed || response.Data is null)
+                {
+                    MessagesError = response.ErrorMessage ?? "Failed to load messages.";
+
+                    return;
+                }
+
+                TotalMessageCount = response.Data.TotalCount;
             }
 
             Messages = new ObservableCollection<MessageListItemModel>(
@@ -118,6 +199,13 @@ public partial class QueueDetailsViewModel(
         {
             IsLoadingMessages = false;
         }
+    }
+
+    private Task<CommandResponse<GetMessagesResponse>> FetchMessagesAsync()
+    {
+        int skip = PageIndex * PageSize;
+
+        return mambaClient.GetMessagesAsync(Queue.Name, skip, PageSize);
     }
 
     public async Task<QueueOperationResult> UpdateQueue(QueueOptions options)

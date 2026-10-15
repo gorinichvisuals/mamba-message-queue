@@ -4,8 +4,6 @@ public partial class QueuesViewModel(
     IMambaStudioClient mambaClient,
     Action<QueueModel> onQueueSelected) : ViewModelBase
 {
-    private readonly Guid _instanceId = Guid.NewGuid();
-
     [ObservableProperty]
     private ObservableCollection<QueueModel> _queues = [];
 
@@ -13,13 +11,22 @@ public partial class QueuesViewModel(
     private bool _isLoading;
 
     [ObservableProperty]
-    private string? _errorMessage;
+    private int _queueCount;
 
-    partial void OnQueuesChanged(ObservableCollection<QueueModel> value)
+    public string QueuesTitle => QueueCount switch
     {
-        Console.WriteLine(
-            $"QueuesViewModel {_instanceId}: Queues changed, count = {value.Count}");
+        0 => "Queues",
+        1 => "1 Queue",
+        _ => $"{QueueCount} Queues"
+    };
+
+    partial void OnQueueCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(QueuesTitle));
     }
+
+    [ObservableProperty]
+    private string? _errorMessage;
     
     [RelayCommand]
     private void OpenQueue(QueueModel queue)
@@ -44,6 +51,7 @@ public partial class QueuesViewModel(
             }
             
             Queues.Insert(0, response.Data!);
+            QueueCount = Queues.Count;
         }
         catch (Exception exception)
         {
@@ -62,6 +70,7 @@ public partial class QueuesViewModel(
             GetQueuesResponse response = await mambaClient.GetQueuesAsync();
 
             Queues = new ObservableCollection<QueueModel>(response.Queues);
+            QueueCount = Queues.Count;
         }
         catch (Exception exception)
         {
@@ -73,8 +82,3 @@ public partial class QueuesViewModel(
         }
     }
 }
-
-public sealed record QueueOperationResult(
-    bool IsSucceed,
-    string? ErrorMessage = null,
-    QueueModel? Queue = null);
