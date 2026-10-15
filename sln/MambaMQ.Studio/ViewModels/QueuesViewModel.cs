@@ -1,6 +1,8 @@
 ﻿namespace MambaMQ.Studio.ViewModels;
 
-public partial class QueuesViewModel(IMambaStudioClient mambaClient) : ViewModelBase
+public partial class QueuesViewModel(
+    IMambaStudioClient mambaClient,
+    Action<QueueModel> onQueueSelected) : ViewModelBase
 {
     private readonly Guid _instanceId = Guid.NewGuid();
 
@@ -13,15 +15,16 @@ public partial class QueuesViewModel(IMambaStudioClient mambaClient) : ViewModel
     [ObservableProperty]
     private string? _errorMessage;
 
-    public QueuesViewModel()
-        : this(null!)
-    {
-    }
-
     partial void OnQueuesChanged(ObservableCollection<QueueModel> value)
     {
         Console.WriteLine(
             $"QueuesViewModel {_instanceId}: Queues changed, count = {value.Count}");
+    }
+    
+    [RelayCommand]
+    private void OpenQueue(QueueModel queue)
+    {
+        onQueueSelected(queue);
     }
 
     [RelayCommand]
@@ -41,55 +44,6 @@ public partial class QueuesViewModel(IMambaStudioClient mambaClient) : ViewModel
             }
             
             Queues.Insert(0, response.Data!);
-        }
-        catch (Exception exception)
-        {
-            ErrorMessage = exception.Message;
-        }
-    }
-
-    public async Task UpdateQueue(QueueModel queue, QueueOptions options)
-    {
-        try
-        {
-            ErrorMessage = null;
-
-            CommandResponse<QueueModel> response = await mambaClient.UpdateQueueAsync(queue.Id, options);
-
-            if (!response.IsSucceed)
-            {
-                ErrorMessage = response.ErrorMessage;
-                
-                return;
-            }
-
-            QueueModel updatedQueue = response.Data!;
-
-            Queues = new ObservableCollection<QueueModel>(
-                Queues.Select(x => x.Id == updatedQueue.Id ? updatedQueue : x));
-        }
-        catch (Exception exception)
-        {
-            ErrorMessage = exception.Message;
-        }
-    }
-
-    [RelayCommand]
-    private async Task DeleteQueue(QueueModel queue)
-    {
-        try
-        {
-            ErrorMessage = null;
-
-            CommandResponse response = await mambaClient.DeleteQueueAsync(queue.Id);
-
-            if (!response.IsSucceed)
-            {
-                ErrorMessage = response.ErrorMessage;
-                return;
-            }
-
-            Queues.Remove(queue);
         }
         catch (Exception exception)
         {
@@ -119,3 +73,8 @@ public partial class QueuesViewModel(IMambaStudioClient mambaClient) : ViewModel
         }
     }
 }
+
+public sealed record QueueOperationResult(
+    bool IsSucceed,
+    string? ErrorMessage = null,
+    QueueModel? Queue = null);

@@ -61,7 +61,6 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- Header -->
         <Border
             Grid.Row="0"
             Background="#151922"
@@ -92,7 +91,6 @@
 
         </Border>
 
-        <!-- Form -->
         <ScrollViewer
             Grid.Row="1"
             Margin="24,20"
@@ -100,7 +98,6 @@
 
             <StackPanel Spacing="12">
 
-                <!-- General -->
                 <Border Classes="section">
 
                     <StackPanel Spacing="12">
@@ -152,7 +149,6 @@
 
                 </Border>
 
-                <!-- Load balancing -->
                 <Border Classes="section">
 
                     <StackPanel Spacing="12">
@@ -174,7 +170,6 @@
 
                 </Border>
 
-                <!-- Message retention -->
                 <Border Classes="section">
 
                     <StackPanel Spacing="12">
@@ -234,7 +229,6 @@
 
                 </Border>
 
-                <!-- Permissions -->
                 <Border Classes="section">
 
                     <StackPanel Spacing="12">
@@ -326,7 +320,6 @@
 
         </ScrollViewer>
 
-        <!-- Footer -->
         <Border
             Grid.Row="2"
             Background="#151922"

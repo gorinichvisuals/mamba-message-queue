@@ -21,33 +21,7 @@ public partial class QueuesView : UserControl
     {
         CreateQueueWindow window = new();
 
-        Window? owner = TopLevel.GetTopLevel(this) as Window;
-
-        if (owner is null)
-            return;
-
-        QueueOptions? options =
-            await window.ShowDialog<QueueOptions?>(owner);
-
-        if (options is null)
-            return;
-
-        if (DataContext is QueuesViewModel viewModel)
-        {
-            await viewModel.CreateQueueCommand.ExecuteAsync(options);
-        }
-    }
-    
-    private async void UpdateQueueButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Button button || button.DataContext is not QueueModel queue)
-            return;
-
-        UpdateQueueWindow window = new(queue);
-
-        Window? owner = TopLevel.GetTopLevel(this) as Window;
-
-        if (owner is null)
+        if (TopLevel.GetTopLevel(this) is not Window owner)
             return;
 
         QueueOptions? options = await window.ShowDialog<QueueOptions?>(owner);
@@ -56,37 +30,40 @@ public partial class QueuesView : UserControl
             return;
 
         if (DataContext is QueuesViewModel viewModel)
-            await viewModel.UpdateQueue(queue, options);
+            await viewModel.CreateQueueCommand.ExecuteAsync(options);
+    }
+
+    private void QueuesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is not QueuesViewModel viewModel)
+            return;
+
+        if (QueuesGrid.SelectedItem is not QueueModel queue)
+            return;
+
+        viewModel.OpenQueueCommand.Execute(queue);
     }
 
     private void QueuesGrid_OnCurrentCellChanged(object? sender, EventArgs e)
     {
-        _selectedColumnIndex = QueuesGrid.CurrentColumn.DisplayIndex;
+        if (QueuesGrid.CurrentColumn is not null)
+            _selectedColumnIndex = QueuesGrid.CurrentColumn.DisplayIndex;
     }
 
     private async void QueuesGrid_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.C ||
-            e.KeyModifiers != KeyModifiers.Control)
-        {
+        if (e.Key != Key.C || e.KeyModifiers != KeyModifiers.Control)
             return;
-        }
 
         if (QueuesGrid.SelectedItem is not QueueModel queue)
             return;
 
         string? value = _selectedColumnIndex switch
         {
-            0 => queue.Id.ToString(),
-            1 => queue.Name,
-            2 => queue.IsDurable ? "✓" : "✕",
-            3 => queue.MessageRetentionEnabled ? "✓" : "✕",
-            4 => queue.MessageRetentionPeriod.ToString(),
-            5 => queue.LoadBalancingAlgorithm.ToString(),
-            6 => queue.CreatedAt.ToString(),
-            7 => queue.AvailableMessageCount.ToString(),
-            8 => queue.InFlightMessageCount.ToString(),
-            9 => queue.PermissionsDisplay,
+            0 => queue.Name,
+            1 => queue.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+            2 => queue.AvailableMessageCount.ToString(),
+            3 => queue.InFlightMessageCount.ToString(),
             _ => null
         };
 

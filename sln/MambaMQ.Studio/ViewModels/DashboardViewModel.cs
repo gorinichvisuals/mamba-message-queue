@@ -13,6 +13,8 @@ public partial class DashboardViewModel(
 
     public string ConnectionInfo => $"{Host}:{Port}";
 
+    private QueuesViewModel? _queuesViewModel;
+    
     [ObservableProperty]
     private ViewModelBase _currentViewModel = new ExchangesViewModel();
 
@@ -25,7 +27,16 @@ public partial class DashboardViewModel(
     [RelayCommand]
     private void ShowQueues()
     {
-        CurrentViewModel = new QueuesViewModel(mambaClient);
+        _queuesViewModel ??= new QueuesViewModel(mambaClient, ShowQueueDetails);
+
+        CurrentViewModel = _queuesViewModel;
+    }
+    
+    private void ShowQueueDetails(QueueModel queue)
+    {
+        _queuesViewModel ??= new QueuesViewModel(mambaClient, ShowQueueDetails);
+
+        CurrentViewModel = new QueueDetailsViewModel(mambaClient, queue, ShowQueues);
     }
 
     [RelayCommand]
