@@ -1,0 +1,262 @@
+﻿<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:MambaMQ.Studio.ViewModels"
+    xmlns:converters="using:MambaMQ.Studio.Converters"
+    x:Class="MambaMQ.Studio.Views.QueueDetailsView"
+    x:DataType="vm:QueueDetailsViewModel">
+
+    <UserControl.Resources>
+        <converters:BooleanToColorConverter x:Key="BooleanToColorConverter" />
+        <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="24"
+                    Spacing="24">
+
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="16">
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+
+                    <Button Content="Queues"
+                            Command="{Binding GoBackCommand}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            FontSize="28"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center" />
+
+                    <TextBlock Text=">"
+                               FontSize="28"
+                               Foreground="Gray"
+                               VerticalAlignment="Center" />
+
+                    <TextBlock Text="{Binding Queue.Name}"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+
+                    <Button Content="Update"
+                            Click="UpdateQueue_Click" />
+
+                    <Button Content="Delete"
+                            Click="DeleteQueue_Click"
+                            Background="#DC2626"
+                            Foreground="White" />
+
+                </StackPanel>
+
+            </Grid>
+
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="#F87171"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding ErrorMessage}" />
+
+            
+            <Border Height="1"
+                    Background="#505050"/>
+            
+            <!-- Statistics -->
+            <Grid ColumnDefinitions="Auto,Auto"
+                  ColumnSpacing="12"
+                  HorizontalAlignment="Left">
+
+                <Border Width="260"
+                        Padding="20"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Available messages"
+                                   FontSize="18"
+                                   FontWeight="Medium"
+                                   Foreground="Gray" />
+
+                        <TextBlock Text="{Binding Queue.AvailableMessageCount}"
+                                   FontSize="36"
+                                   FontWeight="Bold" />
+                    </StackPanel>
+
+                </Border>
+
+                <Border Grid.Column="1"
+                        Padding="20"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="In-flight messages"
+                                   FontSize="18"
+                                   FontWeight="Medium"
+                                   Foreground="Gray" />
+
+                        <TextBlock Text="{Binding Queue.InFlightMessageCount}"
+                                   FontSize="36"
+                                   FontWeight="Bold" />
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+            
+            <Border Height="1"
+                    Background="#505050"/>
+
+            <!-- Configuration -->
+            <StackPanel Spacing="16">
+
+                <TextBlock Text="Configuration"
+                           FontSize="24"
+                           FontWeight="Bold" />
+
+                <Border Padding="20"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+
+                    <Grid ColumnDefinitions="200,*"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                          RowSpacing="16"
+                          ColumnSpacing="16">
+
+                        <TextBlock Text="Queue ID"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Queue.Id}" />
+
+                        <TextBlock Grid.Row="1"
+                                   Text="Durable"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="1"
+                                   Text="{Binding Queue.IsDurable,
+                                                  Converter={StaticResource BooleanToIconConverter}}"
+                                   Foreground="{Binding Queue.IsDurable,
+                                                        Converter={StaticResource BooleanToColorConverter}}" />
+
+                        <TextBlock Grid.Row="2"
+                                   Text="Load balancing"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="1"
+                                   Text="{Binding Queue.LoadBalancingAlgorithm}" />
+
+                        <TextBlock Grid.Row="3"
+                                   Text="Message retention"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="1"
+                                   Text="{Binding Queue.MessageRetentionEnabled,
+                                                  Converter={StaticResource BooleanToIconConverter}}"
+                                   Foreground="{Binding Queue.MessageRetentionEnabled,
+                                                        Converter={StaticResource BooleanToColorConverter}}" />
+
+                        <TextBlock Grid.Row="4"
+                                   Text="Retention period"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="1"
+                                   Text="{Binding Queue.MessageRetentionPeriod}" />
+
+                        <TextBlock Grid.Row="5"
+                                   Text="Created at"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="5"
+                                   Grid.Column="1"
+                                   Text="{Binding Queue.CreatedAt,
+                                                  StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" />
+
+                        <TextBlock Grid.Row="6"
+                                   Text="Permissions"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="6"
+                                   Grid.Column="1"
+                                   Text="{Binding Queue.PermissionsDisplay}"
+                                   TextWrapping="Wrap" />
+
+                    </Grid>
+
+                </Border>
+
+            </StackPanel>
+            
+            <Border Height="1"
+                    Background="#505050"/>
+
+            <!-- Messages -->
+            <StackPanel Spacing="16">
+
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+
+                    <TextBlock Text="Messages"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center" />
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="8">
+
+                        <Button Content="Create Message"
+                                IsEnabled="False" />
+
+                        <Button Content="Refresh"
+                                IsEnabled="False" />
+
+                        <Button Content="Delete Selected"
+                                IsEnabled="False" />
+
+                    </StackPanel>
+
+                </Grid>
+
+                <Border Padding="24"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+
+                    <StackPanel Spacing="8"
+                                HorizontalAlignment="Center">
+
+                        <TextBlock Text="Messages will appear here"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" />
+
+                        <TextBlock Text="Message listing is not connected yet."
+                                   Foreground="Gray"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap" />
+
+                    </StackPanel>
+
+                </Border>
+
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

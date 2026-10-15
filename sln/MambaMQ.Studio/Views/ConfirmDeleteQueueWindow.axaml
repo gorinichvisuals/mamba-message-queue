@@ -1,0 +1,40 @@
+﻿<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="MambaMQ.Studio.Views.ConfirmDeleteQueueWindow"
+    Title="Delete Queue"
+    Icon="avares://MambaMQ.Studio/Assets/logo.ico"
+    Width="420"
+    SizeToContent="Height"
+    WindowStartupLocation="CenterOwner"
+    CanResize="False"
+    Background="#10131A">
+
+    <StackPanel Margin="24"
+                Spacing="20">
+
+        <TextBlock Text="Delete queue?"
+                   FontSize="22"
+                   FontWeight="SemiBold" />
+
+        <TextBlock x:Name="MessageText"
+                   TextWrapping="Wrap" />
+
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+
+            <Button Content="Cancel"
+                    IsCancel="True"
+                    Click="Cancel_Click" />
+
+            <Button Content="Delete"
+                    IsDefault="True"
+                    Background="#DC2626"
+                    Foreground="White"
+                    Click="Confirm_Click" />
+
+        </StackPanel>
+
+    </StackPanel>
+</Window>
