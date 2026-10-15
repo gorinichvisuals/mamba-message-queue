@@ -11,7 +11,9 @@ public static class CommandDecoder
             
             FrameType.PublishMessage => MessageCommandDecoder.DecodePublish(buffer),
             FrameType.DeleteMessage => MessageCommandDecoder.DecodeDelete(buffer),
-
+            FrameType.DeleteSelectedMessagesCommand => MessageCommandDecoder.DecodeDeleteMessages(buffer),
+            FrameType.GetMessagesCommand => MessageCommandDecoder.DecodeGetMessages(buffer),
+            
             FrameType.CreateQueue => QueueCommandDecoder.DecodeCreateQueue(buffer),
             FrameType.SubscribeQueue => QueueCommandDecoder.DecodeSubscribeQueue(buffer),
             FrameType.SubscribeQueueWithBatch => QueueCommandDecoder.DecodeSubscribeQueueWithBatch(buffer),

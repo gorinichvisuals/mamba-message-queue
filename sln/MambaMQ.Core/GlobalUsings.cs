@@ -14,6 +14,7 @@ global using MambaMQ.Protocol.Responses;
 global using MambaMQ.Protocol.Serialization.Frames;
 global using MambaMQ.Protocol.Serialization.Messages;
 global using MambaMQ.Protocol.Responses.Models.Queues;
+global using MambaMQ.Protocol.Responses.Models.Messages;
 
 global using MambaMQ.Core.Models;
 global using MambaMQ.Core.Queues;

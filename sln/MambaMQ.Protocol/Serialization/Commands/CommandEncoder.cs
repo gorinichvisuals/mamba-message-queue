@@ -11,6 +11,8 @@ public static class CommandEncoder
             
             FrameType.PublishMessage => MessageCommandEncoder.EncodePublishMessage((PublishMessageCommand)command),
             FrameType.DeleteMessage => MessageCommandEncoder.EncodeDeleteMessage((DeleteMessageCommand)command),
+            FrameType.DeleteSelectedMessagesCommand => MessageCommandEncoder.EncodeDeleteMessages((DeleteMessagesCommand)command),
+            FrameType.GetMessagesCommand => MessageCommandEncoder.EncodeGetMessages((GetMessagesCommand)command),
 
             FrameType.CreateQueue => QueueCommandEncoder.EncodeCreateQueue((CreateQueueCommand)command),
             FrameType.SubscribeQueue => QueueCommandEncoder.EncodeSubscribeQueue((SubscribeQueueCommand)command),

@@ -1,0 +1,152 @@
+﻿<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    x:Class="MambaMQ.Studio.Views.CreateMessageWindow"
+    Title="Create Message"
+    Icon="avares://MambaMQ.Studio/Assets/logo.ico"
+    Width="560"
+    Height="520"
+    MinWidth="480"
+    MinHeight="420"
+    WindowStartupLocation="CenterOwner"
+    Background="#10131A">
+
+    <Window.Styles>
+
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBlock.description">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.55" />
+        </Style>
+
+        <Style Selector="Border.section">
+            <Setter Property="Background" Value="#151922" />
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="#1B202B" />
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="18,9" />
+        </Style>
+
+        <Style Selector="Button.primary">
+            <Setter Property="Padding" Value="18,9" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Border
+            Grid.Row="0"
+            Background="#151922"
+            BorderBrush="#30FFFFFF"
+            BorderThickness="0,0,0,1"
+            Padding="24,16">
+
+            <StackPanel Spacing="2">
+
+                <TextBlock
+                    Text="Create Message"
+                    FontSize="20"
+                    FontWeight="SemiBold" />
+
+                <TextBlock
+                    Text="Compose a message and publish it to the queue"
+                    Classes="description" />
+
+            </StackPanel>
+
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer
+            Grid.Row="1"
+            Margin="24,20"
+            VerticalScrollBarVisibility="Auto">
+
+            <StackPanel Spacing="12">
+
+                <Border Classes="section">
+
+                    <StackPanel Spacing="12">
+
+                        <TextBlock
+                            Classes="section-title"
+                            Text="Message content" />
+
+                        <TextBlock
+                            Classes="description"
+                            Text="Enter the message payload. It will be encoded as UTF-8 before publishing." />
+
+                        <TextBox
+                            x:Name="MessageTextBox"
+                            Watermark="Enter message content..."
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap"
+                            MinHeight="180"
+                            MaxHeight="320"
+                            VerticalContentAlignment="Top"
+                            HorizontalContentAlignment="Left"
+                            Padding="12"
+                            FontFamily="Consolas"
+                            FontSize="13" />
+
+                        <TextBlock
+                            Classes="description"
+                            Text="The message will be published to the currently selected queue." />
+
+                    </StackPanel>
+
+                </Border>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border
+            Grid.Row="2"
+            Background="#151922"
+            BorderBrush="#30FFFFFF"
+            BorderThickness="0,1,0,0"
+            Padding="24,14">
+
+            <StackPanel
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="8">
+
+                <Button
+                    Classes="secondary"
+                    Content="Cancel"
+                    Click="CancelButton_OnClick" />
+
+                <Button
+                    Classes="primary"
+                    Content="Publish"
+                    Click="PublishButton_OnClick"
+                    IsDefault="True" />
+
+            </StackPanel>
+
+        </Border>
+
+    </Grid>
+
+</Window>

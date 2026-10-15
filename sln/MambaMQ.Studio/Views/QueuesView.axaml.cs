@@ -46,8 +46,10 @@ public partial class QueuesView : UserControl
 
     private void QueuesGrid_OnCurrentCellChanged(object? sender, EventArgs e)
     {
-        if (QueuesGrid.CurrentColumn is not null)
-            _selectedColumnIndex = QueuesGrid.CurrentColumn.DisplayIndex;
+        if (QueuesGrid.CurrentColumn is null)
+            return;
+
+        _selectedColumnIndex = QueuesGrid.Columns.IndexOf(QueuesGrid.CurrentColumn);
     }
 
     private async void QueuesGrid_OnKeyDown(object? sender, KeyEventArgs e)

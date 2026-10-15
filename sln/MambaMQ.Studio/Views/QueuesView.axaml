@@ -45,6 +45,7 @@
             RowHeight="42"
             ClipboardCopyMode="None"
             CurrentCellChanged="QueuesGrid_OnCurrentCellChanged"
+            KeyDown="QueuesGrid_OnKeyDown"
             DoubleTapped="QueuesGrid_OnDoubleTapped">
 
             <DataGrid.Styles>

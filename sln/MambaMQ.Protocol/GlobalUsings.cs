@@ -11,6 +11,7 @@ global using MambaMQ.Protocol.Serialization.General;
 global using MambaMQ.Protocol.Commands.Abstractions;
 global using MambaMQ.Protocol.Serialization.Messages;
 global using MambaMQ.Protocol.Responses.Models.Queues;
+global using MambaMQ.Protocol.Responses.Models.Messages;
 global using MambaMQ.Protocol.Serialization.Commands.Queues;
 global using MambaMQ.Protocol.Serialization.Commands.Messages;
 global using MambaMQ.Protocol.Serialization.Commands.Exchanges;
