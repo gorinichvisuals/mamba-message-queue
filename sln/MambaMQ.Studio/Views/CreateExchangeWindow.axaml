@@ -1,16 +1,51 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MambaMQ.Studio.ViewModels"
+        xmlns:converters="using:MambaMQ.Studio.Converters"
+        xmlns:models="using:MambaMQ.Studio.Models"
         x:Class="MambaMQ.Studio.Views.CreateExchangeWindow"
         x:DataType="vm:CreateExchangeViewModel"
         Title="Create Exchange"
         Icon="avares://MambaMQ.Studio/Assets/logo.ico"
-        Width="480"
-        Height="380"
-        MinWidth="480"
-        MinHeight="380"
+        Width="560"
+        Height="700"
+        MinWidth="560"
+        MinHeight="700"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource StudioBackgroundBrush}">
+
+    <Window.Resources>
+        <converters:BooleanToColorConverter x:Key="BooleanToColorConverter" />
+        <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBlock.description">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.55" />
+        </Style>
+
+        <Style Selector="Border.section">
+            <Setter Property="Background" Value="{DynamicResource StudioPanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+
+        <Style Selector="Border.permission-item">
+            <Setter Property="Background" Value="#1B202B" />
+            <Setter Property="BorderBrush" Value="#25FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+    </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto">
         <Border Grid.Row="0"
@@ -22,35 +57,97 @@
                 <TextBlock Text="Create Exchange"
                            FontSize="20"
                            FontWeight="SemiBold" />
-                <TextBlock Text="Configure exchange settings"
-                           FontSize="12"
-                           Opacity="0.55" />
+                <TextBlock Text="Configure exchange settings and permissions"
+                           Classes="description" />
             </StackPanel>
         </Border>
 
-        <StackPanel Grid.Row="1" Margin="24" Spacing="16">
-            <StackPanel Spacing="6">
-                <TextBlock Text="Exchange name" Opacity="0.65" />
-                <TextBox Text="{Binding ExchangeName}"
-                         Watermark="Enter exchange name"
-                         Height="38" />
-            </StackPanel>
+        <ScrollViewer Grid.Row="1"
+                      Margin="24,20"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="12">
+                <Border Classes="section">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="section-title" Text="General" />
 
-            <StackPanel Spacing="6">
-                <TextBlock Text="Exchange type" Opacity="0.65" />
-                <ComboBox ItemsSource="{Binding ExchangeTypes}"
-                          SelectedItem="{Binding ExchangeType}"
-                          Height="38" />
-            </StackPanel>
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="description" Text="Exchange name" />
+                            <TextBox Text="{Binding ExchangeName}"
+                                     Watermark="Enter exchange name"
+                                     Height="38" />
+                        </StackPanel>
 
-            <CheckBox IsChecked="{Binding IsDurable}">
-                <TextBlock Text="Durable" />
-            </CheckBox>
-            <TextBlock Text="Durable exchanges survive server restart."
-                       FontSize="12"
-                       Opacity="0.55"
-                       Margin="24,-12,0,0" />
-        </StackPanel>
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="description" Text="Exchange type" />
+                            <ComboBox ItemsSource="{Binding ExchangeTypes}"
+                                      SelectedItem="{Binding ExchangeType}"
+                                      Height="38" />
+                        </StackPanel>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <CheckBox IsChecked="{Binding IsDurable}"
+                                      VerticalAlignment="Center">
+                                <TextBlock Text="Durable" />
+                            </CheckBox>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding IsDurable, Converter={StaticResource BooleanToIconConverter}}"
+                                       Foreground="{Binding IsDurable, Converter={StaticResource BooleanToColorConverter}}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+
+                        <TextBlock Classes="description"
+                                   Text="Durable exchanges survive server restart." />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="section">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="section-title" Text="Permissions" />
+                        <TextBlock Classes="description"
+                                   Text="Grant specific permissions to services." />
+
+                        <TextBox Text="{Binding ServiceName}"
+                                 Watermark="Service name"
+                                 Height="38" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="18">
+                            <CheckBox Content="Read" IsChecked="{Binding CanRead}" />
+                            <CheckBox Content="Write" IsChecked="{Binding CanWrite}" />
+                            <CheckBox Content="Delete" IsChecked="{Binding CanDelete}" />
+                        </StackPanel>
+
+                        <Button Content="Add permission"
+                                Command="{Binding AddPermissionCommand}"
+                                HorizontalAlignment="Left"
+                                Padding="14,7" />
+
+                        <ItemsControl ItemsSource="{Binding Permissions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:ExchangePermissionModel">
+                                    <Border Classes="permission-item" Margin="0,3">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                                            <TextBlock Text="{Binding ServiceName}"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Permissions}"
+                                                       Opacity="0.65"
+                                                       VerticalAlignment="Center" />
+                                            <Button Grid.Column="2"
+                                                    Content="✕"
+                                                    Tag="{Binding}"
+                                                    Click="RemovePermissionButton_OnClick"
+                                                    Width="28"
+                                                    Height="28"
+                                                    Padding="0" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
 
         <Border Grid.Row="2"
                 Background="{DynamicResource StudioPanelBackgroundBrush}"

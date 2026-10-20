@@ -27,4 +27,10 @@
     <ItemGroup>
       <ProjectReference Include="..\MambaMQ.Studio.Infrastructure\MambaMQ.Studio.Infrastructure.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Views\ExchangeDetailsView.axaml.cs">
+        <DependentUpon>ExchangeDetailsView.axaml</DependentUpon>
+      </Compile>
+    </ItemGroup>
 </Project>

@@ -1,0 +1,255 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MambaMQ.Studio.ViewModels"
+             xmlns:models="using:MambaMQ.Protocol.Responses.Models.Exchanges"
+             xmlns:converters="using:MambaMQ.Studio.Converters"
+             x:Class="MambaMQ.Studio.Views.ExchangeDetailsView"
+             x:DataType="vm:ExchangeDetailsViewModel">
+
+    <UserControl.Resources>
+        <converters:BooleanToColorConverter x:Key="BooleanToColorConverter" />
+        <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="24"
+                    Spacing="24">
+            <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="16">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <Button Content="Exchanges"
+                                Command="{Binding GoBackCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontSize="28"
+                                FontWeight="SemiBold" />
+
+                        <TextBlock Text=">"
+                                   FontSize="28"
+                                   Foreground="Gray"
+                                   VerticalAlignment="Center" />
+
+                        <TextBlock Text="{Binding Exchange.Name}"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <Button Content="Update"
+                                Click="UpdateExchange_Click" />
+
+                        <Button Content="Delete"
+                                Click="DeleteExchange_Click"
+                                Background="#DC2626"
+                                Foreground="White" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="{Binding ErrorMessage}"
+                           Foreground="#F87171"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding ErrorMessage}" />
+
+                <Border Height="1"
+                        Background="#505050" />
+
+                <Grid ColumnDefinitions="Auto,Auto"
+                      ColumnSpacing="12"
+                      HorizontalAlignment="Left">
+                    <Border Width="240"
+                            Padding="20"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Queues"
+                                       FontSize="18"
+                                       FontWeight="Medium"
+                                       Foreground="Gray" />
+
+                            <TextBlock Text="{Binding BoundQueueCount}"
+                                       FontSize="36"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Width="240"
+                            Padding="20"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Bindings"
+                                       FontSize="18"
+                                       FontWeight="Medium"
+                                       Foreground="Gray" />
+
+                            <TextBlock Text="{Binding BindingCount}"
+                                       FontSize="36"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
+            <Border Height="1"
+                    Background="#505050" />
+
+            <StackPanel Spacing="16">
+                <TextBlock Text="Configuration"
+                           FontSize="24"
+                           FontWeight="Bold" />
+
+                <Border Padding="20"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                    <Grid ColumnDefinitions="200,*"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                          RowSpacing="16"
+                          ColumnSpacing="16">
+                        <TextBlock Text="Exchange ID"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Exchange.Id}" />
+
+                        <TextBlock Grid.Row="1"
+                                   Text="Type"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="1"
+                                   Text="{Binding Exchange.Type}" />
+
+                        <TextBlock Grid.Row="2"
+                                   Text="Durable"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="1"
+                                   Text="{Binding Exchange.IsDurable, Converter={StaticResource BooleanToIconConverter}}"
+                                   Foreground="{Binding Exchange.IsDurable, Converter={StaticResource BooleanToColorConverter}}" />
+
+                        <TextBlock Grid.Row="3"
+                                   Text="Created at"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="1"
+                                   Text="{Binding Exchange.CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" />
+
+                        <TextBlock Grid.Row="4"
+                                   Text="Permissions"
+                                   Foreground="Gray" />
+
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="1"
+                                   Text="{Binding PermissionsSummary}"
+                                   TextWrapping="Wrap" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <Border Height="1"
+                    Background="#505050" />
+
+            <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                    <TextBlock Text="Queues"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center" />
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="8">
+                        <Button Content="Bind Queue"
+                                Click="BindQueue_Click"
+                                Padding="16,8" />
+
+                        <Button Content="Send Message"
+                                Click="SendMessage_Click"
+                                Padding="16,8" />
+
+                        <Button Content="Refresh"
+                                Click="Refresh_Click"
+                                Padding="16,8" />
+                    </StackPanel>
+                </Grid>
+
+                <Border BorderThickness="1"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                        CornerRadius="8">
+                    <StackPanel Spacing="0">
+                        <Border Padding="12,10"
+                                Background="{DynamicResource ThemeControlLowBrush}">
+                            <Grid ColumnDefinitions="2*,2*,Auto"
+                                  ColumnSpacing="12">
+                                <TextBlock Text="Queue"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Grid.Column="1"
+                                           Text="Routing Key"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Grid.Column="2"
+                                           Text="Actions"
+                                           FontWeight="SemiBold" />
+                            </Grid>
+                        </Border>
+
+                        <ItemsControl ItemsSource="{Binding Exchange.Bindings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:ExchangeBindingModel">
+                                    <Border BorderThickness="0,1,0,0"
+                                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                            Padding="12,4">
+                                        <Grid ColumnDefinitions="2*,2*,Auto"
+                                              ColumnSpacing="12"
+                                              MinHeight="36">
+                                            <Button Content="{Binding QueueName}"
+                                                    Click="OpenQueue_Click"
+                                                    Tag="{Binding QueueName}"
+                                                    HorizontalAlignment="Left"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0" />
+
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding RoutingKey}"
+                                                       VerticalAlignment="Center" />
+
+                                            <Button Grid.Column="2"
+                                                    Content="Unbind"
+                                                    Click="UnbindQueue_Click"
+                                                    Tag="{Binding}"
+                                                    Padding="10,5" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Border Padding="24"
+                                IsVisible="{Binding HasNoBindings}">
+                            <TextBlock Text="No queues are bound to this exchange yet."
+                                       HorizontalAlignment="Center"
+                                       Foreground="Gray" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

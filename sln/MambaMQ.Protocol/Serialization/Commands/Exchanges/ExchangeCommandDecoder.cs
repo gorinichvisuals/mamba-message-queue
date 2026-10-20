@@ -2,6 +2,41 @@
 
 internal static class ExchangeCommandDecoder
 {
+    internal static DeleteExchangeCommand DecodeDeleteExchange(ReadOnlySpan<byte> buffer)
+    {
+        return buffer.Length != CommandConstants.ExchangeIdSize
+            ? throw new InvalidDataException($"Invalid DeleteExchangeCommand payload length: {buffer.Length}.")
+            : new DeleteExchangeCommand(new Guid(buffer));
+    }
+
+    internal static UpdateExchangeCommand DecodeUpdateExchange(ReadOnlySpan<byte> buffer)
+    {
+        int offset = 0;
+        if (buffer.Length < CommandConstants.ExchangeIdSize)
+            throw new InvalidDataException("Update exchange command does not contain ExchangeId.");
+
+        Guid exchangeId = new(buffer[..CommandConstants.ExchangeIdSize]);
+        offset += CommandConstants.ExchangeIdSize;
+        string exchangeName = ProtocolReader.ReadString(buffer, ref offset, "exchange name", "Update exchange command");
+        ValidateIsDurable(buffer, offset);
+        bool isDurable = DecodeBoolean(buffer[offset++], "Update exchange command contains invalid IsDurable value.");
+        ValidateExchangeType(buffer, offset);
+        ExchangeType exchangeType = (ExchangeType)buffer[offset++];
+        int permissionsCount = ReadPermissionsCount(buffer, offset);
+        offset += CommandConstants.PermissionsCountSize;
+
+        Dictionary<string, ExchangePermission> permissions = [];
+        for (int i = 0; i < permissionsCount; i++)
+        {
+            string serviceName = ProtocolReader.ReadString(buffer, ref offset, "service name", "Update exchange command");
+            if (buffer.Length - offset < CommandConstants.PermissionSize)
+                throw new InvalidDataException("Update exchange command does not contain complete permission.");
+            permissions.Add(serviceName, (ExchangePermission)buffer[offset++]);
+        }
+
+        return new UpdateExchangeCommand(exchangeId, exchangeName, isDurable, exchangeType, permissions);
+    }
+
     internal static GetExchangesCommand DecodeGetExchanges()
     {
         return new GetExchangesCommand();

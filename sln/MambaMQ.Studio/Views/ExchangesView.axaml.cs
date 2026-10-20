@@ -36,4 +36,14 @@ public partial class ExchangesView : UserControl
         if (sender is Border border)
             border.Background = Brushes.Transparent;
     }
+
+    private void ExchangeRow_DoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is not ExchangesViewModel viewModel ||
+            sender is not Control control ||
+            control.DataContext is not ExchangeModel exchange)
+            return;
+
+        viewModel.OpenExchangeCommand.Execute(exchange);
+    }
 }

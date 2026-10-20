@@ -74,7 +74,8 @@
                                     Background="Transparent"
                                     Padding="12,0"
                                     PointerEntered="ExchangeRow_PointerEntered"
-                                    PointerExited="ExchangeRow_PointerExited">
+                                    PointerExited="ExchangeRow_PointerExited"
+                                    DoubleTapped="ExchangeRow_DoubleTapped">
 
                                 <Grid ColumnDefinitions="2*,2*,*"
                                       ColumnSpacing="12"

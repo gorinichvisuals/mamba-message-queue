@@ -25,4 +25,6 @@ public enum FrameType : byte
     DeleteSelectedMessagesCommand = 21,
     GetExchangesCommand = 22,
     GetExchangesResponse = 23,
+    DeleteExchangeCommand = 24,
+    UpdateExchangeCommand = 25,
 }

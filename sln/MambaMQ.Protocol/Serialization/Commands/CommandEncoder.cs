@@ -26,6 +26,8 @@ public static class CommandEncoder
             FrameType.BindExchange => ExchangeCommandEncoder.EncodeBindExchange((BindExchangeCommand)command),
             FrameType.UnbindExchange => ExchangeCommandEncoder.EncodeUnbindExchange((UnbindExchangeCommand)command),
             FrameType.PublishToExchange => ExchangeCommandEncoder.EncodePublishToExchange((PublishToExchangeCommand)command),
+            FrameType.DeleteExchangeCommand => ExchangeCommandEncoder.EncodeDeleteExchange((DeleteExchangeCommand)command),
+            FrameType.UpdateExchangeCommand => ExchangeCommandEncoder.EncodeUpdateExchange((UpdateExchangeCommand)command),
 
             _ => throw new ArgumentException($"Unsupported command type: {command.Type}.", nameof(command))
         };

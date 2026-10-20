@@ -2,6 +2,42 @@
 
 internal static class ExchangeCommandEncoder
 {
+    internal static byte[] EncodeDeleteExchange(DeleteExchangeCommand command)
+    {
+        byte[] buffer = new byte[CommandConstants.ExchangeIdSize];
+        command.ExchangeId.TryWriteBytes(buffer);
+        return buffer;
+    }
+
+    internal static byte[] EncodeUpdateExchange(UpdateExchangeCommand command)
+    {
+        int permissionsSize = CommandConstants.PermissionsCountSize + command.Permissions
+            .Sum(permission => CommandConstants.ServiceNameLengthSize + Encoding.UTF8.GetByteCount(permission.Key) + CommandConstants.PermissionSize);
+        byte[] buffer = new byte[
+            CommandConstants.ExchangeIdSize +
+            CommandConstants.ExchangeNameLengthSize + Encoding.UTF8.GetByteCount(command.ExchangeName) +
+            CommandConstants.IsDurableSize +
+            CommandConstants.ExchangeTypeSize +
+            permissionsSize];
+
+        Span<byte> span = buffer;
+        command.ExchangeId.TryWriteBytes(span);
+        int offset = CommandConstants.ExchangeIdSize;
+        offset = ProtocolWriter.WriteString(span, offset, command.ExchangeName);
+        span[offset++] = command.IsDurable ? (byte)1 : (byte)0;
+        span[offset++] = (byte)command.ExchangeType;
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], command.Permissions.Count);
+        offset += CommandConstants.PermissionsCountSize;
+
+        foreach ((string serviceName, ExchangePermission permission) in command.Permissions)
+        {
+            offset = ProtocolWriter.WriteString(span, offset, serviceName);
+            span[offset++] = (byte)permission;
+        }
+
+        return buffer;
+    }
+
     internal static byte[] EncodeGetExchanges() => [];
 
     internal static byte[] EncodeCreateExchange(CreateExchangeCommand command)

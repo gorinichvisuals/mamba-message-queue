@@ -19,6 +19,7 @@ public static class CommandConstants
     public const int PermissionsCountSize = sizeof(int);
     public const int PermissionSize = sizeof(byte);
     public const int ExchangeNameLengthSize = sizeof(int);
+    public const int ExchangeIdSize = 16;
     public const int RoutingKeyLengthSize = sizeof(int);
     public const int ExchangeTypeSize = sizeof(byte);
 }

@@ -117,7 +117,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async Task BindExchangeAsync(string exchangeName, string queueName, string routingKey, CancellationToken cancellationToken = default)
+    public async Task BindQueueToExchangeAsync(string exchangeName, string queueName, string routingKey, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
 
@@ -126,7 +126,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         await SendCommandAsync(command, cancellationToken);
     }
 
-    public async Task UnbindExchangeAsync(string exchangeName, string queueName, string routingKey, CancellationToken cancellationToken = default)
+    public async Task UnbindQueueFromExchangeAsync(string exchangeName, string queueName, string routingKey, CancellationToken cancellationToken = default)
     {
         await EnsureConnectedAsync(cancellationToken);
 
