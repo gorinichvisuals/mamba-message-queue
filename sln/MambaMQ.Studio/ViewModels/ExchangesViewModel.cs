@@ -1,6 +1,8 @@
 namespace MambaMQ.Studio.ViewModels;
 
-public partial class ExchangesViewModel(IMambaStudioClient mambaClient) : ViewModelBase
+public partial class ExchangesViewModel(
+    IMambaStudioClient mambaClient,
+    Action<ExchangeModel> onExchangeSelected) : ViewModelBase
 {
     [ObservableProperty]
     private ObservableCollection<ExchangeModel> _exchanges = [];
@@ -31,6 +33,12 @@ public partial class ExchangesViewModel(IMambaStudioClient mambaClient) : ViewMo
     partial void OnErrorMessageChanged(string? value)
     {
         OnPropertyChanged(nameof(HasError));
+    }
+
+    [RelayCommand]
+    private void OpenExchange(ExchangeModel exchange)
+    {
+        onExchangeSelected(exchange);
     }
 
     [RelayCommand]

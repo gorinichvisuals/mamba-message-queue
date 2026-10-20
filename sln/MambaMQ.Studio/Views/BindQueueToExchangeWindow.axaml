@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MambaMQ.Studio.ViewModels"
+        x:Class="MambaMQ.Studio.Views.BindQueueToExchangeWindow"
+        x:DataType="vm:BindQueueToExchangeViewModel"
+        Title="Bind Queue"
+        Icon="avares://MambaMQ.Studio/Assets/logo.ico"
+        Width="460" Height="330" MinWidth="460" MinHeight="330"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource StudioBackgroundBrush}">
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Border Grid.Row="0" Background="{DynamicResource StudioPanelBackgroundBrush}" BorderBrush="#30FFFFFF" BorderThickness="0,0,0,1" Padding="24,16">
+            <StackPanel Spacing="3">
+                <TextBlock Text="Bind Queue" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="Choose a queue and routing key" FontSize="12" Opacity="0.55" />
+            </StackPanel>
+        </Border>
+        <StackPanel Grid.Row="1" Margin="24" Spacing="16">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Queue" Opacity="0.65" />
+                <ComboBox ItemsSource="{Binding QueueNames}" SelectedItem="{Binding SelectedQueueName}" Height="38" />
+            </StackPanel>
+            <StackPanel Spacing="6">
+                <TextBlock Text="Routing key" Opacity="0.65" />
+                <TextBox Text="{Binding RoutingKey}" Watermark="Enter routing key" Height="38" />
+            </StackPanel>
+        </StackPanel>
+        <Border Grid.Row="2" Background="{DynamicResource StudioPanelBackgroundBrush}" BorderBrush="#30FFFFFF" BorderThickness="0,1,0,0" Padding="24,14">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Cancel" Click="CancelButton_OnClick" Padding="18,9" />
+                <Button Content="Bind" Click="BindButton_OnClick" IsDefault="True" Padding="18,9" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

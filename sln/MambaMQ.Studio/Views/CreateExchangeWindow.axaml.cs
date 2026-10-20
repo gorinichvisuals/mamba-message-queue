@@ -23,9 +23,19 @@ public partial class CreateExchangeWindow : Window
         {
             Name = viewModel.ExchangeName.Trim(),
             IsDurable = viewModel.IsDurable,
-            Type = viewModel.ExchangeType
+            Type = viewModel.ExchangeType,
+            Permissions = viewModel.Permissions.ToDictionary(
+                permission => permission.ServiceName,
+                permission => permission.Permissions)
         };
 
         Close(options);
+    }
+
+    private void RemovePermissionButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: ExchangePermissionModel permission } &&
+            DataContext is CreateExchangeViewModel viewModel)
+            viewModel.RemovePermission(permission);
     }
 }

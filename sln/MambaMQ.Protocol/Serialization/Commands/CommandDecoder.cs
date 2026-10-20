@@ -26,6 +26,8 @@ public static class CommandDecoder
             FrameType.BindExchange => ExchangeCommandDecoder.DecodeBindExchange(buffer),
             FrameType.UnbindExchange => ExchangeCommandDecoder.DecodeUnbindExchange(buffer),
             FrameType.PublishToExchange => ExchangeCommandDecoder.DecodePublishToExchange(buffer),
+            FrameType.DeleteExchangeCommand => ExchangeCommandDecoder.DecodeDeleteExchange(buffer),
+            FrameType.UpdateExchangeCommand => ExchangeCommandDecoder.DecodeUpdateExchange(buffer),
             
             _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
         };

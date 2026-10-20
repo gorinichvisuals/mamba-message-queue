@@ -1,6 +1,8 @@
 ﻿namespace MambaMQ.Abstractions.Dto.Exchanges;
 
-public class ExchangeUpdateDto
-{
-    
-}
+public sealed record ExchangeUpdateDto(
+    Guid ExchangeId,
+    string Name,
+    bool IsDurable,
+    ExchangeType Type,
+    Dictionary<string, ExchangePermission> Permissions);
