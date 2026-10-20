@@ -22,6 +22,7 @@ public static class CommandEncoder
             FrameType.UpdateQueueCommand => QueueCommandEncoder.EncodeUpdateQueue((UpdateQueueCommand)command),
             
             FrameType.CreateExchange => ExchangeCommandEncoder.EncodeCreateExchange((CreateExchangeCommand)command),
+            FrameType.GetExchangesCommand => ExchangeCommandEncoder.EncodeGetExchanges(),
             FrameType.BindExchange => ExchangeCommandEncoder.EncodeBindExchange((BindExchangeCommand)command),
             FrameType.UnbindExchange => ExchangeCommandEncoder.EncodeUnbindExchange((UnbindExchangeCommand)command),
             FrameType.PublishToExchange => ExchangeCommandEncoder.EncodePublishToExchange((PublishToExchangeCommand)command),

@@ -71,6 +71,7 @@ internal sealed partial class ServerStorageService
         int size =
             sizeof(byte) +
             16 +
+            sizeof(long) +
             sizeof(byte) +
             sizeof(byte) +
             sizeof(int) +
@@ -84,10 +85,13 @@ internal sealed partial class ServerStorageService
 
         int offset = 0;
 
-        span[offset++] = StorageVersion;
+        span[offset++] = ExchangeStorageVersion;
 
         exchange.Id.TryWriteBytes(span[offset..]);
         offset += 16;
+
+        BinaryPrimitives.WriteInt64BigEndian(span[offset..], exchange.CreatedAt.UtcDateTime.Ticks);
+        offset += sizeof(long);
 
         span[offset++] = exchange.IsDurable
             ? (byte)1
@@ -151,29 +155,36 @@ internal sealed partial class ServerStorageService
         Stream stream,
         CancellationToken cancellationToken)
     {
-        const int headerSize =
-            sizeof(byte) +
-            16 +
-            sizeof(byte) +
-            sizeof(byte) +
-            sizeof(int);
+        byte[] versionBuffer = new byte[sizeof(byte)];
+        await ReadExactly(stream, versionBuffer, cancellationToken);
 
+        byte version = versionBuffer[0];
+
+        if (version is not StorageVersion and not ExchangeStorageVersion)
+            throw new InvalidDataException($"Unsupported storage version '{version}'.");
+
+        int headerSize = 16 + (version is ExchangeStorageVersion ? sizeof(long) : 0) + sizeof(byte) + sizeof(byte) + sizeof(int);
         byte[] header = new byte[headerSize];
-
         await ReadExactly(stream, header, cancellationToken);
 
         ReadOnlySpan<byte> span = header;
-
         int offset = 0;
-
-        byte version = span[offset++];
-
-        if (version is not StorageVersion)
-            throw new InvalidDataException($"Unsupported storage version '{version}'.");
 
         Guid exchangeId = new(span.Slice(offset, 16));
 
         offset += 16;
+
+        DateTimeOffset createdAt;
+        if (version is ExchangeStorageVersion)
+        {
+            long createdAtTicks = BinaryPrimitives.ReadInt64BigEndian(span[offset..]);
+            offset += sizeof(long);
+            createdAt = new DateTimeOffset(new DateTime(createdAtTicks, DateTimeKind.Utc));
+        }
+        else
+        {
+            createdAt = GetCreatedAtFromLegacyExchangeId(exchangeId);
+        }
 
         bool isDurable = span[offset++] is not 0;
 
@@ -268,9 +279,21 @@ internal sealed partial class ServerStorageService
             exchangeId,
             name,
             isDurable,
+            createdAt,
             type,
             permissions,
             bindings);
+    }
+
+    private static DateTimeOffset GetCreatedAtFromLegacyExchangeId(Guid exchangeId)
+    {
+        string id = exchangeId.ToString("N");
+
+        if (id[12] != '7')
+            return DateTimeOffset.UtcNow;
+
+        long unixMilliseconds = Convert.ToInt64(id[..12], 16);
+        return DateTimeOffset.FromUnixTimeMilliseconds(unixMilliseconds);
     }
         
     private static string GetExchangePath(Guid exchangeId)

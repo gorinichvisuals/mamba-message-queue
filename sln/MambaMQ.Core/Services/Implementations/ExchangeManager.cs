@@ -7,8 +7,31 @@ internal sealed partial class ExchangeManager(
 {
     private readonly Dictionary<Guid, MambaExchange> _exchangesById = [];
     private readonly Dictionary<string, MambaExchange> _exchangesByName = [];
-    
+
     private readonly ILogger _serverLogger = mambaLogger.Server;
+
+    public IReadOnlyList<ExchangeModel> GetExchanges()
+    {
+        return _exchangesByName.Values
+            .OrderBy(exchange => exchange.Name)
+            .Select(exchange => new ExchangeModel
+            {
+                Id = exchange.Id,
+                Name = exchange.Name,
+                IsDurable = exchange.IsDurable,
+                CreatedAt = exchange.CreatedAt,
+                Type = exchange.Type,
+                Permissions = new Dictionary<string, ExchangePermission>(exchange.Permissions),
+                Bindings = exchange.Bindings
+                    .Select(binding => new ExchangeBindingModel
+                    {
+                        QueueName = binding.QueueName,
+                        RoutingKey = binding.RoutingKey
+                    })
+                    .ToList()
+            })
+            .ToList();
+    }
 
     public async Task<CommandResponse> CreateExchange(ExchangeCreateDto dto)
     {
@@ -23,6 +46,7 @@ internal sealed partial class ExchangeManager(
             Guid.CreateVersion7(), 
             dto.Name, 
             dto.IsDurable, 
+            DateTimeOffset.UtcNow,
             dto.Type,
             dto.Permissions);
 

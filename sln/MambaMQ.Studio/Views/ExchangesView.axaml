@@ -1,17 +1,111 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MambaMQ.Studio.ViewModels"
+             xmlns:models="using:MambaMQ.Protocol.Responses.Models.Exchanges"
              x:Class="MambaMQ.Studio.Views.ExchangesView"
              x:DataType="vm:ExchangesViewModel">
 
-    <Grid>
+    <Grid RowDefinitions="Auto,Auto,*"
+          Margin="24">
 
-        <TextBlock
-            Text="Exchanges"
-            FontSize="28"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center" />
+        <Grid ColumnDefinitions="*,Auto,Auto"
+              Margin="0,0,0,16">
 
+            <TextBlock Text="{Binding ExchangesTitle}"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+
+            <Button Grid.Column="1"
+                    Content="Create"
+                    Click="CreateExchangeButton_OnClick"
+                    Padding="16,8"
+                    Margin="0,0,8,0" />
+
+            <Button Grid.Column="2"
+                    Content="Refresh"
+                    Command="{Binding LoadCommand}"
+                    Padding="16,8" />
+        </Grid>
+
+        <TextBlock Grid.Row="1"
+                   Text="Loading exchanges..."
+                   IsVisible="{Binding IsLoading}"
+                   HorizontalAlignment="Center"
+                   Foreground="Gray"
+                   Margin="0,0,0,12" />
+
+        <Border Grid.Row="2"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                CornerRadius="8"
+                ClipToBounds="True">
+
+            <StackPanel Spacing="0">
+
+                <!-- Column headers: match QueuesView. -->
+                <Border Padding="12,10"
+                        Background="{DynamicResource ThemeControlLowBrush}">
+
+                    <Grid ColumnDefinitions="2*,2*,*"
+                          ColumnSpacing="12">
+
+                        <TextBlock Text="Name"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+
+                        <TextBlock Grid.Column="1"
+                                   Text="Created At"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+
+                        <TextBlock Grid.Column="2"
+                                   Text="Queues"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding Exchanges}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:ExchangeModel">
+                            <Border BorderThickness="0,1,0,0"
+                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                    Background="Transparent"
+                                    Padding="12,0"
+                                    PointerEntered="ExchangeRow_PointerEntered"
+                                    PointerExited="ExchangeRow_PointerExited">
+
+                                <Grid ColumnDefinitions="2*,2*,*"
+                                      ColumnSpacing="12"
+                                      MinHeight="36">
+
+                                    <TextBlock Text="{Binding Name}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                               VerticalAlignment="Center" />
+
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding BoundQueueCount}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border BorderThickness="0,1,0,0"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                        Padding="12,10"
+                        IsVisible="{Binding HasError}">
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="#F87171"
+                               TextWrapping="Wrap" />
+                </Border>
+            </StackPanel>
+        </Border>
     </Grid>
-
 </UserControl>

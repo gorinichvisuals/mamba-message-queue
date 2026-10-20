@@ -6,6 +6,7 @@ internal sealed partial class ServerStorageService(
     int maxMessageSegments) : IServerStorageService
 {
     private const byte StorageVersion = 1;
+    private const byte ExchangeStorageVersion = 2;
     
     private const string MessagesDirectory = "messages";
     private const string QueuesDirectory = "queues";

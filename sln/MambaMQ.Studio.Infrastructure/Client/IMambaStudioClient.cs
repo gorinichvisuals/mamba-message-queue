@@ -6,6 +6,8 @@ public interface IMambaStudioClient
     ValueTask DisconnectAsync(CancellationToken cancellationToken = default);
     
     Task<GetQueuesResponse> GetQueuesAsync(CancellationToken cancellationToken = default);
+    Task<GetExchangesResponse> GetExchangesAsync(CancellationToken cancellationToken = default);
+    Task<CommandResponse> CreateExchangeAsync(ExchangeOptions options, CancellationToken cancellationToken = default);
     Task<CommandResponse<QueueModel>> CreateQueueAsync(QueueOptions options, CancellationToken cancellationToken = default);
     Task<CommandResponse> DeleteQueueAsync(Guid queueId, CancellationToken cancellationToken = default);
     Task<CommandResponse<QueueModel>> UpdateQueueAsync(Guid queueId, QueueOptions options, CancellationToken cancellationToken = default);
