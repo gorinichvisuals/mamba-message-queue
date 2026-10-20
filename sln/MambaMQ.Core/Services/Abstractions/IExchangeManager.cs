@@ -2,6 +2,7 @@
 
 public interface IExchangeManager
 {
+    IReadOnlyList<ExchangeModel> GetExchanges();
     Task<CommandResponse> CreateExchange(ExchangeCreateDto exchangeCreateDto);
     Task<CommandResponse> Bind(ExchangeBindingDto dto, IClientConnection connection);
     Task<CommandResponse> Unbind(ExchangeBindingDto dto, IClientConnection connection);

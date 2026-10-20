@@ -37,3 +37,4 @@ global using MambaMQ.Protocol.Enums;
 global using MambaMQ.Protocol.Responses;
 global using MambaMQ.Protocol.Responses.Models.Queues;
 global using MambaMQ.Protocol.Responses.Models.Messages;
+global using MambaMQ.Protocol.Responses.Models.Exchanges;

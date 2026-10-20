@@ -2,6 +2,11 @@
 
 internal static class ExchangeCommandDecoder
 {
+    internal static GetExchangesCommand DecodeGetExchanges()
+    {
+        return new GetExchangesCommand();
+    }
+
     internal static CreateExchangeCommand DecodeCreateExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;

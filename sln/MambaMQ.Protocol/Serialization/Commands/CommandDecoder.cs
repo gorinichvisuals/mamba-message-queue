@@ -22,6 +22,7 @@ public static class CommandDecoder
             FrameType.UpdateQueueCommand => QueueCommandDecoder.DecodeUpdateQueue(buffer),
             
             FrameType.CreateExchange => ExchangeCommandDecoder.DecodeCreateExchange(buffer),
+            FrameType.GetExchangesCommand => ExchangeCommandDecoder.DecodeGetExchanges(),
             FrameType.BindExchange => ExchangeCommandDecoder.DecodeBindExchange(buffer),
             FrameType.UnbindExchange => ExchangeCommandDecoder.DecodeUnbindExchange(buffer),
             FrameType.PublishToExchange => ExchangeCommandDecoder.DecodePublishToExchange(buffer),

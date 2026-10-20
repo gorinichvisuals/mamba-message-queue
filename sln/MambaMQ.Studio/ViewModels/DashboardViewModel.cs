@@ -14,14 +14,17 @@ public partial class DashboardViewModel(
     public string ConnectionInfo => $"{Host}:{Port}";
 
     private QueuesViewModel? _queuesViewModel;
+    private ExchangesViewModel? _exchangesViewModel;
     
     [ObservableProperty]
-    private ViewModelBase _currentViewModel = new ExchangesViewModel();
+    private ViewModelBase _currentViewModel = new ExchangesViewModel(mambaClient);
 
     [RelayCommand]
     private void ShowExchanges()
     {
-        CurrentViewModel = new ExchangesViewModel();
+        _exchangesViewModel ??= CurrentViewModel as ExchangesViewModel ?? new ExchangesViewModel(mambaClient);
+
+        CurrentViewModel = _exchangesViewModel;
     }
 
     [RelayCommand]

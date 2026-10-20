@@ -2,6 +2,8 @@
 
 internal static class ExchangeCommandEncoder
 {
+    internal static byte[] EncodeGetExchanges() => [];
+
     internal static byte[] EncodeCreateExchange(CreateExchangeCommand command)
     {
         byte[] exchangeName = Encoding.UTF8.GetBytes(command.ExchangeName);

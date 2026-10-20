@@ -4,6 +4,7 @@ internal sealed class MambaExchange(
     Guid id,
     string name,
     bool isDurable,
+    DateTimeOffset createdAt,
     ExchangeType type,
     Dictionary<string, ExchangePermission> permissions)
 {
@@ -12,6 +13,7 @@ internal sealed class MambaExchange(
     public Guid Id { get; } = id;
     public string Name { get; } = name;
     public bool IsDurable { get; } = isDurable;
+    public DateTimeOffset CreatedAt { get; } = createdAt;
     public ExchangeType Type { get; } = type;
     
     public Dictionary<string, ExchangePermission> Permissions { get; } = permissions;

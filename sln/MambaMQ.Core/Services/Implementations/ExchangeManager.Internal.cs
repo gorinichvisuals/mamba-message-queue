@@ -19,6 +19,7 @@ internal sealed partial class ExchangeManager
             exchange.Id,
             exchange.Name,
             exchange.IsDurable,
+            exchange.CreatedAt,
             (byte)exchange.Type,
             exchange.Permissions.ToDictionary(
                 x => x.Key,
@@ -49,6 +50,7 @@ internal sealed partial class ExchangeManager
             storedExchange.Id,
             storedExchange.Name,
             storedExchange.IsDurable,
+            storedExchange.CreatedAt,
             (ExchangeType)storedExchange.Type,
             storedExchange.Permissions.ToDictionary(
                 x => x.Key,
