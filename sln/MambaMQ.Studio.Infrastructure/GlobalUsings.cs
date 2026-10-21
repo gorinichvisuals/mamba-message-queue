@@ -11,6 +11,10 @@ global using MambaMQ.Studio.Infrastructure.Connection;
 global using MambaMQ.Studio.Infrastructure.Services.Abstractions;
 global using MambaMQ.Studio.Infrastructure.Services.Implementations;
 
+global using MambaMQ.Studio.Persistence.Models;
+global using MambaMQ.Studio.Persistence.Services;
+global using MambaMQ.Studio.Persistence.Extensions;
+
 global using MambaMQ.Protocol.Enums;
 global using MambaMQ.Protocol.Frames;
 global using MambaMQ.Protocol.Commands;

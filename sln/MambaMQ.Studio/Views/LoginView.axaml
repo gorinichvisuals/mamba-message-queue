@@ -1,112 +1,168 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MambaMQ.Studio.ViewModels"
+             xmlns:models="using:MambaMQ.Studio.Persistence.Models"
              x:Class="MambaMQ.Studio.Views.LoginView"
              x:DataType="vm:LoginViewModel">
 
     <Grid>
 
-        <Image
-            Source="/Assets/login-background.png"
-            Stretch="UniformToFill" />
+        <Image Source="/Assets/login-background.png" Stretch="UniformToFill" />
+        <Border Background="#70000000" />
 
-        <Border
-            Background="#70000000" />
+        <Border Width="720"
+                Padding="28"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#B0151820"
+                BorderBrush="#40FFFFFF"
+                BorderThickness="1"
+                CornerRadius="18">
 
-        <Border
-            Width="420"
-            Padding="32"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Background="#B0151820"
-            BorderBrush="#40FFFFFF"
-            BorderThickness="1"
-            CornerRadius="18">
+            <Grid ColumnDefinitions="240,1,*" ColumnSpacing="24">
 
-            <StackPanel Spacing="16">
+                <StackPanel Grid.Column="0" Spacing="12">
+                    <TextBlock Text="Saved profiles"
+                               FontSize="20"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Right-click a profile to delete it."
+                               FontSize="12"
+                               Opacity="0.65" />
 
-                <StackPanel Spacing="8">
+                    <Border Height="360"
+                            Background="#30151820"
+                            BorderBrush="#30FFFFFF"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                        <ListBox x:Name="ProfilesList"
+                                 ItemsSource="{Binding SavedProfiles}"
+                                 SelectedItem="{Binding SelectedProfile}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 IsEnabled="{Binding IsNotConnecting}"
+                                 PointerPressed="OnProfilesPointerPressed">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:ConnectionProfile">
+                                    <StackPanel Spacing="1" Margin="8,2">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Username}" FontSize="12" Opacity="0.65" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Delete profile" Click="OnDeleteProfileClick" />
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                        </ListBox>
+                    </Border>
 
-                    <Image
-                        Source="avares://MambaMQ.Studio/Assets/logo.png"
-                        Width="140"
-                        Height="140"
-                        HorizontalAlignment="Center"
-                        Stretch="Uniform"
-                        Margin="0,-20,0,-4" />
-
-                    <TextBlock
-                        Text="MambaMQ Studio"
-                        FontSize="30"
-                        FontWeight="SemiBold"
-                        HorizontalAlignment="Center" />
-
-                    <TextBlock
-                        Text="Connect to MambaMQ Server"
-                        FontSize="14"
-                        Opacity="0.65"
-                        HorizontalAlignment="Center" />
+                    <TextBlock Text="No profiles saved yet."
+                               IsVisible="{Binding ShowEmptyProfilesMessage}"
+                               HorizontalAlignment="Center"
+                               Opacity="0.65" />
 
                 </StackPanel>
 
-                <TextBox
-                    Watermark="Host:Port"
-                    Text="{Binding Host}"
-                    MinHeight="42"
-                    Padding="12,0"
-                    VerticalContentAlignment="Center" />
+                <Border Grid.Column="1" Background="#30FFFFFF" />
 
-                <TextBox
-                    Watermark="Username"
-                    Text="{Binding Username}"
-                    MinHeight="42"
-                    Padding="12,0"
-                    VerticalContentAlignment="Center" />
+                <StackPanel Grid.Column="2" Spacing="16" VerticalAlignment="Center">
+                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                        <Image Source="avares://MambaMQ.Studio/Assets/logo.png"
+                               Width="84"
+                               Height="84"
+                               HorizontalAlignment="Center"
+                               Stretch="Uniform" />
+                        <TextBlock Text="MambaMQ Studio"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Connect to MambaMQ Server"
+                                   FontSize="14"
+                                   Opacity="0.65"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
 
-                <Grid Height="42">
+                    <StackPanel Spacing="10">
+                        <TextBox Watermark="Host:Port"
+                                 Text="{Binding Host}"
+                                 IsEnabled="{Binding IsNotConnecting}"
+                                 MinHeight="44"
+                                 Padding="12,0"
+                                 VerticalContentAlignment="Center" />
 
-                    <TextBox
-                        Watermark="Password"
-                        PasswordChar="{Binding PasswordChar}"
-                        Text="{Binding Password}"
-                        Padding="12,0,42,0"
-                        VerticalContentAlignment="Center" />
+                        <TextBox Watermark="Username"
+                                 Text="{Binding Username}"
+                                 IsEnabled="{Binding IsNotConnecting}"
+                                 MinHeight="44"
+                                 Padding="12,0"
+                                 VerticalContentAlignment="Center" />
 
-                    <Button
-                        Width="36"
-                        Height="36"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Margin="0,3,4,3"
-                        Padding="0"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Command="{Binding TogglePasswordVisibilityCommand}"
-                        Content="👁" />
+                        <Grid Height="44">
+                            <TextBox Watermark="Password"
+                                     PasswordChar="{Binding PasswordChar}"
+                                     Text="{Binding Password}"
+                                     IsEnabled="{Binding IsNotConnecting}"
+                                     Padding="12,0,42,0"
+                                     VerticalContentAlignment="Center" />
+                            <Button Width="36"
+                                    Height="36"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Margin="0,3,4,3"
+                                    Padding="0"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding TogglePasswordVisibilityCommand}"
+                                    IsEnabled="{Binding IsNotConnecting}"
+                                    Content="👁" />
+                        </Grid>
+                    </StackPanel>
 
-                </Grid>
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               IsVisible="{Binding HasError}"
+                               TextWrapping="Wrap"
+                               HorizontalAlignment="Center"
+                               Opacity="0.9" />
 
-                <TextBlock
-                    Text="{Binding ErrorMessage}"
-                    IsVisible="{Binding HasError}"
-                    TextWrapping="Wrap"
-                    HorizontalAlignment="Center"
-                    Opacity="0.9" />
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                IsVisible="{Binding IsConnecting}">
+                        <TextBlock Text="Connecting"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="0.8" />
+                        <TextBlock Text="{Binding ConnectionStatusDots}"
+                                   Width="24"
+                                   TextAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="0.8" />
+                    </StackPanel>
 
-                <Button
-                    Content="Connect"
-                    Width="140"
-                    Height="44"
-                    HorizontalAlignment="Center"
-                    Margin="0,8,0,0"
-                    Padding="0"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Command="{Binding LoginCommand}" />
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="12">
+                        <Button Content="{Binding ConnectButtonText}"
+                                Click="OnConnectClick"
+                                Width="132"
+                                Height="44"
+                                IsEnabled="{Binding IsNotConnecting}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" />
+                        <Button Content="Save profile"
+                                Command="{Binding SaveProfileCommand}"
+                                Width="132"
+                                Height="44"
+                                IsEnabled="{Binding IsNotConnecting}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
 
-            </StackPanel>
+            </Grid>
 
         </Border>
 

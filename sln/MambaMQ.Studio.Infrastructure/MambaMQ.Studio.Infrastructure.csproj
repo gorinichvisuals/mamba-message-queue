@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MambaMQ.Protocol\MambaMQ.Protocol.csproj" />
+      <ProjectReference Include="..\MambaMQ.Studio.Persistence\MambaMQ.Studio.Persistence.csproj" />
     </ItemGroup>
 
 </Project>

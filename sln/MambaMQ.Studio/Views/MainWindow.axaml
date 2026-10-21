@@ -4,7 +4,8 @@
         x:Class="MambaMQ.Studio.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="MambaMQ Studio"
-        Icon="/Assets/logo.png">
+        Icon="/Assets/logo.png"
+        WindowState="Maximized">
 
     <ContentControl Content="{Binding CurrentViewModel}" />
 

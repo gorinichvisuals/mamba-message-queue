@@ -26,11 +26,15 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MambaMQ.Studio.Infrastructure\MambaMQ.Studio.Infrastructure.csproj" />
+      <ProjectReference Include="..\MambaMQ.Studio.Persistence\MambaMQ.Studio.Persistence.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <Compile Update="Views\ExchangeDetailsView.axaml.cs">
         <DependentUpon>ExchangeDetailsView.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\SaveProfilePromptWindow.axaml.cs">
+        <DependentUpon>SaveProfilePromptWindow.axaml</DependentUpon>
       </Compile>
     </ItemGroup>
 </Project>

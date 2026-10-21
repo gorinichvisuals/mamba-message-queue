@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MambaMQ.Studio.Views.SaveProfilePromptWindow"
+        Title="Save connection profile?"
+        Icon="avares://MambaMQ.Studio/Assets/logo.ico"
+        Width="420"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource StudioBackgroundBrush}">
+
+    <StackPanel Margin="24" Spacing="20">
+        <TextBlock Text="Save connection profile?"
+                   FontSize="22"
+                   FontWeight="SemiBold" />
+        <TextBlock Text="Would you like to save these connection details for next time?"
+                   TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <Button Content="Connect without saving"
+                    Click="ConnectWithoutSaving_Click"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center" />
+            <Button Content="Save and connect"
+                    IsDefault="True"
+                    Click="SaveAndConnect_Click"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>

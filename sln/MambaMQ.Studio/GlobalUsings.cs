@@ -7,6 +7,7 @@ global using Avalonia;
 global using Avalonia.Media;
 global using Avalonia.Input;
 global using Avalonia.Controls;
+global using Avalonia.VisualTree;
 global using Avalonia.Markup.Xaml;
 global using Avalonia.Interactivity;
 global using Avalonia.Input.Platform;
@@ -25,11 +26,13 @@ global using System.Collections.ObjectModel;
 global using System.Diagnostics.CodeAnalysis;
 
 global using MambaMQ.Studio.Views;
-global using MambaMQ.Studio.Models;
 global using MambaMQ.Studio.ViewModels;
+global using MambaMQ.Studio.Models;
 global using MambaMQ.Studio.Results;
 
 global using MambaMQ.Studio.Infrastructure.Client;
+global using MambaMQ.Studio.Infrastructure.Services.Abstractions;
+global using MambaMQ.Studio.Persistence.Models;
 global using MambaMQ.Studio.Infrastructure.Options;
 global using MambaMQ.Studio.Infrastructure.Extensions;
 
