@@ -12,9 +12,7 @@ internal sealed partial class MambaStudioClient
 
         Frame frame = new(FrameType.PublishMessage, payload);
 
-        await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-
-        Frame responseFrame = await FrameReader.ReadAsync(connection, 1048576, cancellationToken);
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type is not FrameType.CommandResponse
             ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.")
@@ -29,9 +27,7 @@ internal sealed partial class MambaStudioClient
 
         Frame frame = new(FrameType.GetMessagesCommand, payload);
 
-        await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-
-        Frame responseFrame = await FrameReader.ReadAsync(connection, 1048576, cancellationToken);
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type switch
         {
@@ -51,9 +47,7 @@ internal sealed partial class MambaStudioClient
 
         Frame frame = new(FrameType.DeleteSelectedMessagesCommand, payload);
 
-        await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-
-        Frame responseFrame = await FrameReader.ReadAsync(connection, 1048576, cancellationToken);
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type is not FrameType.CommandResponse
             ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.")

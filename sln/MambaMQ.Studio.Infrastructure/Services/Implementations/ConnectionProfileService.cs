@@ -1,7 +1,6 @@
 namespace MambaMQ.Studio.Infrastructure.Services.Implementations;
 
-internal sealed class ConnectionProfileService(
-    IConnectionProfileStorage profileStorage) : IConnectionProfileService
+internal sealed class ConnectionProfileService(IConnectionProfileStorage profileStorage) : IConnectionProfileService
 {
     public Task<IReadOnlyList<ConnectionProfile>> LoadProfilesAsync(CancellationToken cancellationToken = default)
         => profileStorage.LoadAsync(cancellationToken);

@@ -18,6 +18,7 @@ global using Avalonia.Controls.ApplicationLifetimes;
 global using System;
 global using System.Linq;
 global using System.Text;
+global using System.Threading;
 global using System.Globalization;
 global using System.ComponentModel;
 global using System.Threading.Tasks;

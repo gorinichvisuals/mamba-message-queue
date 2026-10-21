@@ -10,9 +10,7 @@ internal sealed partial class MambaStudioClient
         
         Frame frame = new(FrameType.GetQueuesCommand, payload);
 
-        await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-        
-        Frame responseFrame = await FrameReader.ReadAsync(connection, 1048576, cancellationToken);
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type is not FrameType.GetQueuesResponse 
             ? throw new InvalidDataException($"Expected {FrameType.GetQueuesResponse} frame, but received {responseFrame.Type}.") 
@@ -33,9 +31,7 @@ internal sealed partial class MambaStudioClient
 
         Frame frame = new(FrameType.CreateQueue, payload);
 
-        await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-
-        Frame responseFrame = await FrameReader.ReadAsync(connection, 1048576, cancellationToken);
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type is not FrameType.CommandResponse 
             ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.") 
@@ -50,9 +46,7 @@ internal sealed partial class MambaStudioClient
 
         Frame frame = new(FrameType.DeleteQueueCommand, payload);
 
-        await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-
-        Frame responseFrame = await FrameReader.ReadAsync(connection, 1048576, cancellationToken);
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type is not FrameType.CommandResponse
             ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.")
@@ -74,9 +68,7 @@ internal sealed partial class MambaStudioClient
 
         Frame frame = new(FrameType.UpdateQueueCommand, payload);
 
-        await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-
-        Frame responseFrame = await FrameReader.ReadAsync(connection, 1048576, cancellationToken);
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type is not FrameType.CommandResponse
             ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.")

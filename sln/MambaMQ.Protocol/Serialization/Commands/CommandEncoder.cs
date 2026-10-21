@@ -6,6 +6,7 @@ public static class CommandEncoder
     {
         return command.Type switch
         {
+            FrameType.PingCommand => [],
             FrameType.Authentication => AuthenticationCommandEncoder.EncodeAuthentication((AuthenticationCommand)command),
             FrameType.ServiceIdentity => AuthenticationCommandEncoder.EncodeServiceIdentity((ServiceIdentityCommand)command),
             

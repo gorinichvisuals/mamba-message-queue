@@ -27,4 +27,6 @@ public enum FrameType : byte
     GetExchangesResponse = 23,
     DeleteExchangeCommand = 24,
     UpdateExchangeCommand = 25,
+    PingCommand = 26,
+    PongResponse = 27,
 }
