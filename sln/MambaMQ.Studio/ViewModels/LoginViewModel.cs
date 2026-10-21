@@ -4,7 +4,7 @@ public partial class LoginViewModel : ViewModelBase
 {
     private readonly IMambaStudioClient _mambaClient;
     private readonly IConnectionProfileService _profileService;
-    private readonly Action<string, int, string> _onLoginSucceeded;
+    private readonly Action<string, int, string, string> _onLoginSucceeded;
     private bool _isApplyingProfile;
     private Avalonia.Threading.DispatcherTimer? _connectionStatusTimer;
     private int _connectionDots;
@@ -14,7 +14,7 @@ public partial class LoginViewModel : ViewModelBase
     public LoginViewModel(
         IMambaStudioClient mambaClient,
         IConnectionProfileService profileService,
-        Action<string, int, string> onLoginSucceeded)
+        Action<string, int, string, string> onLoginSucceeded)
     {
         _mambaClient = mambaClient;
         _profileService = profileService;
@@ -144,7 +144,7 @@ public partial class LoginViewModel : ViewModelBase
         {
             await _mambaClient.ConnectAsync(parts[0], port, Username, Password);
             
-            _onLoginSucceeded(parts[0], port, Username);
+            _onLoginSucceeded(parts[0], port, Username, Password);
         }
         catch (Exception exception)
         {

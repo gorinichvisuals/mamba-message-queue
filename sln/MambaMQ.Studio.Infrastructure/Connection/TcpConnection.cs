@@ -7,6 +7,8 @@ internal sealed class TcpConnection : IConnection
 
     public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
+        await DisposeAsync();
+
         _client = new TcpClient();
 
         await _client.ConnectAsync(host, port, cancellationToken);

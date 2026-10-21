@@ -16,8 +16,8 @@ public partial class MainViewModel : ViewModelBase
         _currentViewModel = new LoginViewModel(_mambaClient, _profileService, OnLoginSucceeded);
     }
 
-    private void OnLoginSucceeded(string host, int port, string username)
-        => CurrentViewModel = new DashboardViewModel(_mambaClient, host, port, username, OnDisconnected);
+    private void OnLoginSucceeded(string host, int port, string username, string password)
+        => CurrentViewModel = new DashboardViewModel(_mambaClient, host, port, username, password, OnDisconnected);
     
     private void OnDisconnected()
         => CurrentViewModel = new LoginViewModel(_mambaClient, _profileService, OnLoginSucceeded);

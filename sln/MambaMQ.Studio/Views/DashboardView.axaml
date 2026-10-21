@@ -1,14 +1,17 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MambaMQ.Studio.ViewModels"
+             xmlns:controls="using:MambaMQ.Studio.Controls"
              x:Class="MambaMQ.Studio.Views.DashboardView"
              x:DataType="vm:DashboardViewModel">
 
     <Grid>
 
-        <Border Background="{DynamicResource StudioBackgroundBrush}" />
+        <Grid x:Name="DashboardContent">
 
-        <Grid RowDefinitions="72,*">
+            <Border Background="{DynamicResource StudioBackgroundBrush}" />
+
+            <Grid RowDefinitions="72,*">
 
             <Border
                 Grid.Row="0"
@@ -86,6 +89,19 @@
 
                         </StackPanel>
 
+                        <Border
+                            Width="16"
+                            Height="16"
+                            CornerRadius="8"
+                            Padding="2"
+                            BorderThickness="1"
+                            BorderBrush="#506B7280"
+                            Background="#30232B38"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding ConnectionStatusText}">
+                            <Ellipse Fill="{Binding ConnectionLampBrush}" />
+                        </Border>
+
                         <Button
                             Width="36"
                             Height="36"
@@ -138,7 +154,39 @@
 
             </Border>
 
+            </Grid>
         </Grid>
+
+        <Border
+            IsVisible="{Binding IsConnectionLost}"
+            Background="#990B1018"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch">
+
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="16">
+
+                <controls:ConnectionSpinner
+                    x:Name="ReconnectSpinner"
+                    Width="80"
+                    Height="80" />
+
+                <TextBlock
+                    Text="{Binding ConnectionStatusText}"
+                    FontSize="15"
+                    Foreground="#F4F7FB"
+                    HorizontalAlignment="Center" />
+
+                <Button
+                    Content="Back to sign in"
+                    Command="{Binding DisconnectCommand}"
+                    Padding="16,9"
+                    HorizontalAlignment="Center" />
+
+            </StackPanel>
+        </Border>
 
     </Grid>
 

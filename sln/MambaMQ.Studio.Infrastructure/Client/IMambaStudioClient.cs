@@ -3,6 +3,7 @@
 public interface IMambaStudioClient
 {
     Task ConnectAsync(string host, int port, string username, string password, CancellationToken cancellationToken = default);
+    Task PingAsync(CancellationToken cancellationToken = default);
     ValueTask DisconnectAsync(CancellationToken cancellationToken = default);
     
     Task<GetExchangesResponse> GetExchangesAsync(CancellationToken cancellationToken = default);
