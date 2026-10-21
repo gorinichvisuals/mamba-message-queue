@@ -6,17 +6,19 @@ public partial class MainViewModel : ViewModelBase
     private ViewModelBase _currentViewModel;
 
     private readonly IMambaStudioClient _mambaClient;
+    private readonly IConnectionProfileService _profileService;
 
-    public MainViewModel(IMambaStudioClient mambaClient)
+    public MainViewModel(IMambaStudioClient mambaClient, IConnectionProfileService profileService)
     {
         _mambaClient = mambaClient;
+        _profileService = profileService;
 
-        _currentViewModel = new LoginViewModel(_mambaClient, OnLoginSucceeded);
+        _currentViewModel = new LoginViewModel(_mambaClient, _profileService, OnLoginSucceeded);
     }
 
     private void OnLoginSucceeded(string host, int port, string username)
         => CurrentViewModel = new DashboardViewModel(_mambaClient, host, port, username, OnDisconnected);
     
     private void OnDisconnected()
-        => CurrentViewModel = new LoginViewModel(_mambaClient, OnLoginSucceeded);
+        => CurrentViewModel = new LoginViewModel(_mambaClient, _profileService, OnLoginSucceeded);
 }

@@ -17,6 +17,7 @@
   </Folder>
   <Folder Name="/sln/UI/">
     <Project Path="sln/MambaMQ.Studio.Infrastructure/MambaMQ.Studio.Infrastructure.csproj" />
+    <Project Path="sln/MambaMQ.Studio.Persistence/MambaMQ.Studio.Persistence.csproj" />
     <Project Path="sln/MambaMQ.Studio/MambaMQ.Studio.csproj" />
   </Folder>
 </Solution>
