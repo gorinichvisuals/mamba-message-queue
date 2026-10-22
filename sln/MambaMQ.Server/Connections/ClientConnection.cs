@@ -1,30 +1,30 @@
 ﻿namespace MambaMQ.Server.Connections;
 
 internal sealed class ClientConnection(
-    TcpClient client, 
+    TcpClient client,
     ICommandDispatcher dispatcher,
     int maxMessageSizeInBytes,
     IMambaLogger mambaLogger) : IClientConnection, IAsyncDisposable
 {
     public Guid Id { get; } = Guid.CreateVersion7();
-    
+
     public ClientType ClientType { get; private set; }
-    
+
     private bool _isAuthenticated;
     private int _disposed;
     public string ServiceName { get; private set; } = string.Empty;
-    
+
     private NetworkStream? _stream;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
-    
+
     private readonly List<Task> _tasks = [];
-    
+
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         _stream = client.GetStream();
 
         mambaLogger.Server.LogInformation("Client {ClientId} connected.", Id);
-        
+
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -35,7 +35,7 @@ internal sealed class ClientConnection(
 
                 if (!_isAuthenticated)
                 {
-                    if (command is not AuthenticationCommand)
+                    if (command is not ClientAuthenticateCommand)
                     {
                         mambaLogger.Server.LogWarning("Client {ClientId} attempted to execute a command before authentication.", Id);
 
@@ -53,14 +53,14 @@ internal sealed class ClientConnection(
             }
         }
         catch (OperationCanceledException ) when (cancellationToken.IsCancellationRequested)
-        {        
+        {
         }
         catch (IOException exception)
         {
             mambaLogger.Server.LogInformation("Client {ClientId} disconnected: {Message}", Id, exception.Message);
         }
         catch (Exception exception)
-        {             
+        {
             mambaLogger.Server.LogError(exception, "Unhandled error in client connection {ClientId}.", Id);
         }
         finally
@@ -69,14 +69,14 @@ internal sealed class ClientConnection(
             await DisposeAsync();
         }
     }
-    
+
     public async Task SendAsync(Frame frame, CancellationToken cancellationToken = default)
     {
         if (_stream is null)
             throw new InvalidOperationException("Connection has not been started.");
 
         byte[] buffer = FrameEncoder.Encode(frame);
-        
+
         await _writeLock.WaitAsync(cancellationToken);
 
         try
@@ -88,7 +88,7 @@ internal sealed class ClientConnection(
             _writeLock.Release();
         }
     }
-    
+
     private void Track(Task task)
     {
         lock (_tasks)
@@ -102,7 +102,7 @@ internal sealed class ClientConnection(
             },
             CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
-    
+
     private async Task StopAsync()
     {
         Task[] tasks;
@@ -112,7 +112,7 @@ internal sealed class ClientConnection(
 
         await Task.WhenAll(tasks);
     }
-    
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
@@ -127,7 +127,7 @@ internal sealed class ClientConnection(
             "Client {ClientId} connection closed.",
             Id);
     }
-    
+
     public void Authenticate(ClientType clientType)
     {
         _isAuthenticated = true;

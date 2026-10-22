@@ -2,7 +2,7 @@
 
 internal static class MessageCommandDecoder
 {
-    internal static PublishMessageCommand DecodePublish(ReadOnlySpan<byte> buffer)
+    internal static QueueMessagePublishCommand DecodePublish(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -14,10 +14,10 @@ internal static class MessageCommandDecoder
 
         MambaMessage message = MessageDecoder.Decode(buffer[offset..]);
 
-        return new PublishMessageCommand(queueName, message);
+        return new QueueMessagePublishCommand(queueName, message);
     }
 
-    internal static DeleteMessageCommand DecodeDelete(ReadOnlySpan<byte> buffer)
+    internal static QueueMessageDeleteCommand DecodeDelete(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -32,10 +32,10 @@ internal static class MessageCommandDecoder
 
         Guid messageId = new(buffer.Slice(offset, CommandConstants.MessageIdSize));
 
-        return new DeleteMessageCommand(queueName, messageId);
+        return new QueueMessageDeleteCommand(queueName, messageId);
     }
-    
-    internal static GetMessagesCommand DecodeGetMessages(ReadOnlySpan<byte> buffer)
+
+    internal static QueueMessagesGetCommand DecodeGetMessages(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -60,12 +60,12 @@ internal static class MessageCommandDecoder
         if (skip < 0)
             throw new InvalidDataException("Skip cannot be negative.");
 
-        return take <= 0 
-            ? throw new InvalidDataException("Take must be greater than zero.") 
-            : new GetMessagesCommand(queueName, skip, take);
+        return take <= 0
+            ? throw new InvalidDataException("Take must be greater than zero.")
+            : new QueueMessagesGetCommand(queueName, skip, take);
     }
-    
-    internal static DeleteMessagesCommand DecodeDeleteMessages(ReadOnlySpan<byte> buffer)
+
+    internal static QueueMessagesDeleteCommand DecodeDeleteMessages(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -98,6 +98,6 @@ internal static class MessageCommandDecoder
             offset += CommandConstants.MessageIdSize;
         }
 
-        return new DeleteMessagesCommand(queueName, messageIds);
+        return new QueueMessagesDeleteCommand(queueName, messageIds);
     }
 }

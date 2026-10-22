@@ -6,51 +6,51 @@ internal sealed partial class MambaStudioClient
     {
         MambaMessage message = new(body);
 
-        PublishMessageCommand command = new(queueName, message);
+        QueueMessagePublishCommand command = new(queueName, message);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.PublishMessage, payload);
+        Frame frame = new(FrameType.QueueMessagePublishCommand, payload);
 
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
-        return responseFrame.Type is not FrameType.CommandResponse
-            ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.")
+        return responseFrame.Type is not FrameType.CommandResultResponse
+            ? throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.")
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
     public async Task<CommandResponse<GetMessagesResponse>> GetMessagesAsync(string queueName, int skip, int take, CancellationToken cancellationToken = default)
     {
-        GetMessagesCommand command = new(queueName, skip, take);
+        QueueMessagesGetCommand command = new(queueName, skip, take);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.GetMessagesCommand, payload);
+        Frame frame = new(FrameType.QueueMessagesGetCommand, payload);
 
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
         return responseFrame.Type switch
         {
-            FrameType.CommandResponse => CommandResponseDecoder.Decode(responseFrame.Payload.Span, GetMessagesResponseDecoder.Decode),
+            FrameType.CommandResultResponse => CommandResponseDecoder.Decode(responseFrame.Payload.Span, GetMessagesResponseDecoder.Decode),
 
-            FrameType.GetMessagesResponse => CommandResponse<GetMessagesResponse>.Success(GetMessagesResponseDecoder.Decode(responseFrame.Payload.Span)),
+            FrameType.QueueMessagesGetResponse => CommandResponse<GetMessagesResponse>.Success(GetMessagesResponseDecoder.Decode(responseFrame.Payload.Span)),
 
-            _ => throw new InvalidDataException($"Expected {FrameType.CommandResponse} or {FrameType.GetMessagesResponse} frame, but received {responseFrame.Type}.")
+            _ => throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} or {FrameType.QueueMessagesGetResponse} frame, but received {responseFrame.Type}.")
         };
     }
 
     public async Task<CommandResponse> DeleteMessagesAsync(string queueName, ICollection<Guid> messageIds, CancellationToken cancellationToken = default)
     {
-        DeleteMessagesCommand command = new(queueName, messageIds);
+        QueueMessagesDeleteCommand command = new(queueName, messageIds);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.DeleteSelectedMessagesCommand, payload);
+        Frame frame = new(FrameType.QueueMessagesDeleteCommand, payload);
 
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
-        return responseFrame.Type is not FrameType.CommandResponse
-            ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.")
+        return responseFrame.Type is not FrameType.CommandResultResponse
+            ? throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.")
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 }

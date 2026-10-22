@@ -2,7 +2,7 @@
 
 internal static class QueueCommandDecoder
 {
-    internal static CreateQueueCommand DecodeCreateQueue(ReadOnlySpan<byte> buffer)
+    internal static QueueCreateCommand DecodeCreateQueue(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -23,7 +23,7 @@ internal static class QueueCommandDecoder
             "MessageRetentionPeriod",
             "Create queue command");
 
-        return new CreateQueueCommand(
+        return new QueueCreateCommand(
             queueName,
             isDurable,
             algorithm,
@@ -32,16 +32,16 @@ internal static class QueueCommandDecoder
             retentionPeriod);
     }
 
-    internal static SubscribeQueueCommand DecodeSubscribeQueue(ReadOnlySpan<byte> buffer)
+    internal static QueueSubscribeCommand DecodeSubscribeQueue(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
         string queueName = ProtocolReader.ReadString(buffer, ref offset, "queue name", "Subscribe queue command");
 
-        return new SubscribeQueueCommand(queueName);
+        return new QueueSubscribeCommand(queueName);
     }
 
-    internal static SubscribeQueueWithBatchCommand DecodeSubscribeQueueWithBatch(ReadOnlySpan<byte> buffer)
+    internal static QueueSubscribeBatchCommand DecodeSubscribeQueueWithBatch(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -55,22 +55,22 @@ internal static class QueueCommandDecoder
 
         int weight = ReadInt32(buffer, ref offset, CommandConstants.WeightSize, "Weight", "Subscribe with batch command");
 
-        return new SubscribeQueueWithBatchCommand(queueName, maxMessages, maxBytes, maxWaitTime, weight);
+        return new QueueSubscribeBatchCommand(queueName, maxMessages, maxBytes, maxWaitTime, weight);
     }
 
-    internal static GetQueuesCommand DecodeGetQueues()
+    internal static QueueGetCommand DecodeGetQueues()
     {
-        return new GetQueuesCommand();
+        return new QueueGetCommand();
     }
 
-    internal static DeleteQueueCommand DecodeDeleteQueue(ReadOnlySpan<byte> buffer)
+    internal static QueueDeleteCommand DecodeDeleteQueue(ReadOnlySpan<byte> buffer)
     {
-        return buffer.Length != CommandConstants.QueueIdSize 
-            ? throw new InvalidDataException($"Invalid DeleteQueueCommand payload length: {buffer.Length}.") 
-            : new DeleteQueueCommand(new Guid(buffer));
+        return buffer.Length != CommandConstants.QueueIdSize
+            ? throw new InvalidDataException($"Invalid QueueDeleteCommand payload length: {buffer.Length}.")
+            : new QueueDeleteCommand(new Guid(buffer));
     }
 
-    internal static UpdateQueueCommand DecodeUpdateQueue(ReadOnlySpan<byte> buffer)
+    internal static QueueUpdateCommand DecodeUpdateQueue(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -97,7 +97,7 @@ internal static class QueueCommandDecoder
             "MessageRetentionPeriod",
             "Update queue command");
 
-        return new UpdateQueueCommand(
+        return new QueueUpdateCommand(
             queueId,
             queueName,
             isDurable,

@@ -4,7 +4,7 @@ internal sealed partial class MambaStudioClient(IConnection connection, IAuthent
 {
     private const int MaxMessageSizeInBytes = 1048576;
     private readonly SemaphoreSlim _requestLock = new(1, 1);
-    
+
     public async Task ConnectAsync(string host, int port, string username, string password, CancellationToken cancellationToken = default)
     {
         await _requestLock.WaitAsync(cancellationToken);
@@ -22,16 +22,16 @@ internal sealed partial class MambaStudioClient(IConnection connection, IAuthent
 
     public async Task PingAsync(CancellationToken cancellationToken = default)
     {
-        PingCommand command = new();
-        
+        ConnectionPingCommand command = new();
+
         byte[] payload = CommandEncoder.Encode(command);
-        
-        Frame frame = new(FrameType.PingCommand, payload);
+
+        Frame frame = new(FrameType.ConnectionPingCommand, payload);
 
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
-        if (responseFrame.Type is not FrameType.PongResponse)
-            throw new InvalidDataException($"Expected {FrameType.PongResponse} frame, but received {responseFrame.Type}.");
+        if (responseFrame.Type is not FrameType.ConnectionPongResponse)
+            throw new InvalidDataException($"Expected {FrameType.ConnectionPongResponse} frame, but received {responseFrame.Type}.");
     }
 
     public ValueTask DisconnectAsync(CancellationToken cancellationToken = default)

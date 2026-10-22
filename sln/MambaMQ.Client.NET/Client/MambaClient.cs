@@ -25,7 +25,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 
         await EnsureConnectedAsync(cancellationToken);
 
-        CreateQueueCommand command = new(
+        QueueCreateCommand command = new(
             queueOptions.QueueName,
             queueOptions.IsDurable,
             queueOptions.LoadBalancingAlgorithm,
@@ -44,7 +44,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 
         MambaMessage mambaMessage = new(body);
 
-        PublishMessageCommand command = new(queueName, mambaMessage);
+        QueueMessagePublishCommand command = new(queueName, mambaMessage);
 
         await SendCommandAsync(command, cancellationToken);
     }
@@ -53,7 +53,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        SubscribeQueueCommand command = new(queueName);
+        QueueSubscribeCommand command = new(queueName);
 
         await SendCommandAsync(command, cancellationToken);
 
@@ -61,8 +61,8 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         {
             Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
 
-            if (frame.Type is not FrameType.GetMessage)
-                throw new InvalidDataException($"Expected {FrameType.GetMessage} frame, but received {frame.Type}.");
+            if (frame.Type is not FrameType.QueueMessageDeliverResponse)
+                throw new InvalidDataException($"Expected {FrameType.QueueMessageDeliverResponse} frame, but received {frame.Type}.");
 
             MambaMessage message = MessageDecoder.Decode(frame.Payload.Span);
 
@@ -75,7 +75,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        SubscribeQueueWithBatchCommand command = new(
+        QueueSubscribeBatchCommand command = new(
             queueName,
             options.MaxMessages,
             options.MaxBytes,
@@ -88,9 +88,9 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
         {
             Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
 
-            if (frame.Type is not FrameType.BatchMessages)
+            if (frame.Type is not FrameType.QueueMessagesBatchResponse)
             {
-                throw new InvalidDataException($"Expected {FrameType.BatchMessages} frame, but received {frame.Type}.");
+                throw new InvalidDataException($"Expected {FrameType.QueueMessagesBatchResponse} frame, but received {frame.Type}.");
             }
 
             IReadOnlyList<MambaMessage> messages = MessageBatchDecoder.Decode(frame.Payload.Span);
@@ -103,7 +103,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        DeleteMessageCommand command = new(queueName, messageId);
+        QueueMessageDeleteCommand command = new(queueName, messageId);
 
         await SendCommandAsync(command, cancellationToken);
     }
@@ -112,7 +112,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        CreateExchangeCommand command = new(exchangeOptions.Name, exchangeOptions.IsDurable, exchangeOptions.Type, exchangeOptions.Permissions);
+        ExchangeCreateCommand command = new(exchangeOptions.Name, exchangeOptions.IsDurable, exchangeOptions.Type, exchangeOptions.Permissions);
 
         await SendCommandAsync(command, cancellationToken);
     }
@@ -121,7 +121,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        BindExchangeCommand command = new(exchangeName, queueName, routingKey);
+        ExchangeBindCommand command = new(exchangeName, queueName, routingKey);
 
         await SendCommandAsync(command, cancellationToken);
     }
@@ -130,7 +130,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        UnbindExchangeCommand command = new(exchangeName, queueName, routingKey);
+        ExchangeUnbindCommand command = new(exchangeName, queueName, routingKey);
 
         await SendCommandAsync(command, cancellationToken);
     }
@@ -143,7 +143,7 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
 
         MambaMessage mambaMessage = new(body);
 
-        PublishToExchangeCommand command = new(exchangeName, routingKey, mambaMessage);
+        ExchangeMessagePublishCommand command = new(exchangeName, routingKey, mambaMessage);
 
         await SendCommandAsync(command, cancellationToken);
     }
@@ -171,8 +171,8 @@ internal sealed class MambaClient : IMamba, IAsyncDisposable
     {
         Frame responseFrame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
 
-        return responseFrame.Type is not FrameType.CommandResponse 
-            ? throw new InvalidDataException($"Expected {FrameType.CommandResponse} frame, but received {responseFrame.Type}.") 
+        return responseFrame.Type is not FrameType.CommandResultResponse
+            ? throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.")
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 

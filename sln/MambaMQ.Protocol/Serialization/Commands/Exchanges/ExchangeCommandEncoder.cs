@@ -2,14 +2,14 @@
 
 internal static class ExchangeCommandEncoder
 {
-    internal static byte[] EncodeDeleteExchange(DeleteExchangeCommand command)
+    internal static byte[] EncodeDeleteExchange(ExchangeDeleteCommand command)
     {
         byte[] buffer = new byte[CommandConstants.ExchangeIdSize];
         command.ExchangeId.TryWriteBytes(buffer);
         return buffer;
     }
 
-    internal static byte[] EncodeUpdateExchange(UpdateExchangeCommand command)
+    internal static byte[] EncodeUpdateExchange(ExchangeUpdateCommand command)
     {
         int permissionsSize = CommandConstants.PermissionsCountSize + command.Permissions
             .Sum(permission => CommandConstants.ServiceNameLengthSize + Encoding.UTF8.GetByteCount(permission.Key) + CommandConstants.PermissionSize);
@@ -40,7 +40,7 @@ internal static class ExchangeCommandEncoder
 
     internal static byte[] EncodeGetExchanges() => [];
 
-    internal static byte[] EncodeCreateExchange(CreateExchangeCommand command)
+    internal static byte[] EncodeCreateExchange(ExchangeCreateCommand command)
     {
         byte[] exchangeName = Encoding.UTF8.GetBytes(command.ExchangeName);
 
@@ -90,7 +90,7 @@ internal static class ExchangeCommandEncoder
         return buffer;
     }
 
-    internal static byte[] EncodeBindExchange(BindExchangeCommand command)
+    internal static byte[] EncodeBindExchange(ExchangeBindCommand command)
     {
         byte[] exchangeName = Encoding.UTF8.GetBytes(command.ExchangeName);
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
@@ -115,7 +115,7 @@ internal static class ExchangeCommandEncoder
         return buffer;
     }
 
-    internal static byte[] EncodeUnbindExchange(UnbindExchangeCommand command)
+    internal static byte[] EncodeUnbindExchange(ExchangeUnbindCommand command)
     {
         byte[] exchangeName = Encoding.UTF8.GetBytes(command.ExchangeName);
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
@@ -139,8 +139,8 @@ internal static class ExchangeCommandEncoder
 
         return buffer;
     }
-    
-    internal static byte[] EncodePublishToExchange(PublishToExchangeCommand command)
+
+    internal static byte[] EncodePublishToExchange(ExchangeMessagePublishCommand command)
     {
         byte[] message = MessageEncoder.Encode(command.Message);
 

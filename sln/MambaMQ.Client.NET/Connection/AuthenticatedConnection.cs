@@ -1,11 +1,11 @@
 ﻿namespace MambaMQ.Client.NET.Connection;
 
 internal sealed class AuthenticatedConnection(
-    IConnection connection, 
+    IConnection connection,
     MambaClientOptions options) : IConnection
 {
     private const ClientType ClientTypeValue = ClientType.Service;
-    
+
     public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
         await connection.ConnectAsync(host, port, cancellationToken);
@@ -33,14 +33,14 @@ internal sealed class AuthenticatedConnection(
 
     public ValueTask DisposeAsync()
         => connection.DisposeAsync();
-    
+
     private async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        AuthenticationCommand command = new(username, password, ClientTypeValue);
+        ClientAuthenticateCommand command = new(username, password, ClientTypeValue);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.Authentication, payload);
+        Frame frame = new(FrameType.ClientAuthenticateCommand, payload);
 
         byte[] buffer = FrameEncoder.Encode(frame);
 
@@ -51,14 +51,14 @@ internal sealed class AuthenticatedConnection(
         if (!response.IsSucceed)
             throw new AuthenticationException(response.ErrorMessage ?? "Authentication failed.");
     }
-    
+
     private async Task IdentifyServiceAsync(CancellationToken cancellationToken)
     {
-        ServiceIdentityCommand command = new(options.ServiceName!);
+        ServiceIdentitySetCommand command = new(options.ServiceName!);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.ServiceIdentity, payload);
+        Frame frame = new(FrameType.ServiceIdentitySetCommand, payload);
 
         byte[] buffer = FrameEncoder.Encode(frame);
 
@@ -69,13 +69,13 @@ internal sealed class AuthenticatedConnection(
         if (!response.IsSucceed)
             throw new InvalidOperationException(response.ErrorMessage ?? "Service identification failed.");
     }
-    
+
     private async Task<CommandResponse> ReadCommandResponseAsync(int maxMessageSizeInBytes = 1048576, CancellationToken cancellationToken = default)
     {
         Frame responseFrame = await FrameReader.ReadAsync(connection, maxMessageSizeInBytes, cancellationToken);
 
-        return responseFrame.Type is not FrameType.CommandResponse 
-            ? throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.") 
+        return responseFrame.Type is not FrameType.CommandResultResponse
+            ? throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.")
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 }

@@ -2,14 +2,14 @@
 
 internal static class ExchangeCommandDecoder
 {
-    internal static DeleteExchangeCommand DecodeDeleteExchange(ReadOnlySpan<byte> buffer)
+    internal static ExchangeDeleteCommand DecodeDeleteExchange(ReadOnlySpan<byte> buffer)
     {
         return buffer.Length != CommandConstants.ExchangeIdSize
-            ? throw new InvalidDataException($"Invalid DeleteExchangeCommand payload length: {buffer.Length}.")
-            : new DeleteExchangeCommand(new Guid(buffer));
+            ? throw new InvalidDataException($"Invalid ExchangeDeleteCommand payload length: {buffer.Length}.")
+            : new ExchangeDeleteCommand(new Guid(buffer));
     }
 
-    internal static UpdateExchangeCommand DecodeUpdateExchange(ReadOnlySpan<byte> buffer)
+    internal static ExchangeUpdateCommand DecodeUpdateExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
         if (buffer.Length < CommandConstants.ExchangeIdSize)
@@ -34,15 +34,15 @@ internal static class ExchangeCommandDecoder
             permissions.Add(serviceName, (ExchangePermission)buffer[offset++]);
         }
 
-        return new UpdateExchangeCommand(exchangeId, exchangeName, isDurable, exchangeType, permissions);
+        return new ExchangeUpdateCommand(exchangeId, exchangeName, isDurable, exchangeType, permissions);
     }
 
-    internal static GetExchangesCommand DecodeGetExchanges()
+    internal static ExchangeGetCommand DecodeGetExchanges()
     {
-        return new GetExchangesCommand();
+        return new ExchangeGetCommand();
     }
 
-    internal static CreateExchangeCommand DecodeCreateExchange(ReadOnlySpan<byte> buffer)
+    internal static ExchangeCreateCommand DecodeCreateExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -85,14 +85,14 @@ internal static class ExchangeCommandDecoder
             permissions.Add(serviceName, permission);
         }
 
-        return new CreateExchangeCommand(
+        return new ExchangeCreateCommand(
             exchangeName,
             isDurable,
             exchangeType,
             permissions);
     }
 
-    internal static BindExchangeCommand DecodeBindExchange(ReadOnlySpan<byte> buffer)
+    internal static ExchangeBindCommand DecodeBindExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -105,10 +105,10 @@ internal static class ExchangeCommandDecoder
         string routingKey = ProtocolReader.ReadString(
             buffer, ref offset, "routing key", "Bind exchange command");
 
-        return new BindExchangeCommand(exchangeName, queueName, routingKey);
+        return new ExchangeBindCommand(exchangeName, queueName, routingKey);
     }
 
-    internal static UnbindExchangeCommand DecodeUnbindExchange(ReadOnlySpan<byte> buffer)
+    internal static ExchangeUnbindCommand DecodeUnbindExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -118,10 +118,10 @@ internal static class ExchangeCommandDecoder
 
         string routingKey = ProtocolReader.ReadString(buffer, ref offset, "routing key", "Unbind exchange command");
 
-        return new UnbindExchangeCommand(exchangeName, queueName, routingKey);
+        return new ExchangeUnbindCommand(exchangeName, queueName, routingKey);
     }
 
-    internal static PublishToExchangeCommand DecodePublishToExchange(ReadOnlySpan<byte> buffer)
+    internal static ExchangeMessagePublishCommand DecodePublishToExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -131,7 +131,7 @@ internal static class ExchangeCommandDecoder
 
         MambaMessage message = MessageDecoder.Decode(buffer[offset..]);
 
-        return new PublishToExchangeCommand(exchangeName, routingKey, message);
+        return new ExchangeMessagePublishCommand(exchangeName, routingKey, message);
     }
 
     private static int ReadPermissionsCount(ReadOnlySpan<byte> buffer, int offset)
@@ -141,8 +141,8 @@ internal static class ExchangeCommandDecoder
 
         int count = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(offset, CommandConstants.PermissionsCountSize));
 
-        return count < 0 
-            ? throw new InvalidDataException("Create exchange command contains invalid permissions count.") 
+        return count < 0
+            ? throw new InvalidDataException("Create exchange command contains invalid permissions count.")
             : count;
     }
 
