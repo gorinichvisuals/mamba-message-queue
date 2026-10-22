@@ -1,3 +1,5 @@
+using MambaMQ.Studio.Controls;
+
 namespace MambaMQ.Studio.Views;
 
 public partial class CreateExchangeWindow : Window
@@ -5,6 +7,7 @@ public partial class CreateExchangeWindow : Window
     public CreateExchangeWindow()
     {
         InitializeComponent();
+        WindowChrome.Apply(this);
         DataContext = new CreateExchangeViewModel();
     }
 

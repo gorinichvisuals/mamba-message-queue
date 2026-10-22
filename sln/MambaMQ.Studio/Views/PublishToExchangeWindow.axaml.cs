@@ -1,3 +1,5 @@
+using MambaMQ.Studio.Controls;
+
 namespace MambaMQ.Studio.Views;
 
 public partial class PublishToExchangeWindow : Window
@@ -5,6 +7,7 @@ public partial class PublishToExchangeWindow : Window
     public PublishToExchangeWindow()
     {
         InitializeComponent();
+        WindowChrome.Apply(this);
         
         DataContext = new PublishToExchangeViewModel();
         

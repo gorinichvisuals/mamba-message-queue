@@ -1,11 +1,16 @@
 namespace MambaMQ.Studio.Views;
 
+using MambaMQ.Studio.Controls;
+
 public partial class LoginView : UserControl
 {
     public LoginView()
     {
         InitializeComponent();
     }
+
+    private void OnWindowDragPointerPressed(object? sender, PointerPressedEventArgs e)
+        => WindowDragHelper.TryBeginMoveDrag(this, e);
 
     private void OnProfilesPointerPressed(object? sender, PointerPressedEventArgs e)
     {

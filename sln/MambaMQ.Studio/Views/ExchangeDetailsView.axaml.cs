@@ -2,21 +2,9 @@ namespace MambaMQ.Studio.Views;
 
 public partial class ExchangeDetailsView : UserControl
 {
-    private bool _initialized;
-
     public ExchangeDetailsView()
     {
         InitializeComponent();
-        
-        Loaded += async (_, _) =>
-        {
-            if (_initialized || DataContext is not ExchangeDetailsViewModel viewModel)
-                return;
-            
-            _initialized = true;
-            
-            await viewModel.LoadAsync();
-        };
     }
 
     private async void UpdateExchange_Click(object? sender, RoutedEventArgs e)

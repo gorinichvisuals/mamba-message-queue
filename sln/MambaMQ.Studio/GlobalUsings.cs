@@ -6,6 +6,7 @@ global using CommunityToolkit.Mvvm.ComponentModel;
 global using Avalonia;
 global using Avalonia.Media;
 global using Avalonia.Input;
+global using Avalonia.Layout;
 global using Avalonia.Controls;
 global using Avalonia.VisualTree;
 global using Avalonia.Markup.Xaml;
@@ -13,6 +14,7 @@ global using Avalonia.Interactivity;
 global using Avalonia.Input.Platform;
 global using Avalonia.Data.Converters;
 global using Avalonia.Controls.Templates;
+global using Avalonia.Controls.Primitives;
 global using Avalonia.Controls.ApplicationLifetimes;
 
 global using System;
@@ -29,7 +31,6 @@ global using System.Diagnostics.CodeAnalysis;
 global using MambaMQ.Studio.Views;
 global using MambaMQ.Studio.ViewModels;
 global using MambaMQ.Studio.Models;
-global using MambaMQ.Studio.Results;
 
 global using MambaMQ.Studio.Infrastructure.Client;
 global using MambaMQ.Studio.Infrastructure.Services.Abstractions;

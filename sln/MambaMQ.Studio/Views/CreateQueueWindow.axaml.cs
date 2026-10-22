@@ -1,10 +1,13 @@
-﻿namespace MambaMQ.Studio.Views;
+﻿using MambaMQ.Studio.Controls;
+
+namespace MambaMQ.Studio.Views;
 
 public partial class CreateQueueWindow : Window
 {
     public CreateQueueWindow()
     {
         InitializeComponent();
+        WindowChrome.Apply(this);
 
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 

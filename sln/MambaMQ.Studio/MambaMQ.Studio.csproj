@@ -36,5 +36,9 @@
       <Compile Update="Views\SaveProfilePromptWindow.axaml.cs">
         <DependentUpon>SaveProfilePromptWindow.axaml</DependentUpon>
       </Compile>
+      <Compile Update="Views\WindowChromeButtons.axaml.cs">
+        <DependentUpon>WindowChromeButtons.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
 </Project>

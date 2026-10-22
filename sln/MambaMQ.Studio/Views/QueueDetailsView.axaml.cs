@@ -2,23 +2,9 @@
 
 public partial class QueueDetailsView : UserControl
 {
-    private bool _initialized;
-
     public QueueDetailsView()
     {
         InitializeComponent();
-
-        Loaded += QueueDetailsView_Loaded;
-    }
-
-    private async void QueueDetailsView_Loaded(object? sender, RoutedEventArgs e)
-    {
-        if (_initialized || DataContext is not QueueDetailsViewModel viewModel)
-            return;
-
-        _initialized = true;
-
-        await viewModel.LoadMessagesAsync();
     }
 
     private async void UpdateQueue_Click(object? sender, RoutedEventArgs e)
@@ -50,7 +36,7 @@ public partial class QueueDetailsView : UserControl
         if (!confirmed)
             return;
 
-        QueueOperationResult result = await viewModel.DeleteQueue();
+        QueueOperationResultModel result = await viewModel.DeleteQueue();
 
         if (!result.IsSucceed)
             return;

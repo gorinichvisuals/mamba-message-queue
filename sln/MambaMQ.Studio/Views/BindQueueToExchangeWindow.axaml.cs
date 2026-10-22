@@ -1,3 +1,5 @@
+using MambaMQ.Studio.Controls;
+
 namespace MambaMQ.Studio.Views;
 
 public partial class BindQueueToExchangeWindow : Window
@@ -5,6 +7,7 @@ public partial class BindQueueToExchangeWindow : Window
     public BindQueueToExchangeWindow(IEnumerable<string> queueNames)
     {
         InitializeComponent();
+        WindowChrome.Apply(this);
         
         DataContext = new BindQueueToExchangeViewModel(queueNames);
     }

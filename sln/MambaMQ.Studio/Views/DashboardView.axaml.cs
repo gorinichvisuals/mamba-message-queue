@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using MambaMQ.Studio.Controls;
 
 namespace MambaMQ.Studio.Views;
 
@@ -19,6 +20,12 @@ public partial class DashboardView : UserControl
         DataContextChanged += OnDataContextChanged;
     }
 
+    private void OnWindowDragPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control dragRegion)
+            WindowDragHelper.TryBeginMoveDrag(dragRegion, e);
+    }
+
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (_observedViewModel is not null)
@@ -34,19 +41,22 @@ public partial class DashboardView : UserControl
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(DashboardViewModel.IsConnected) or nameof(DashboardViewModel.IsReconnecting))
+        if (e.PropertyName is nameof(DashboardViewModel.IsNavigationLoading)
+            or nameof(DashboardViewModel.HasNavigationError)
+            or nameof(DashboardViewModel.IsNavigationOverlayVisible))
             UpdateConnectionVisuals();
     }
 
     private void UpdateConnectionVisuals()
     {
-        bool isConnectionLost = _observedViewModel?.IsConnectionLost ?? false;
+        bool showOverlay = _observedViewModel?.IsNavigationOverlayVisible ?? false;
+        bool isLoading = _observedViewModel?.IsNavigationLoading ?? false;
 
-        DashboardContent.Effect = isConnectionLost
+        DashboardContent.Effect = showOverlay
             ? new BlurEffect { Radius = 3 }
             : null;
 
-        if (isConnectionLost)
+        if (isLoading)
         {
             ReconnectSpinner.Step = 0;
             _spinnerTimer.Start();
