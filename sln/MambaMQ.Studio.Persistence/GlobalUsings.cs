@@ -1,6 +1,6 @@
-﻿global using Microsoft.Extensions.DependencyInjection;
+﻿global using System.Text.Json;
 
-global using System.Text.Json;
+global using Microsoft.Extensions.DependencyInjection;
 
 global using MambaMQ.Studio.Persistence.Models;
 global using MambaMQ.Studio.Persistence.Services;

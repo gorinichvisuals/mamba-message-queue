@@ -19,7 +19,7 @@ internal sealed partial class QueueManager
             InFlightMessageCount = queue.InFlightMessageCount
         };
     }
-    
+
     private static CommandResponse ValidateQueueOptions(bool isDurable, bool messageRetentionEnabled)
     {
         if (!isDurable && messageRetentionEnabled)
@@ -27,7 +27,7 @@ internal sealed partial class QueueManager
 
         return CommandResponse.Success();
     }
-    
+
     private async Task<CommandResponse> PersistQueue(MambaQueue queue, CancellationToken cancellationToken = default)
     {
         StoredMambaQueue storedQueue = new(
@@ -56,7 +56,7 @@ internal sealed partial class QueueManager
             return CommandResponse.Fail(ErrorCode.PersistenceError, "Failed to persist queue.");
         }
     }
-    
+
     private async Task Consume(MambaQueue queue, IClientConnection connection, CancellationToken cancellationToken)
     {
         mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ServiceName}' with ID '{ConnectionId}' subscribed to queue.", connection.ServiceName, connection.Id);
@@ -67,7 +67,7 @@ internal sealed partial class QueueManager
             {
                 byte[] payload = MessageEncoder.Encode(delivery.Message);
 
-                Frame frame = new(FrameType.GetMessage, payload);
+                Frame frame = new(FrameType.QueueMessageDeliverResponse, payload);
 
                 await connection.SendAsync(frame, cancellationToken);
 
@@ -79,11 +79,11 @@ internal sealed partial class QueueManager
             mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ConnectionId}' unsubscribed from queue.", connection.Id);
         }
     }
-    
+
     private async Task ConsumeWithBatch(MambaQueue queue, Subscriber subscriber, CancellationToken cancellationToken)
     {
         IClientConnection connection = subscriber.Connection;
-        
+
         mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ServiceName}' with ID '{ConnectionId}' subscribed to queue with batch.", connection.ServiceName, connection.Id);
 
         try
@@ -103,7 +103,7 @@ internal sealed partial class QueueManager
                 if (deliveries.Count is 0)
                 {
                     StartNextBatch(queue);
-                    
+
                     continue;
                 }
 
@@ -115,11 +115,11 @@ internal sealed partial class QueueManager
         finally
         {
             RemoveSubscriber(queue.Id, subscriber);
-            
+
             mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ConnectionId}' unsubscribed from queue.", connection.Id);
         }
     }
-    
+
     private static MambaQueue RestoreQueue(StoredMambaQueueState storedQueue)
     {
         MambaQueue queue = new(
@@ -139,7 +139,7 @@ internal sealed partial class QueueManager
 
         return queue;
     }
-    
+
     private void AddSubscriber(Guid queueId, Subscriber subscriber)
     {
         lock (_subscribers)
@@ -153,7 +153,7 @@ internal sealed partial class QueueManager
             subscribers.Add(subscriber);
         }
     }
-    
+
     private void RemoveSubscriber(Guid queueId, Subscriber subscriber)
     {
         lock (_subscribers)
@@ -167,7 +167,7 @@ internal sealed partial class QueueManager
                 _subscribers.Remove(queueId);
         }
     }
-    
+
     private async Task<IReadOnlyList<MessageDelivery>> DequeueBatchWithLock(
         MambaQueue queue,
         Subscriber subscriber,
@@ -185,7 +185,7 @@ internal sealed partial class QueueManager
             batchLock.Release();
         }
     }
-    
+
     private async Task SendBatch(
         MambaQueue queue,
         Subscriber subscriber,
@@ -199,7 +199,7 @@ internal sealed partial class QueueManager
 
         byte[] payload = MessageBatchEncoder.Encode(messages);
 
-        Frame frame = new(FrameType.BatchMessages, payload);
+        Frame frame = new(FrameType.QueueMessagesBatchResponse, payload);
 
         await subscriber.Connection.SendAsync(frame, cancellationToken);
 
@@ -208,7 +208,7 @@ internal sealed partial class QueueManager
         foreach (MessageDelivery delivery in deliveries)
             mambaLogger.Queue(queue.Name).LogDebug("Message '{MessageMessageId}' was delivered to connection '{ConnectionId}'.", delivery.Message.MessageId, subscriber.Connection.Id);
     }
-    
+
     private async Task<IReadOnlyList<MessageDelivery>> DequeueBatch(
         MambaQueue queue,
         Subscriber subscriber,
@@ -263,7 +263,7 @@ internal sealed partial class QueueManager
 
         return deliveries;
     }
-    
+
     private void StartNextBatch(MambaQueue queue)
     {
         Subscriber subscriber;
@@ -280,7 +280,7 @@ internal sealed partial class QueueManager
 
         subscriber.BatchSignal.Release();
     }
-    
+
     private void RegisterQueue(MambaQueue queue)
     {
         _queues.Add(queue.Id, queue);
@@ -288,7 +288,7 @@ internal sealed partial class QueueManager
         _loadBalancingStrategies.Add(queue.Id, LoadBalancingStrategyFactory.Create(queue.LoadBalancingAlgorithm));
         _batchLocks.Add(queue.Id, new SemaphoreSlim(1, 1));
     }
-    
+
     private MambaQueue? GetQueueById(Guid queueId)
         => _queues.GetValueOrDefault(queueId);
 }

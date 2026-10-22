@@ -6,11 +6,11 @@ internal sealed class AuthenticateService(IConnection connection) : IAuthenticat
 
     public async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        AuthenticationCommand command = new(username, password, ClientTypeValue);
+        ClientAuthenticateCommand command = new(username, password, ClientTypeValue);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.Authentication, payload);
+        Frame frame = new(FrameType.ClientAuthenticateCommand, payload);
 
         byte[] buffer = FrameEncoder.Encode(frame);
 
@@ -21,12 +21,12 @@ internal sealed class AuthenticateService(IConnection connection) : IAuthenticat
         if (!response.IsSucceed)
             throw new AuthenticationException(response.ErrorMessage ?? "Authentication failed.");
     }
-    
+
     public async Task<CommandResponse> ReadCommandResponseAsync(int maxMessageSizeInBytes = 1048576, CancellationToken cancellationToken = default)
     {
         Frame responseFrame = await FrameReader.ReadAsync(connection, maxMessageSizeInBytes, cancellationToken);
 
-        if (responseFrame.Type is not FrameType.CommandResponse)
+        if (responseFrame.Type is not FrameType.CommandResultResponse)
             throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.");
 
         return CommandResponseDecoder.Decode(responseFrame.Payload.Span);

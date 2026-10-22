@@ -6,30 +6,30 @@ public static class CommandDecoder
     {
         return type switch
         {
-            FrameType.PingCommand => new PingCommand(),
-            FrameType.Authentication => AuthenticationCommandDecoder.DecodeAuthentication(buffer),
-            FrameType.ServiceIdentity => AuthenticationCommandDecoder.DecodeServiceIdentity(buffer),
-            
-            FrameType.PublishMessage => MessageCommandDecoder.DecodePublish(buffer),
-            FrameType.DeleteMessage => MessageCommandDecoder.DecodeDelete(buffer),
-            FrameType.DeleteSelectedMessagesCommand => MessageCommandDecoder.DecodeDeleteMessages(buffer),
-            FrameType.GetMessagesCommand => MessageCommandDecoder.DecodeGetMessages(buffer),
-            
-            FrameType.CreateQueue => QueueCommandDecoder.DecodeCreateQueue(buffer),
-            FrameType.SubscribeQueue => QueueCommandDecoder.DecodeSubscribeQueue(buffer),
-            FrameType.SubscribeQueueWithBatch => QueueCommandDecoder.DecodeSubscribeQueueWithBatch(buffer),
-            FrameType.GetQueuesCommand => QueueCommandDecoder.DecodeGetQueues(),
-            FrameType.DeleteQueueCommand => QueueCommandDecoder.DecodeDeleteQueue(buffer),
-            FrameType.UpdateQueueCommand => QueueCommandDecoder.DecodeUpdateQueue(buffer),
-            
-            FrameType.CreateExchange => ExchangeCommandDecoder.DecodeCreateExchange(buffer),
-            FrameType.GetExchangesCommand => ExchangeCommandDecoder.DecodeGetExchanges(),
-            FrameType.BindExchange => ExchangeCommandDecoder.DecodeBindExchange(buffer),
-            FrameType.UnbindExchange => ExchangeCommandDecoder.DecodeUnbindExchange(buffer),
-            FrameType.PublishToExchange => ExchangeCommandDecoder.DecodePublishToExchange(buffer),
-            FrameType.DeleteExchangeCommand => ExchangeCommandDecoder.DecodeDeleteExchange(buffer),
-            FrameType.UpdateExchangeCommand => ExchangeCommandDecoder.DecodeUpdateExchange(buffer),
-            
+            FrameType.ConnectionPingCommand => new ConnectionPingCommand(),
+            FrameType.ClientAuthenticateCommand => AuthenticationCommandDecoder.DecodeAuthentication(buffer),
+            FrameType.ServiceIdentitySetCommand => AuthenticationCommandDecoder.DecodeServiceIdentity(buffer),
+
+            FrameType.QueueMessagePublishCommand => MessageCommandDecoder.DecodePublish(buffer),
+            FrameType.QueueMessageDeleteCommand => MessageCommandDecoder.DecodeDelete(buffer),
+            FrameType.QueueMessagesDeleteCommand => MessageCommandDecoder.DecodeDeleteMessages(buffer),
+            FrameType.QueueMessagesGetCommand => MessageCommandDecoder.DecodeGetMessages(buffer),
+
+            FrameType.QueueCreateCommand => QueueCommandDecoder.DecodeCreateQueue(buffer),
+            FrameType.QueueSubscribeCommand => QueueCommandDecoder.DecodeSubscribeQueue(buffer),
+            FrameType.QueueSubscribeBatchCommand => QueueCommandDecoder.DecodeSubscribeQueueWithBatch(buffer),
+            FrameType.QueueGetCommand => QueueCommandDecoder.DecodeGetQueues(),
+            FrameType.QueueDeleteCommand => QueueCommandDecoder.DecodeDeleteQueue(buffer),
+            FrameType.QueueUpdateCommand => QueueCommandDecoder.DecodeUpdateQueue(buffer),
+
+            FrameType.ExchangeCreateCommand => ExchangeCommandDecoder.DecodeCreateExchange(buffer),
+            FrameType.ExchangeGetCommand => ExchangeCommandDecoder.DecodeGetExchanges(),
+            FrameType.ExchangeBindCommand => ExchangeCommandDecoder.DecodeBindExchange(buffer),
+            FrameType.ExchangeUnbindCommand => ExchangeCommandDecoder.DecodeUnbindExchange(buffer),
+            FrameType.ExchangeMessagePublishCommand => ExchangeCommandDecoder.DecodePublishToExchange(buffer),
+            FrameType.ExchangeDeleteCommand => ExchangeCommandDecoder.DecodeDeleteExchange(buffer),
+            FrameType.ExchangeUpdateCommand => ExchangeCommandDecoder.DecodeUpdateExchange(buffer),
+
             _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
         };
     }

@@ -2,7 +2,7 @@
 
 internal static class QueueCommandEncoder
 {
-    internal static byte[] EncodeCreateQueue(CreateQueueCommand command)
+    internal static byte[] EncodeCreateQueue(QueueCreateCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
 
@@ -75,7 +75,7 @@ internal static class QueueCommandEncoder
         return buffer;
     }
 
-    internal static byte[] EncodeSubscribeQueue(SubscribeQueueCommand command)
+    internal static byte[] EncodeSubscribeQueue(QueueSubscribeCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
 
@@ -86,7 +86,7 @@ internal static class QueueCommandEncoder
         return buffer;
     }
 
-    internal static byte[] EncodeSubscribeQueueWithBatch(SubscribeQueueWithBatchCommand command)
+    internal static byte[] EncodeSubscribeQueueWithBatch(QueueSubscribeBatchCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
 
@@ -120,13 +120,13 @@ internal static class QueueCommandEncoder
 
         return buffer;
     }
-    
+
     internal static byte[] EncodeGetQueues()
     {
         return [];
     }
-    
-    internal static byte[] EncodeDeleteQueue(DeleteQueueCommand command)
+
+    internal static byte[] EncodeDeleteQueue(QueueDeleteCommand command)
     {
         byte[] buffer = new byte[16];
 
@@ -134,8 +134,8 @@ internal static class QueueCommandEncoder
 
         return buffer;
     }
-    
-    internal static byte[] EncodeUpdateQueue(UpdateQueueCommand command)
+
+    internal static byte[] EncodeUpdateQueue(QueueUpdateCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
 

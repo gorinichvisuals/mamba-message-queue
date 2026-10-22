@@ -2,7 +2,7 @@
 
 internal static class MessageCommandEncoder
 {
-    internal static byte[] EncodePublishMessage(PublishMessageCommand command)
+    internal static byte[] EncodePublishMessage(QueueMessagePublishCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
         byte[] message = MessageEncoder.Encode(command.MambaMessage);
@@ -22,8 +22,8 @@ internal static class MessageCommandEncoder
 
         return buffer;
     }
-    
-    internal static byte[] EncodeDeleteMessage(DeleteMessageCommand command)
+
+    internal static byte[] EncodeDeleteMessage(QueueMessageDeleteCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
 
@@ -40,8 +40,8 @@ internal static class MessageCommandEncoder
 
         return buffer;
     }
-    
-    internal static byte[] EncodeGetMessages(GetMessagesCommand command)
+
+    internal static byte[] EncodeGetMessages(QueueMessagesGetCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
 
@@ -58,8 +58,8 @@ internal static class MessageCommandEncoder
 
         return buffer;
     }
-    
-    internal static byte[] EncodeDeleteMessages(DeleteMessagesCommand command)
+
+    internal static byte[] EncodeDeleteMessages(QueueMessagesDeleteCommand command)
     {
         byte[] queueName = Encoding.UTF8.GetBytes(command.QueueName);
 

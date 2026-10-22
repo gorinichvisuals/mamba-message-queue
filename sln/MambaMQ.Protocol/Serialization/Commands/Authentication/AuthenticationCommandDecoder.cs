@@ -2,7 +2,7 @@
 
 internal static class AuthenticationCommandDecoder
 {
-    internal static AuthenticationCommand DecodeAuthentication(ReadOnlySpan<byte> buffer)
+    internal static ClientAuthenticateCommand DecodeAuthentication(ReadOnlySpan<byte> buffer)
     {
         if (buffer.IsEmpty)
             throw new InvalidDataException("Authentication command does not contain ClientType.");
@@ -23,10 +23,10 @@ internal static class AuthenticationCommandDecoder
             "password",
             "Authentication command");
 
-        return new AuthenticationCommand(username, password, clientType);
+        return new ClientAuthenticateCommand(username, password, clientType);
     }
 
-    internal static ServiceIdentityCommand DecodeServiceIdentity(ReadOnlySpan<byte> buffer)
+    internal static ServiceIdentitySetCommand DecodeServiceIdentity(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
 
@@ -36,6 +36,6 @@ internal static class AuthenticationCommandDecoder
             "service name",
             "Service identity command");
 
-        return new ServiceIdentityCommand(serviceName);
+        return new ServiceIdentitySetCommand(serviceName);
     }
 }

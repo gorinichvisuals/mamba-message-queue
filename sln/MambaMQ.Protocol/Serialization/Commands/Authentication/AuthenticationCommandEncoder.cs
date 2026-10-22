@@ -2,7 +2,7 @@
 
 internal static class AuthenticationCommandEncoder
 {
-    internal static byte[] EncodeAuthentication(AuthenticationCommand command)
+    internal static byte[] EncodeAuthentication(ClientAuthenticateCommand command)
     {
         byte[] username = Encoding.UTF8.GetBytes(command.UserName);
         byte[] password = Encoding.UTF8.GetBytes(command.Password);
@@ -25,8 +25,8 @@ internal static class AuthenticationCommandEncoder
 
         return buffer;
     }
-    
-    internal static byte[] EncodeServiceIdentity(ServiceIdentityCommand command)
+
+    internal static byte[] EncodeServiceIdentity(ServiceIdentitySetCommand command)
     {
         byte[] serviceName = Encoding.UTF8.GetBytes(command.ServiceName);
 
