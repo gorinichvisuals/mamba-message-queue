@@ -5,8 +5,14 @@
         x:DataType="vm:MainViewModel"
         Title="MambaMQ Studio"
         Icon="/Assets/logo.png"
+        WindowDecorations="None"
         WindowState="Maximized">
 
-    <ContentControl Content="{Binding CurrentViewModel}" />
+    <Border BorderBrush="#FF4B5668"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True">
+        <ContentControl Content="{Binding CurrentViewModel}" />
+    </Border>
 
 </Window>

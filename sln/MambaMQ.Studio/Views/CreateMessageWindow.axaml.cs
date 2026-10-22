@@ -1,10 +1,13 @@
-﻿namespace MambaMQ.Studio.Views;
+﻿using MambaMQ.Studio.Controls;
+
+namespace MambaMQ.Studio.Views;
 
 public partial class CreateMessageWindow : Window
 {
     public CreateMessageWindow()
     {
         InitializeComponent();
+        WindowChrome.Apply(this);
 
         Opened += (_, _) => MessageTextBox.Focus();
     }

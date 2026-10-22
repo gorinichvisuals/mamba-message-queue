@@ -1,10 +1,13 @@
-﻿namespace MambaMQ.Studio.Views;
+﻿using MambaMQ.Studio.Controls;
+
+namespace MambaMQ.Studio.Views;
 
 public partial class MessageDetailsWindow : Window
 {
     public MessageDetailsWindow(QueueMessageModel message)
     {
         InitializeComponent();
+        WindowChrome.Apply(this);
 
         DataContext = message;
     }

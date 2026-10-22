@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MambaMQ.Studio.Views.WindowChromeButtons">
+    <StackPanel Orientation="Horizontal" Spacing="2">
+        <Button Content="—"
+                Width="38"
+                Height="32"
+                Padding="0"
+                FontSize="14"
+                Foreground="#F4F7FB"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnMinimizeClick" />
+        <Button Content="□"
+                Width="38"
+                Height="32"
+                Padding="0"
+                FontSize="15"
+                Foreground="#F4F7FB"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnMaximizeRestoreClick" />
+        <Button Content="×"
+                Width="44"
+                Height="32"
+                Padding="0"
+                FontSize="25"
+                Foreground="#F4F7FB"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnCloseClick" />
+    </StackPanel>
+</UserControl>

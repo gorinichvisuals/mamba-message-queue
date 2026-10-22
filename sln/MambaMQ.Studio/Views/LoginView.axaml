@@ -2,10 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MambaMQ.Studio.ViewModels"
              xmlns:models="using:MambaMQ.Studio.Persistence.Models"
+             xmlns:controls="using:MambaMQ.Studio.Controls"
+             xmlns:views="clr-namespace:MambaMQ.Studio.Views"
              x:Class="MambaMQ.Studio.Views.LoginView"
              x:DataType="vm:LoginViewModel">
 
-    <Grid>
+    <Grid PointerPressed="OnWindowDragPointerPressed">
 
         <Image Source="/Assets/login-background.png" Stretch="UniformToFill" />
         <Border Background="#70000000" />
@@ -25,9 +27,6 @@
                     <TextBlock Text="Saved profiles"
                                FontSize="20"
                                FontWeight="SemiBold" />
-                    <TextBlock Text="Right-click a profile to delete it."
-                               FontSize="12"
-                               Opacity="0.65" />
 
                     <Border Height="360"
                             Background="#30151820"
@@ -165,6 +164,11 @@
             </Grid>
 
         </Border>
+
+        <views:WindowChromeButtons
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,8,12,0" />
 
     </Grid>
 

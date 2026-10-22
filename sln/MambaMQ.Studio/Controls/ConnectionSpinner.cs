@@ -19,6 +19,7 @@ public sealed class ConnectionSpinner : Control
         set
         {
             _step = (value % SegmentOpacities.Length + SegmentOpacities.Length) % SegmentOpacities.Length;
+            
             InvalidateVisual();
         }
     }

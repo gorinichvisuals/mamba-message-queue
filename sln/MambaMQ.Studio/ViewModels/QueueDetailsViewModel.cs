@@ -208,7 +208,7 @@ public partial class QueueDetailsViewModel(
         return mambaClient.GetMessagesAsync(Queue.Name, skip, PageSize);
     }
 
-    public async Task<QueueOperationResult> UpdateQueue(QueueOptions options)
+    public async Task<QueueOperationResultModel> UpdateQueue(QueueOptions options)
     {
         try
         {
@@ -220,22 +220,22 @@ public partial class QueueDetailsViewModel(
             {
                 ErrorMessage = response.ErrorMessage;
 
-                return new QueueOperationResult(false, response.ErrorMessage);
+                return new QueueOperationResultModel(false, response.ErrorMessage);
             }
 
             Queue = response.Data;
 
-            return new QueueOperationResult(true, Queue: Queue);
+            return new QueueOperationResultModel(true, Queue: Queue);
         }
         catch (Exception exception)
         {
             ErrorMessage = exception.Message;
 
-            return new QueueOperationResult(false, exception.Message);
+            return new QueueOperationResultModel(false, exception.Message);
         }
     }
 
-    public async Task<QueueOperationResult> DeleteQueue()
+    public async Task<QueueOperationResultModel> DeleteQueue()
     {
         try
         {
@@ -244,21 +244,21 @@ public partial class QueueDetailsViewModel(
             CommandResponse response = await mambaClient.DeleteQueueAsync(Queue.Id);
 
             if (response.IsSucceed)
-                return new QueueOperationResult(true);
+                return new QueueOperationResultModel(true);
 
             ErrorMessage = response.ErrorMessage;
 
-            return new QueueOperationResult(false, response.ErrorMessage);
+            return new QueueOperationResultModel(false, response.ErrorMessage);
         }
         catch (Exception exception)
         {
             ErrorMessage = exception.Message;
 
-            return new QueueOperationResult(false, exception.Message);
+            return new QueueOperationResultModel(false, exception.Message);
         }
     }
 
-    public async Task<QueueOperationResult> PublishMessage(string message)
+    public async Task<QueueOperationResultModel> PublishMessage(string message)
     {
         try
         {
@@ -270,7 +270,7 @@ public partial class QueueDetailsViewModel(
             {
                 ErrorMessage = response.ErrorMessage;
 
-                return new QueueOperationResult(false, response.ErrorMessage);
+                return new QueueOperationResultModel(false, response.ErrorMessage);
             }
 
             try
@@ -289,13 +289,13 @@ public partial class QueueDetailsViewModel(
 
             await LoadMessagesAsync();
 
-            return new QueueOperationResult(true);
+            return new QueueOperationResultModel(true);
         }
         catch (Exception exception)
         {
             ErrorMessage = exception.Message;
 
-            return new QueueOperationResult(false, exception.Message);
+            return new QueueOperationResultModel(false, exception.Message);
         }
     }
     
