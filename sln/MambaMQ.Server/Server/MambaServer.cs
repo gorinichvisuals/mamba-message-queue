@@ -16,7 +16,6 @@ internal sealed class MambaServer(
     public async Task Start(CancellationToken cancellationToken = default)
     {
         authenticationService.InitializeUserCredentials();
-        
         await queueRecoveryService.RestoreQueues(cancellationToken);
         
         _logger.LogInformation("Queues recovered successfully.");

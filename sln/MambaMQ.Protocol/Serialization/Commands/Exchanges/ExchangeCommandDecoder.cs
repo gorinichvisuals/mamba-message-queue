@@ -12,6 +12,7 @@ internal static class ExchangeCommandDecoder
     internal static ExchangeUpdateCommand DecodeUpdateExchange(ReadOnlySpan<byte> buffer)
     {
         int offset = 0;
+        
         if (buffer.Length < CommandConstants.ExchangeIdSize)
             throw new InvalidDataException("Update exchange command does not contain ExchangeId.");
 
@@ -26,11 +27,14 @@ internal static class ExchangeCommandDecoder
         offset += CommandConstants.PermissionsCountSize;
 
         Dictionary<string, ExchangePermission> permissions = [];
+        
         for (int i = 0; i < permissionsCount; i++)
         {
             string serviceName = ProtocolReader.ReadString(buffer, ref offset, "service name", "Update exchange command");
+            
             if (buffer.Length - offset < CommandConstants.PermissionSize)
                 throw new InvalidDataException("Update exchange command does not contain complete permission.");
+            
             permissions.Add(serviceName, (ExchangePermission)buffer[offset++]);
         }
 

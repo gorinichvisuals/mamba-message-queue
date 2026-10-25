@@ -5,6 +5,8 @@ public static class ServerConfiguration
     public static void ConfigureServerServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MambaServerOptions>(configuration.GetSection(nameof(MambaServerOptions)));
+        services.Configure<AuthenticationOptions>(
+            configuration.GetSection($"{nameof(MambaServerOptions)}:{nameof(MambaServerOptions.Authentication)}"));
 
         MambaServerOptions options = configuration.GetSection(nameof(MambaServerOptions)).Get<MambaServerOptions>()!;
 

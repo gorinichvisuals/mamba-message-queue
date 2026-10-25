@@ -6,6 +6,7 @@ internal static class ExchangeCommandEncoder
     {
         byte[] buffer = new byte[CommandConstants.ExchangeIdSize];
         command.ExchangeId.TryWriteBytes(buffer);
+        
         return buffer;
     }
 
