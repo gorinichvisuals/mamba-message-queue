@@ -6,16 +6,17 @@ global using System.Runtime.CompilerServices;
 
 global using Microsoft.Extensions.DependencyInjection;
 
+global using MambaMQ.Client.NET.Options;
+global using MambaMQ.Client.NET.Readers;
+global using MambaMQ.Client.NET.Connection;
+global using MambaMQ.Client.NET.Exceptions;
+
 global using MambaMQ.Protocol.Enums;
 global using MambaMQ.Protocol.Frames;
 global using MambaMQ.Protocol.Commands;
 global using MambaMQ.Protocol.Messages;
-global using MambaMQ.Client.NET.Options;
-global using MambaMQ.Client.NET.Readers;
 global using MambaMQ.Protocol.Constants;
 global using MambaMQ.Protocol.Responses;
-global using MambaMQ.Client.NET.Connection;
-global using MambaMQ.Client.NET.Exceptions;
 global using MambaMQ.Protocol.Commands.Queues;
 global using MambaMQ.Protocol.Commands.System;
 global using MambaMQ.Protocol.Commands.Exchanges;

@@ -9,14 +9,17 @@
 
     <Grid PointerPressed="OnWindowDragPointerPressed">
 
-        <Image Source="/Assets/login-background.png" Stretch="UniformToFill" />
-        <Border Background="#70000000" />
+        <Image Source="/Assets/login-background.png"
+               Stretch="UniformToFill"
+               IsVisible="{Binding ShowLoginBackground}" />
+        <Border Background="#70000000"
+                IsVisible="{Binding ShowLoginBackground}" />
 
         <Border Width="720"
                 Padding="28"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Background="#B0151820"
+                Background="#E0151820"
                 BorderBrush="#40FFFFFF"
                 BorderThickness="1"
                 CornerRadius="18">
@@ -155,6 +158,14 @@
                                 Command="{Binding SaveProfileCommand}"
                                 Width="132"
                                 Height="44"
+                                IsEnabled="{Binding IsNotConnecting}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" />
+                        <Button Content="Cancel"
+                                Command="{Binding CancelCommand}"
+                                Width="96"
+                                Height="44"
+                                IsVisible="{Binding IsOverlay}"
                                 IsEnabled="{Binding IsNotConnecting}"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center" />

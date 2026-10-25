@@ -4,21 +4,31 @@ public partial class LoginViewModel : ViewModelBase
 {
     private readonly IMambaStudioClient _mambaClient;
     private readonly IConnectionProfileService _profileService;
-    private readonly Action<string, int, string, string> _onLoginSucceeded;
+    private readonly Func<string, int, string, bool> _connectionExists;
+    private readonly Action<string, int, string, string, IMambaStudioClient> _onLoginSucceeded;
+    private readonly Action _onCancelled;
     private bool _isApplyingProfile;
     private Avalonia.Threading.DispatcherTimer? _connectionStatusTimer;
     private int _connectionDots;
 
     public ObservableCollection<ConnectionProfile> SavedProfiles { get; } = [];
+    public bool IsOverlay { get; }
+    public bool ShowLoginBackground => !IsOverlay;
 
     public LoginViewModel(
         IMambaStudioClient mambaClient,
         IConnectionProfileService profileService,
-        Action<string, int, string, string> onLoginSucceeded)
+        Func<string, int, string, bool> connectionExists,
+        Action<string, int, string, string, IMambaStudioClient> onLoginSucceeded,
+        Action onCancelled,
+        bool isOverlay)
     {
         _mambaClient = mambaClient;
         _profileService = profileService;
+        _connectionExists = connectionExists;
         _onLoginSucceeded = onLoginSucceeded;
+        _onCancelled = onCancelled;
+        IsOverlay = isOverlay;
 
         _ = LoadProfilesAsync();
     }
@@ -57,6 +67,13 @@ public partial class LoginViewModel : ViewModelBase
 
     [RelayCommand]
     private void TogglePasswordVisibility() => IsPasswordVisible = !IsPasswordVisible;
+
+    [RelayCommand]
+    private async Task CancelAsync()
+    {
+        await _mambaClient.DisconnectAsync();
+        _onCancelled();
+    }
 
     [RelayCommand]
     private Task SaveProfileAsync() => SaveProfileForConnectionAsync();
@@ -138,13 +155,19 @@ public partial class LoginViewModel : ViewModelBase
             return;
         }
 
+        if (_connectionExists(parts[0], port, Username))
+        {
+            ErrorMessage = "This server and username are already connected.";
+            return;
+        }
+
         IsConnecting = true;
 
         try
         {
             await _mambaClient.ConnectAsync(parts[0], port, Username, Password);
             
-            _onLoginSucceeded(parts[0], port, Username, Password);
+            _onLoginSucceeded(parts[0], port, Username, Password, _mambaClient);
         }
         catch (Exception exception)
         {
