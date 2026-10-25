@@ -2,15 +2,15 @@
 
 internal sealed class AuthenticateService(IConnection connection) : IAuthenticateService
 {
-    private const ClientType ClientTypeValue = ClientType.Management;
+    private const int MaxMessageSizeInBytes = 1048576;
 
     public async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        ClientAuthenticateCommand command = new(username, password, ClientTypeValue);
+        ManagementAuthenticateCommand command = new(username, password);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.ClientAuthenticateCommand, payload);
+        Frame frame = new(FrameType.ManagementAuthenticateCommand, payload);
 
         byte[] buffer = FrameEncoder.Encode(frame);
 
@@ -22,13 +22,12 @@ internal sealed class AuthenticateService(IConnection connection) : IAuthenticat
             throw new AuthenticationException(response.ErrorMessage ?? "Authentication failed.");
     }
 
-    public async Task<CommandResponse> ReadCommandResponseAsync(int maxMessageSizeInBytes = 1048576, CancellationToken cancellationToken = default)
+    private async Task<CommandResponse> ReadCommandResponseAsync(CancellationToken cancellationToken = default)
     {
-        Frame responseFrame = await FrameReader.ReadAsync(connection, maxMessageSizeInBytes, cancellationToken);
+        Frame responseFrame = await FrameReader.ReadAsync(connection, MaxMessageSizeInBytes, cancellationToken);
 
-        if (responseFrame.Type is not FrameType.CommandResultResponse)
-            throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.");
-
-        return CommandResponseDecoder.Decode(responseFrame.Payload.Span);
+        return responseFrame.Type is not FrameType.CommandResultResponse 
+            ? throw new InvalidDataException($"Expected command response, received '{responseFrame.Type}'.") 
+            : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 }

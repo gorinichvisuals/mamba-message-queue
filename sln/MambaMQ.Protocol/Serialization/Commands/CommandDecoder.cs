@@ -7,7 +7,8 @@ public static class CommandDecoder
         return type switch
         {
             FrameType.ConnectionPingCommand => new ConnectionPingCommand(),
-            FrameType.ClientAuthenticateCommand => AuthenticationCommandDecoder.DecodeAuthentication(buffer),
+            FrameType.ServiceAuthenticateCommand => AuthenticationCommandDecoder.DecodeServiceAuthentication(buffer),
+            FrameType.ManagementAuthenticateCommand => AuthenticationCommandDecoder.DecodeManagementAuthentication(buffer),
             FrameType.ServiceIdentitySetCommand => AuthenticationCommandDecoder.DecodeServiceIdentity(buffer),
 
             FrameType.QueueMessagePublishCommand => MessageCommandDecoder.DecodePublish(buffer),

@@ -1,6 +1,4 @@
-﻿using IConnection = MambaMQ.Client.NET.Connection.IConnection;
-
-namespace MambaMQ.Client.NET;
+﻿namespace MambaMQ.Client.NET;
 
 internal sealed class MambaClient : IMamba, IAsyncDisposable
 {

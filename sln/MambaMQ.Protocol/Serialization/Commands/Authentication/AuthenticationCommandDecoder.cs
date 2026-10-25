@@ -2,28 +2,25 @@
 
 internal static class AuthenticationCommandDecoder
 {
-    internal static ClientAuthenticateCommand DecodeAuthentication(ReadOnlySpan<byte> buffer)
+    internal static ServiceAuthenticateCommand DecodeServiceAuthentication(ReadOnlySpan<byte> buffer)
     {
-        if (buffer.IsEmpty)
-            throw new InvalidDataException("Authentication command does not contain ClientType.");
-
         int offset = 0;
-
-        ClientType clientType = (ClientType)buffer[offset++];
-
-        string username = ProtocolReader.ReadString(
+        string serverKey = ProtocolReader.ReadString(
             buffer,
             ref offset,
-            "username",
+            "server key",
             "Authentication command");
+        
+        return new ServiceAuthenticateCommand(serverKey);
+    }
 
-        string password = ProtocolReader.ReadString(
-            buffer,
-            ref offset,
-            "password",
-            "Authentication command");
-
-        return new ClientAuthenticateCommand(username, password, clientType);
+    internal static ManagementAuthenticateCommand DecodeManagementAuthentication(ReadOnlySpan<byte> buffer)
+    {
+        int offset = 0;
+        string username = ProtocolReader.ReadString(buffer, ref offset, "username", "Management authentication command");
+        string password = ProtocolReader.ReadString(buffer, ref offset, "password", "Management authentication command");
+        
+        return new ManagementAuthenticateCommand(username, password);
     }
 
     internal static ServiceIdentitySetCommand DecodeServiceIdentity(ReadOnlySpan<byte> buffer)

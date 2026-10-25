@@ -12,7 +12,7 @@ internal sealed class AuthenticatedConnection(
 
         try
         {
-            await AuthenticateAsync(options.Credentials.Username, options.Credentials.Password, cancellationToken);
+            await AuthenticateAsync(options.Credentials.ServerKey, cancellationToken);
 
             if (!string.IsNullOrWhiteSpace(options.ServiceName))
                 await IdentifyServiceAsync(cancellationToken);
@@ -34,13 +34,13 @@ internal sealed class AuthenticatedConnection(
     public ValueTask DisposeAsync()
         => connection.DisposeAsync();
 
-    private async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
+    private async Task AuthenticateAsync(string serverKey, CancellationToken cancellationToken)
     {
-        ClientAuthenticateCommand command = new(username, password, ClientTypeValue);
+        ServiceAuthenticateCommand command = new(serverKey);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.ClientAuthenticateCommand, payload);
+        Frame frame = new(FrameType.ServiceAuthenticateCommand, payload);
 
         byte[] buffer = FrameEncoder.Encode(frame);
 
