@@ -25,10 +25,10 @@ internal sealed class MambaConsoleFormatter() : ConsoleFormatter("Mamba")
         if (logEntry.Exception is not null)
             message += $"{Environment.NewLine}{logEntry.Exception}";
 
-        string prefix = name is null
+        string sourceFields = name is null
             ? $"[{source}]"
             : $"[{source}][{name}]";
 
-        textWriter.WriteLine($"{prefix}[{DateTimeOffset.UtcNow:O}][{logEntry.LogLevel}][{message}]");
+        textWriter.WriteLine($"[{logEntry.LogLevel}]{sourceFields}[{message}][{DateTimeOffset.UtcNow:O}]");
     }
 }
