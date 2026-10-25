@@ -3,7 +3,8 @@ namespace MambaMQ.Studio.ViewModels;
 public partial class DashboardViewModel : ViewModelBase
 {
     private readonly IMambaStudioClient _mambaClient;
-    private readonly Action _onDisconnected;
+    private readonly Action<DashboardViewModel> _onDisconnected;
+    private readonly Action<DashboardViewModel> _onSelected;
     private readonly string _password;
     private readonly CancellationTokenSource _connectionMonitorCts = new();
     private readonly SemaphoreSlim _reconnectLock = new(1, 1);
@@ -16,6 +17,9 @@ public partial class DashboardViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isConnected = true;
+
+    [ObservableProperty]
+    private bool _isActive;
 
     [ObservableProperty]
     private bool _isReconnecting;
@@ -55,6 +59,13 @@ public partial class DashboardViewModel : ViewModelBase
         : new SolidColorBrush(Color.Parse("#F05B63"));
 
     public string ConnectionInfo => $"{Host}:{Port}";
+    public string TabTitle => ConnectionInfo;
+    public IBrush TabBackgroundBrush => IsActive
+        ? new SolidColorBrush(Color.Parse("#55475E7A"))
+        : new SolidColorBrush(Color.Parse("#201A202B"));
+
+    partial void OnIsActiveChanged(bool value)
+        => OnPropertyChanged(nameof(TabBackgroundBrush));
 
     private QueuesViewModel? _queuesViewModel;
     private ExchangesViewModel? _exchangesViewModel;
@@ -68,10 +79,12 @@ public partial class DashboardViewModel : ViewModelBase
         int port,
         string username,
         string password,
-        Action onDisconnected)
+        Action<DashboardViewModel> onDisconnected,
+        Action<DashboardViewModel> onSelected)
     {
         _mambaClient = mambaClient;
         _onDisconnected = onDisconnected;
+        _onSelected = onSelected;
         _password = password;
         Host = host;
         Port = port;
@@ -89,6 +102,9 @@ public partial class DashboardViewModel : ViewModelBase
         CurrentViewModel = _exchangesViewModel;
         await _exchangesViewModel.LoadCommand.ExecuteAsync(null);
     });
+
+    [RelayCommand]
+    private void Select() => _onSelected(this);
 
     [RelayCommand]
     private void ShowQueues() => _ = NavigateAsync(async () =>
@@ -114,14 +130,14 @@ public partial class DashboardViewModel : ViewModelBase
     });
 
     [RelayCommand]
-    private async Task DisconnectAsync()
+    public async Task DisconnectAsync()
     {
         await _connectionMonitorCts.CancelAsync();
 
         await _connectionMonitorTask;
         await _mambaClient.DisconnectAsync();
 
-        _onDisconnected();
+        _onDisconnected(this);
     }
 
     private async Task NavigateAsync(Func<Task> navigation)

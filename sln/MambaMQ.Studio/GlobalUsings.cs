@@ -22,21 +22,27 @@ global using Avalonia.Interactivity;
 global using Avalonia.Input.Platform;
 global using Avalonia.Data.Converters;
 global using Avalonia.Controls.Templates;
-global using CommunityToolkit.Mvvm.Input;
 global using Avalonia.Controls.Primitives;
-global using CommunityToolkit.Mvvm.ComponentModel;
 global using Avalonia.Controls.ApplicationLifetimes;
+
+global using CommunityToolkit.Mvvm.Input;
+global using CommunityToolkit.Mvvm.ComponentModel;
 
 global using MambaMQ.Studio.Views;
 global using MambaMQ.Studio.Models;
-global using MambaMQ.Protocol.Enums;
+global using MambaMQ.Studio.Controls;
 global using MambaMQ.Studio.ViewModels;
-global using MambaMQ.Protocol.Responses;
+
 global using MambaMQ.Studio.Persistence.Models;
+
 global using MambaMQ.Studio.Infrastructure.Client;
 global using MambaMQ.Studio.Infrastructure.Options;
-global using MambaMQ.Protocol.Responses.Models.Queues;
 global using MambaMQ.Studio.Infrastructure.Extensions;
+global using MambaMQ.Studio.Infrastructure.Client.Factories;
+global using MambaMQ.Studio.Infrastructure.Services.Abstractions;
+
+global using MambaMQ.Protocol.Enums;
+global using MambaMQ.Protocol.Responses;
+global using MambaMQ.Protocol.Responses.Models.Queues;
 global using MambaMQ.Protocol.Responses.Models.Messages;
 global using MambaMQ.Protocol.Responses.Models.Exchanges;
-global using MambaMQ.Studio.Infrastructure.Services.Abstractions;

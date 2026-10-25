@@ -6,5 +6,6 @@ global using Isopoh.Cryptography.Argon2;
 
 global using MambaMQ.Protocol.Enums;
 global using MambaMQ.Protocol.Responses;
+
 global using MambaMQ.Authentication.Options;
 global using MambaMQ.Authentication.Services;

@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MambaMQ.Studio.ViewModels"
+        xmlns:views="clr-namespace:MambaMQ.Studio.Views"
         x:Class="MambaMQ.Studio.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="MambaMQ Studio"
@@ -12,7 +13,136 @@
             BorderThickness="1"
             CornerRadius="8"
             ClipToBounds="True">
-        <ContentControl Content="{Binding CurrentViewModel}" />
+        <Grid>
+            <Grid x:Name="DashboardHost" RowDefinitions="58,*" IsVisible="{Binding HasActiveDashboard}">
+                <Border Grid.Row="0"
+                        Background="{DynamicResource StudioPanelBackgroundBrush}"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0"
+                        PointerPressed="OnWindowDragPointerPressed">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" Margin="20,0">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <Image Source="avares://MambaMQ.Studio/Assets/logo.png" Width="36" Height="36" Stretch="Uniform" />
+                            <TextBlock Text="MambaMQ Studio" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Tabs}" VerticalAlignment="Center">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:DashboardViewModel">
+                                        <Border Background="{Binding TabBackgroundBrush}"
+                                                BorderBrush="#40FFFFFF"
+                                                BorderThickness="1"
+                                                CornerRadius="7"
+                                                Padding="9,4">
+                                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                                <Button Command="{Binding SelectCommand}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="2,3">
+                                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                                        <Ellipse Width="8" Height="8" Fill="{Binding ConnectionLampBrush}" ToolTip.Tip="{Binding ConnectionStatusText}" />
+                                                        <TextBlock Text="{Binding TabTitle}" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Content="×"
+                                                        Command="{Binding DisconnectCommand}"
+                                                        Padding="2,0"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        ToolTip.Tip="Disconnect from this server" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button x:Name="SettingsButton" Width="36" Height="36" Padding="0" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                                <TextBlock Text="⚙" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Button.Flyout>
+                                    <Flyout Placement="BottomEdgeAlignedRight" ShowMode="Transient">
+                                        <Flyout.FlyoutPresenterClasses>
+                                            <x:String>settings-menu</x:String>
+                                        </Flyout.FlyoutPresenterClasses>
+                                        <Border Width="210"
+                                                Padding="6"
+                                                Background="#151922"
+                                                BorderBrush="#35404F"
+                                                BorderThickness="1"
+                                                CornerRadius="9">
+                                            <StackPanel Spacing="2">
+                                                <Button Command="{Binding ConnectToCommand}"
+                                                        MinHeight="42"
+                                                        Width="196"
+                                                        Padding="12,8"
+                                                        HorizontalContentAlignment="Center"
+                                                        HorizontalAlignment="Stretch"
+                                                        Background="Transparent"
+                                                        BorderThickness="0">
+                                                    <TextBlock Text="Connect to" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Button>
+                                                <Button MinHeight="42"
+                                                        Width="196"
+                                                        Padding="12,8"
+                                                        HorizontalContentAlignment="Center"
+                                                        HorizontalAlignment="Stretch"
+                                                        Background="Transparent"
+                                                        BorderThickness="0">
+                                                    <TextBlock Text="Disconnect from" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <Button.Flyout>
+                                                        <Flyout Placement="RightEdgeAlignedTop" ShowMode="Transient">
+                                                            <Flyout.FlyoutPresenterClasses>
+                                                                <x:String>settings-menu</x:String>
+                                                            </Flyout.FlyoutPresenterClasses>
+                                                            <Border Width="240"
+                                                                    Padding="6"
+                                                                    Background="#151922"
+                                                                    BorderBrush="#35404F"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="9">
+                                                                <ItemsControl ItemsSource="{Binding Tabs}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate x:DataType="vm:DashboardViewModel">
+                                                                            <Button Command="{Binding DisconnectCommand}"
+                                                                                    MinHeight="40"
+                                                                                    Width="226"
+                                                                                    Padding="10,8"
+                                                                                    HorizontalAlignment="Stretch"
+                                                                                    HorizontalContentAlignment="Center"
+                                                                                    Background="Transparent"
+                                                                                    BorderThickness="0">
+                                                                                <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
+                                                                                    <Ellipse Width="8" Height="8" Fill="{Binding ConnectionLampBrush}" VerticalAlignment="Center" />
+                                                                                    <TextBlock Text="{Binding TabTitle}" FontSize="13" VerticalAlignment="Center" />
+                                                                                </StackPanel>
+                                                                            </Button>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </Border>
+                                                        </Flyout>
+                                                    </Button.Flyout>
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                            <views:WindowChromeButtons VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <ContentControl x:Name="ActiveDashboardHost" Grid.Row="1" Content="{Binding ActiveDashboard}" />
+            </Grid>
+            <Grid IsVisible="{Binding IsLoginOverlayOpen}" Panel.ZIndex="2">
+                <Border Background="#88080B10" />
+                <ContentControl Content="{Binding LoginViewModel}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+            </Grid>
+        </Grid>
     </Border>
-
 </Window>
