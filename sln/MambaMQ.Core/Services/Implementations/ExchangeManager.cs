@@ -20,6 +20,13 @@ internal sealed partial class ExchangeManager(
 
     public async Task<CommandResponse<ExchangeModel>> CreateExchange(ExchangeCreateDto dto)
     {
+        if (dto is null)
+            return CommandResponse<ExchangeModel>.Fail(ErrorCode.InvalidArgument, "Exchange options cannot be null.");
+
+        CommandResponse validationResponse = ValidateExchangeOptions(dto.Name, dto.Type, dto.Permissions);
+        if (!validationResponse.IsSucceed)
+            return CommandResponse<ExchangeModel>.Fail(validationResponse.ErrorCode, validationResponse.ErrorMessage ?? "Exchange validation failed.");
+
         if (_exchangesByName.ContainsKey(dto.Name))
         {
             _serverLogger.LogInformation("Exchange '{Name}' already exists.", dto.Name);
@@ -47,6 +54,16 @@ internal sealed partial class ExchangeManager(
 
     public async Task<CommandResponse<ExchangeModel>> UpdateExchange(ExchangeUpdateDto dto, CancellationToken cancellationToken = default)
     {
+        if (dto is null)
+            return CommandResponse<ExchangeModel>.Fail(ErrorCode.InvalidArgument, "Exchange options cannot be null.");
+
+        if (dto.ExchangeId == Guid.Empty)
+            return CommandResponse<ExchangeModel>.Fail(ErrorCode.InvalidArgument, "Exchange ID cannot be empty.");
+
+        CommandResponse validationResponse = ValidateExchangeOptions(dto.Name, dto.Type, dto.Permissions);
+        if (!validationResponse.IsSucceed)
+            return CommandResponse<ExchangeModel>.Fail(validationResponse.ErrorCode, validationResponse.ErrorMessage ?? "Exchange validation failed.");
+
         if (!_exchangesById.TryGetValue(dto.ExchangeId, out MambaExchange? current))
             return CommandResponse<ExchangeModel>.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{dto.ExchangeId}' does not exist.");
 
@@ -115,6 +132,9 @@ internal sealed partial class ExchangeManager(
 
     public async Task<CommandResponse> DeleteExchange(Guid exchangeId, IClientConnection connection, CancellationToken cancellationToken = default)
     {
+        if (exchangeId == Guid.Empty)
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Exchange ID cannot be empty.");
+
         if (!_exchangesById.TryGetValue(exchangeId, out MambaExchange? exchange))
             return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeId}' does not exist.");
 
@@ -149,6 +169,10 @@ internal sealed partial class ExchangeManager(
 
     public async Task<CommandResponse> Bind(ExchangeBindingDto dto, IClientConnection connection)
     {
+        CommandResponse validationResponse = ValidateBinding(dto);
+        if (!validationResponse.IsSucceed)
+            return validationResponse;
+
         if (!_exchangesByName.TryGetValue(dto.ExchangeName, out MambaExchange? exchange))
             return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{dto.ExchangeName}' does not exist.");
 
@@ -181,6 +205,10 @@ internal sealed partial class ExchangeManager(
 
     public async Task<CommandResponse> Unbind(ExchangeBindingDto dto, IClientConnection connection)
     {
+        CommandResponse validationResponse = ValidateBinding(dto);
+        if (!validationResponse.IsSucceed)
+            return validationResponse;
+
         if (!_exchangesByName.TryGetValue(dto.ExchangeName, out MambaExchange? exchange))
             return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{dto.ExchangeName}' does not exist.");
 
@@ -211,8 +239,14 @@ internal sealed partial class ExchangeManager(
         return CommandResponse.Success();
     }
 
-    public CommandResponse<IReadOnlyList<string>> ResolveQueues(string exchangeName, string routingKey, IClientConnection connection)
+    public CommandResponse<IReadOnlyList<string>> ResolveQueues(string exchangeName, string? routingKey, IClientConnection connection)
     {
+        if (string.IsNullOrWhiteSpace(exchangeName))
+            return CommandResponse<IReadOnlyList<string>>.Fail(ErrorCode.InvalidArgument, "Exchange name cannot be empty or whitespace.");
+
+        if (routingKey is null)
+            return CommandResponse<IReadOnlyList<string>>.Fail(ErrorCode.InvalidArgument, "Routing key cannot be null.");
+
         if (!_exchangesByName.TryGetValue(exchangeName, out MambaExchange? exchange))
             return CommandResponse<IReadOnlyList<string>>.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{exchangeName}' does not exist.");
 

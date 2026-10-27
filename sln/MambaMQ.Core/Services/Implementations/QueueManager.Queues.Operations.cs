@@ -7,6 +7,9 @@ internal sealed partial class QueueManager
         IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(queueName))
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue name cannot be empty or whitespace."));
+
         MambaQueue? queue = GetQueueByName(queueName);
 
         if (queue is null)
@@ -28,8 +31,26 @@ internal sealed partial class QueueManager
         return Task.FromResult(CommandResponse.Success());
     }
 
-    public Task<CommandResponse> SubscribeQueueWithBatch(QueueSubscribeWithBatchDto dto, IClientConnection connection, CancellationToken cancellationToken = default)
+    public Task<CommandResponse> SubscribeQueueWithBatch(QueueSubscribeWithBatchDto? dto, IClientConnection connection, CancellationToken cancellationToken = default)
     {
+        if (dto is null)
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.InvalidArgument, "Batch subscription options cannot be null."));
+
+        if (string.IsNullOrWhiteSpace(dto.QueueName))
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue name cannot be empty or whitespace."));
+
+        if (dto.MaxMessages <= 0)
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.InvalidArgument, "Maximum messages must be greater than zero."));
+
+        if (dto.MaxBytes <= 0)
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.InvalidArgument, "Maximum bytes must be greater than zero."));
+
+        if (dto.MaxWaitTime <= TimeSpan.Zero)
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.InvalidArgument, "Maximum wait time must be greater than zero."));
+
+        if (dto.Weight <= 0)
+            return Task.FromResult(CommandResponse.Fail(ErrorCode.InvalidArgument, "Subscriber weight must be greater than zero."));
+
         MambaQueue? queue = GetQueueByName(dto.QueueName);
 
         if (queue is null)

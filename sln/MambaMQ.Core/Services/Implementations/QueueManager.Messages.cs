@@ -4,10 +4,16 @@ internal sealed partial class QueueManager
 {
     public async Task<CommandResponse> PublishMessage(
         string queueName,
-        MambaMessage message,
+        MambaMessage? message,
         IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(queueName))
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue name cannot be empty or whitespace.");
+
+        if (message is null)
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Message cannot be null.");
+
         MambaQueue? queue = GetQueueByName(queueName);
 
         if (queue is null)
@@ -45,6 +51,12 @@ internal sealed partial class QueueManager
         IClientConnection connection,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(queueName))
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue name cannot be empty or whitespace.");
+
+        if (messageId == Guid.Empty)
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Message ID cannot be empty.");
+
         MambaQueue? queue = GetQueueByName(queueName);
 
         if (queue is null)
@@ -84,10 +96,16 @@ internal sealed partial class QueueManager
 
     public async Task<CommandResponse> DeleteMessages(
         string queueName, 
-        ICollection<Guid> messageIds, 
+        ICollection<Guid>? messageIds, 
         IClientConnection connection, 
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(queueName))
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue name cannot be empty or whitespace.");
+
+        if (messageIds is null || messageIds.Count is 0 || messageIds.Any(static id => id == Guid.Empty))
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Message IDs must contain at least one non-empty ID.");
+
         MambaQueue? queue = GetQueueByName(queueName);
 
         if (queue is null)
@@ -142,6 +160,9 @@ internal sealed partial class QueueManager
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(queueName))
+            return Task.FromResult(CommandResponse<GetMessagesResponse>.Fail(ErrorCode.InvalidArgument, "Queue name cannot be empty or whitespace."));
 
         if (skip < 0)
             return Task.FromResult(CommandResponse<GetMessagesResponse>.Fail(ErrorCode.InvalidArgument, "Skip cannot be negative."));

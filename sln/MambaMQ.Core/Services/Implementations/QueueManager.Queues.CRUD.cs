@@ -22,9 +22,14 @@ internal sealed partial class QueueManager
             .ToList();
     }
     
-    public async Task<CommandResponse<QueueModel>> CreateQueue(QueueCreateDto dto)
+    public async Task<CommandResponse<QueueModel>> CreateQueue(QueueCreateDto? dto)
     {
-        CommandResponse validationResponse = ValidateQueueOptions(dto.IsDurable, dto.MessageRetentionEnabled);
+        if (dto is null)
+            return CommandResponse<QueueModel>.Fail(ErrorCode.InvalidArgument, "Queue options cannot be null.");
+
+        CommandResponse validationResponse = ValidateQueueOptions(
+            dto.QueueName, dto.IsDurable, dto.LoadBalancingAlgorithm, dto.Permissions,
+            dto.MessageRetentionEnabled, dto.MessageRetentionPeriod);
 
         if (!validationResponse.IsSucceed)
             return CommandResponse<QueueModel>.Fail(validationResponse.ErrorCode, validationResponse.ErrorMessage ?? "Queue validation failed.");
@@ -63,9 +68,17 @@ internal sealed partial class QueueManager
         return CommandResponse<QueueModel>.Success(MapToQueueModel(newQueue));
     }
     
-    public async Task<CommandResponse<QueueModel>> UpdateQueue(QueueUpdateDto dto, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<QueueModel>> UpdateQueue(QueueUpdateDto? dto, CancellationToken cancellationToken = default)
     {
-        CommandResponse validationResponse = ValidateQueueOptions(dto.IsDurable, dto.MessageRetentionEnabled);
+        if (dto is null)
+            return CommandResponse<QueueModel>.Fail(ErrorCode.InvalidArgument, "Queue options cannot be null.");
+
+        if (dto.QueueId == Guid.Empty)
+            return CommandResponse<QueueModel>.Fail(ErrorCode.InvalidArgument, "Queue ID cannot be empty.");
+
+        CommandResponse validationResponse = ValidateQueueOptions(
+            dto.QueueName, dto.IsDurable, dto.LoadBalancingAlgorithm, dto.Permissions,
+            dto.MessageRetentionEnabled, dto.MessageRetentionPeriod);
 
         if (!validationResponse.IsSucceed)
             return CommandResponse<QueueModel>.Fail(validationResponse.ErrorCode, validationResponse.ErrorMessage ?? "Queue validation failed.");
@@ -131,6 +144,9 @@ internal sealed partial class QueueManager
     
     public async Task<CommandResponse> DeleteQueue(Guid queueId, IClientConnection connection, CancellationToken cancellationToken = default)
     {
+        if (queueId == Guid.Empty)
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue ID cannot be empty.");
+
         if (!_queues.TryGetValue(queueId, out MambaQueue? queue))
         {
             _serverLogger.LogWarning("Queue '{QueueId}' does not exist.", queueId);

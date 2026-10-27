@@ -20,8 +20,35 @@ internal sealed partial class QueueManager
         };
     }
 
-    private static CommandResponse ValidateQueueOptions(bool isDurable, bool messageRetentionEnabled)
+    private static CommandResponse ValidateQueueOptions(
+        string queueName,
+        bool isDurable,
+        LoadBalancingAlgorithm loadBalancingAlgorithm,
+        Dictionary<string, QueuePermission>? permissions,
+        bool messageRetentionEnabled,
+        TimeSpan messageRetentionPeriod)
     {
+        if (string.IsNullOrWhiteSpace(queueName))
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue name cannot be empty or whitespace.");
+
+        if (!Enum.IsDefined(loadBalancingAlgorithm))
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Unknown load balancing algorithm.");
+
+        if (permissions is null)
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Queue permissions cannot be null.");
+
+        foreach ((string serviceName, QueuePermission permission) in permissions)
+        {
+            if (string.IsNullOrWhiteSpace(serviceName))
+                return CommandResponse.Fail(ErrorCode.InvalidArgument, "Permission service names cannot be empty or whitespace.");
+
+            if ((permission & ~(QueuePermission.Read | QueuePermission.Write | QueuePermission.Delete)) != 0)
+                return CommandResponse.Fail(ErrorCode.InvalidArgument, $"Permissions for service '{serviceName}' contain unknown flags.");
+        }
+
+        if (messageRetentionEnabled && messageRetentionPeriod <= TimeSpan.Zero)
+            return CommandResponse.Fail(ErrorCode.InvalidArgument, "Retention period must be greater than zero when retention is enabled.");
+
         if (!isDurable && messageRetentionEnabled)
             return CommandResponse.Fail(ErrorCode.InvalidArgument, "Message retention cannot be enabled for a non-durable queue.");
 
