@@ -4,16 +4,16 @@ internal sealed partial class MambaStudioClient
 {
     public async Task<GetQueuesResponse> GetQueuesAsync(CancellationToken cancellationToken = default)
     {
-        QueueGetCommand command = new();
+        QueueGetListCommand listCommand = new();
 
-        byte[] payload = CommandEncoder.Encode(command);
+        byte[] payload = CommandEncoder.Encode(listCommand);
 
-        Frame frame = new(FrameType.QueueGetCommand, payload);
+        Frame frame = new(FrameType.QueueGetListCommand, payload);
 
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
-        return responseFrame.Type is not FrameType.QueueGetResponse
-            ? throw new InvalidDataException($"Expected {FrameType.QueueGetResponse} frame, but received {responseFrame.Type}.")
+        return responseFrame.Type is not FrameType.QueueGetListResponse
+            ? throw new InvalidDataException($"Expected {FrameType.QueueGetListResponse} frame, but received {responseFrame.Type}.")
             : GetQueuesResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 

@@ -6,9 +6,9 @@ internal sealed class ExchangeCreateCommandHandler(IExchangeManager exchangeMana
     {
         ExchangeCreateDto newCreateDto = MaptoExchangeCreateDto(command);
 
-        CommandResponse response = await exchangeManager.CreateExchange(newCreateDto);
+        CommandResponse<ExchangeModel> response = await exchangeManager.CreateExchange(newCreateDto);
 
-        byte[] payload = CommandResponseEncoder.Encode(response);
+        byte[] payload = CommandResponseEncoder.Encode(response, ExchangeModelEncoder.Encode);
 
         Frame frame = new(FrameType.CommandResultResponse, payload);
 

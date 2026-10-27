@@ -48,14 +48,15 @@ public partial class ExchangesViewModel(
         {
             ErrorMessage = null;
 
-            CommandResponse response = await mambaClient.CreateExchangeAsync(options);
-            if (!response.IsSucceed)
+            CommandResponse<ExchangeModel> response = await mambaClient.CreateExchangeAsync(options);
+            if (!response.IsSucceed || response.Data is null)
             {
                 ErrorMessage = response.ErrorMessage;
                 return;
             }
 
-            await LoadAsync();
+            Exchanges.Insert(0, response.Data);
+            ExchangeCount = Exchanges.Count;
         }
         catch (Exception exception)
         {

@@ -1,8 +1,8 @@
 ﻿namespace MambaMQ.Server.Handlers.Queues;
 
-internal sealed class QueueGetCommandHandler(IQueueManager queueManager) : ICommandHandler<QueueGetCommand>
+internal sealed class QueueGetListCommandHandler(IQueueManager queueManager) : ICommandHandler<QueueGetListCommand>
 {
-    public async Task Handle(QueueGetCommand command, IClientConnection connection, CancellationToken cancellationToken = default)
+    public async Task Handle(QueueGetListCommand listCommand, IClientConnection connection, CancellationToken cancellationToken = default)
     {
         IReadOnlyList<QueueModel> queues = queueManager.GetQueues();
 
@@ -13,7 +13,7 @@ internal sealed class QueueGetCommandHandler(IQueueManager queueManager) : IComm
 
         byte[] payload = GetQueuesResponseEncoder.Encode(response);
 
-        Frame frame = new(FrameType.QueueGetResponse, payload);
+        Frame frame = new(FrameType.QueueGetListResponse, payload);
 
         await connection.SendAsync(frame, cancellationToken);
     }

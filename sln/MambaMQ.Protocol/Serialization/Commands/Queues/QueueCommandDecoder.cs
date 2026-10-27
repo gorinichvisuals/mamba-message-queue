@@ -58,9 +58,9 @@ internal static class QueueCommandDecoder
         return new QueueSubscribeBatchCommand(queueName, maxMessages, maxBytes, maxWaitTime, weight);
     }
 
-    internal static QueueGetCommand DecodeGetQueues()
+    internal static QueueGetListCommand DecodeGetQueues()
     {
-        return new QueueGetCommand();
+        return new QueueGetListCommand();
     }
 
     internal static QueueDeleteCommand DecodeDeleteQueue(ReadOnlySpan<byte> buffer)

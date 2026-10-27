@@ -14,32 +14,17 @@ internal sealed partial class ExchangeManager(
     {
         return _exchangesByName.Values
             .OrderBy(exchange => exchange.Name)
-            .Select(exchange => new ExchangeModel
-            {
-                Id = exchange.Id,
-                Name = exchange.Name,
-                IsDurable = exchange.IsDurable,
-                CreatedAt = exchange.CreatedAt,
-                Type = exchange.Type,
-                Permissions = new Dictionary<string, ExchangePermission>(exchange.Permissions),
-                Bindings = exchange.Bindings
-                    .Select(binding => new ExchangeBindingModel
-                    {
-                        QueueName = binding.QueueName,
-                        RoutingKey = binding.RoutingKey
-                    })
-                    .ToList()
-            })
+            .Select(MapToExchangeModel)
             .ToList();
     }
 
-    public async Task<CommandResponse> CreateExchange(ExchangeCreateDto dto)
+    public async Task<CommandResponse<ExchangeModel>> CreateExchange(ExchangeCreateDto dto)
     {
         if (_exchangesByName.ContainsKey(dto.Name))
         {
             _serverLogger.LogInformation("Exchange '{Name}' already exists.", dto.Name);
 
-            return CommandResponse.Success();
+            return CommandResponse<ExchangeModel>.Success(MapToExchangeModel(_exchangesByName[dto.Name]));
         }
 
         MambaExchange exchange = new(
@@ -57,16 +42,16 @@ internal sealed partial class ExchangeManager(
 
         mambaLogger.Exchange(exchange.Name).LogInformation("Exchange was created.");
 
-        return CommandResponse.Success();
+        return CommandResponse<ExchangeModel>.Success(MapToExchangeModel(exchange));
     }
 
-    public async Task<CommandResponse> UpdateExchange(ExchangeUpdateDto dto, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<ExchangeModel>> UpdateExchange(ExchangeUpdateDto dto, CancellationToken cancellationToken = default)
     {
         if (!_exchangesById.TryGetValue(dto.ExchangeId, out MambaExchange? current))
-            return CommandResponse.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{dto.ExchangeId}' does not exist.");
+            return CommandResponse<ExchangeModel>.Fail(ErrorCode.ExchangeNotFound, $"Exchange '{dto.ExchangeId}' does not exist.");
 
         if (_exchangesByName.TryGetValue(dto.Name, out MambaExchange? sameName) && sameName.Id != dto.ExchangeId)
-            return CommandResponse.Fail(ErrorCode.InvalidArgument, $"Exchange '{dto.Name}' already exists.");
+            return CommandResponse<ExchangeModel>.Fail(ErrorCode.InvalidArgument, $"Exchange '{dto.Name}' already exists.");
 
         MambaExchange updated = new(
             current.Id,
@@ -89,7 +74,7 @@ internal sealed partial class ExchangeManager(
             {
                 mambaLogger.Exchange(current.Name).LogError(exception, "Failed to delete persisted exchange while updating it.");
 
-                return CommandResponse.Fail(ErrorCode.PersistenceError, "Failed to update exchange persistence.");
+                return CommandResponse<ExchangeModel>.Fail(ErrorCode.PersistenceError, "Failed to update exchange persistence.");
             }
         }
 
@@ -98,7 +83,7 @@ internal sealed partial class ExchangeManager(
             CommandResponse persistResponse = await PersistExchange(updated, cancellationToken);
 
             if (!persistResponse.IsSucceed)
-                return persistResponse;
+                return CommandResponse<ExchangeModel>.Fail(persistResponse.ErrorCode, persistResponse.ErrorMessage ?? "Failed to update exchange persistence.");
         }
 
         _exchangesByName.Remove(current.Name);
@@ -107,8 +92,26 @@ internal sealed partial class ExchangeManager(
 
         mambaLogger.Exchange(updated.Name).LogInformation("Exchange was updated.");
 
-        return CommandResponse.Success();
+        return CommandResponse<ExchangeModel>.Success(MapToExchangeModel(updated));
     }
+
+    private static ExchangeModel MapToExchangeModel(MambaExchange exchange)
+        => new()
+        {
+            Id = exchange.Id,
+            Name = exchange.Name,
+            IsDurable = exchange.IsDurable,
+            CreatedAt = exchange.CreatedAt,
+            Type = exchange.Type,
+            Permissions = new Dictionary<string, ExchangePermission>(exchange.Permissions),
+            Bindings = exchange.Bindings
+                .Select(binding => new ExchangeBindingModel
+                {
+                    QueueName = binding.QueueName,
+                    RoutingKey = binding.RoutingKey
+                })
+                .ToList()
+        };
 
     public async Task<CommandResponse> DeleteExchange(Guid exchangeId, IClientConnection connection, CancellationToken cancellationToken = default)
     {
