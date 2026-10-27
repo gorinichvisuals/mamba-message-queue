@@ -10,8 +10,8 @@ public enum FrameType : byte
     CommandResultResponse = 5,
 
     QueueCreateCommand = 6,
-    QueueGetCommand = 7,
-    QueueGetResponse = 8,
+    QueueGetListCommand = 7,
+    QueueGetListResponse = 8,
     QueueUpdateCommand = 9,
     QueueDeleteCommand = 10,
     QueueSubscribeCommand = 11,
@@ -25,8 +25,8 @@ public enum FrameType : byte
     QueueMessagesBatchResponse = 19,
 
     ExchangeCreateCommand = 20,
-    ExchangeGetCommand = 21,
-    ExchangeGetResponse = 22,
+    ExchangeGetListCommand = 21,
+    ExchangeGetListResponse = 22,
     ExchangeUpdateCommand = 23,
     ExchangeDeleteCommand = 24,
     ExchangeBindCommand = 25,

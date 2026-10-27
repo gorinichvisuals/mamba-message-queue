@@ -4,20 +4,20 @@ internal sealed partial class MambaStudioClient
 {
     public async Task<GetExchangesResponse> GetExchangesAsync(CancellationToken cancellationToken = default)
     {
-        ExchangeGetCommand command = new();
+        ExchangeGetListCommand listCommand = new();
 
-        byte[] payload = CommandEncoder.Encode(command);
+        byte[] payload = CommandEncoder.Encode(listCommand);
 
-        Frame frame = new(FrameType.ExchangeGetCommand, payload);
+        Frame frame = new(FrameType.ExchangeGetListCommand, payload);
 
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
 
-        return responseFrame.Type is not FrameType.ExchangeGetResponse
-            ? throw new InvalidDataException($"Expected {FrameType.ExchangeGetResponse} frame, but received {responseFrame.Type}.")
+        return responseFrame.Type is not FrameType.ExchangeGetListResponse
+            ? throw new InvalidDataException($"Expected {FrameType.ExchangeGetListResponse} frame, but received {responseFrame.Type}.")
             : GetExchangesResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
-    public async Task<CommandResponse> CreateExchangeAsync(ExchangeOptions options, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<ExchangeModel>> CreateExchangeAsync(ExchangeOptions options, CancellationToken cancellationToken = default)
     {
         ExchangeCreateCommand command = new(
             options.Name,
@@ -33,7 +33,7 @@ internal sealed partial class MambaStudioClient
 
         return responseFrame.Type is not FrameType.CommandResultResponse
             ? throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.")
-            : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
+            : CommandResponseDecoder.Decode(responseFrame.Payload.Span, DecodeExchangeModel);
     }
 
     public async Task<CommandResponse> BindQueueToExchangeAsync(
@@ -89,7 +89,7 @@ internal sealed partial class MambaStudioClient
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
-    public async Task<CommandResponse> UpdateExchangeAsync(Guid exchangeId, ExchangeOptions options, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<ExchangeModel>> UpdateExchangeAsync(Guid exchangeId, ExchangeOptions options, CancellationToken cancellationToken = default)
     {
         ExchangeUpdateCommand command = new(
             exchangeId,
@@ -106,7 +106,7 @@ internal sealed partial class MambaStudioClient
 
         return responseFrame.Type is not FrameType.CommandResultResponse
             ? throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.")
-            : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
+            : CommandResponseDecoder.Decode(responseFrame.Payload.Span, DecodeExchangeModel);
     }
 
     public async Task<CommandResponse> PublishMessageToExchangeAsync(
@@ -126,5 +126,16 @@ internal sealed partial class MambaStudioClient
         return responseFrame.Type is not FrameType.CommandResultResponse
             ? throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.")
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
+    }
+
+    private static ExchangeModel DecodeExchangeModel(ReadOnlySpan<byte> buffer)
+    {
+        int offset = 0;
+
+        ExchangeModel exchange = ExchangeModelDecoder.Decode(buffer, ref offset);
+
+        return offset == buffer.Length
+            ? exchange
+            : throw new InvalidDataException("Exchange response contains unexpected data.");
     }
 }

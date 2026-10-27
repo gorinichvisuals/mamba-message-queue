@@ -146,16 +146,16 @@ public partial class ExchangeDetailsViewModel(
         {
             ErrorMessage = null;
             
-            CommandResponse response = await mambaClient.UpdateExchangeAsync(Exchange.Id, options);
+            CommandResponse<ExchangeModel> response = await mambaClient.UpdateExchangeAsync(Exchange.Id, options);
             
-            if (!response.IsSucceed)
+            if (!response.IsSucceed || response.Data is null)
             {
                 ErrorMessage = response.ErrorMessage;
                 
                 return false;
             }
 
-            await LoadAsync();
+            Exchange = response.Data;
             
             return true;
         }
@@ -179,11 +179,13 @@ public partial class ExchangeDetailsViewModel(
                 return true;
 
             ErrorMessage = response.ErrorMessage;
+            
             return false;
         }
         catch (Exception exception)
         {
             ErrorMessage = exception.Message;
+            
             return false;
         }
     }

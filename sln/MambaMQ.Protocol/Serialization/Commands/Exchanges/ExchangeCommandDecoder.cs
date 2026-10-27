@@ -41,9 +41,9 @@ internal static class ExchangeCommandDecoder
         return new ExchangeUpdateCommand(exchangeId, exchangeName, isDurable, exchangeType, permissions);
     }
 
-    internal static ExchangeGetCommand DecodeGetExchanges()
+    internal static ExchangeGetListCommand DecodeGetExchanges()
     {
-        return new ExchangeGetCommand();
+        return new ExchangeGetListCommand();
     }
 
     internal static ExchangeCreateCommand DecodeCreateExchange(ReadOnlySpan<byte> buffer)

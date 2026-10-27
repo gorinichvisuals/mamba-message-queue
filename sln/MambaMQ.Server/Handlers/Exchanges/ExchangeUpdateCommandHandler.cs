@@ -11,9 +11,9 @@ internal sealed class ExchangeUpdateCommandHandler(IExchangeManager exchangeMana
             command.ExchangeType,
             command.Permissions);
 
-        CommandResponse response = await exchangeManager.UpdateExchange(dto, cancellationToken);
+        CommandResponse<ExchangeModel> response = await exchangeManager.UpdateExchange(dto, cancellationToken);
 
-        byte[] payload = CommandResponseEncoder.Encode(response);
+        byte[] payload = CommandResponseEncoder.Encode(response, ExchangeModelEncoder.Encode);
 
         Frame frame = new(FrameType.CommandResultResponse, payload);
 
