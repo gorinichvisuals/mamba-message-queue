@@ -1,6 +1,6 @@
 ﻿namespace MambaMQ.Client.NET.Options;
 
-public class ExchangeOptions
+public class ExchangeCreateOptions
 {
     public required string Name { get; set; }
     public bool IsDurable { get; set; } = true;

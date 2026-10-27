@@ -1,6 +1,6 @@
 ﻿namespace MambaMQ.Client.NET.Options;
 
-public sealed class QueueOptions
+public sealed class QueueCreateOptions
 {
     public required string QueueName { get; init; }
     public bool IsDurable { get; init; } = true;

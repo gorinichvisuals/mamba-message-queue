@@ -42,7 +42,7 @@ internal sealed class AuthenticationService(
 
     private bool AuthenticateServiceKey(string serverKey)
     {
-        string configuredKey = options.Value.ServiceKey;
+        string configuredKey = options.Value.ServerKey;
         
         return !string.IsNullOrEmpty(configuredKey) && string.Equals(configuredKey, serverKey, StringComparison.Ordinal);
     }
