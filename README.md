@@ -166,13 +166,3 @@ docker push your-dockerhub-username/mambamq-server:0.1.0
 ```
 
 The repository version is currently **0.1.0**. Publish a new immutable version tag for each release; optionally also tag that same image as `latest` for users who deliberately want the newest release. After publishing, replace the placeholders in the Docker install instructions with the real Docker Hub namespace and link the image page here.
-
-## Versioning
-
-MambaMQ uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
-
-- **Patch** (`0.1.0` → `0.1.1`): compatible bug fixes.
-- **Minor** (`0.1.0` → `0.2.0`): compatible features.
-- **Major** (`0.1.0` → `1.0.0`): changes that break compatibility.
-
-The shared .NET project version is kept in the repository's `Directory.Build.props`. Use the same release number for the client NuGet package, server Docker tag, and Studio release when publishing a coordinated release. Previously published NuGet versions and Docker tags remain available, so consumers can continue using a specific version.
