@@ -1,0 +1,6 @@
+<Project>
+    <PropertyGroup>
+        <!-- The single release version shared by all projects in this repository. -->
+        <VersionPrefix>0.1.0</VersionPrefix>
+    </PropertyGroup>
+</Project>

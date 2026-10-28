@@ -1,11 +1,11 @@
 namespace MambaMQ.Studio.ViewModels;
 
-public partial class LoginViewModel : ViewModelBase
+public partial class ConnectViewModel : ViewModelBase
 {
     private readonly IMambaStudioClient _mambaClient;
     private readonly IConnectionProfileService _profileService;
     private readonly Func<string, int, string, bool> _connectionExists;
-    private readonly Action<string, int, string, string, IMambaStudioClient> _onLoginSucceeded;
+    private readonly Action<string, int, string, string, IMambaStudioClient> _onConnectSucceeded;
     private readonly Action _onCancelled;
     private bool _isApplyingProfile;
     private Avalonia.Threading.DispatcherTimer? _connectionStatusTimer;
@@ -13,20 +13,20 @@ public partial class LoginViewModel : ViewModelBase
 
     public ObservableCollection<ConnectionProfile> SavedProfiles { get; } = [];
     public bool IsOverlay { get; }
-    public bool ShowLoginBackground => !IsOverlay;
+    public bool ShowConnectBackground => !IsOverlay;
 
-    public LoginViewModel(
+    public ConnectViewModel(
         IMambaStudioClient mambaClient,
         IConnectionProfileService profileService,
         Func<string, int, string, bool> connectionExists,
-        Action<string, int, string, string, IMambaStudioClient> onLoginSucceeded,
+        Action<string, int, string, string, IMambaStudioClient> onConnectSucceeded,
         Action onCancelled,
         bool isOverlay)
     {
         _mambaClient = mambaClient;
         _profileService = profileService;
         _connectionExists = connectionExists;
-        _onLoginSucceeded = onLoginSucceeded;
+        _onConnectSucceeded = onConnectSucceeded;
         _onCancelled = onCancelled;
         IsOverlay = isOverlay;
 
@@ -140,7 +140,7 @@ public partial class LoginViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public async Task LoginAsync()
+    public async Task ConnectAsync()
     {
         if (IsConnecting)
             return;
@@ -158,6 +158,7 @@ public partial class LoginViewModel : ViewModelBase
         if (_connectionExists(parts[0], port, Username))
         {
             ErrorMessage = "This server and username are already connected.";
+            
             return;
         }
 
@@ -167,7 +168,7 @@ public partial class LoginViewModel : ViewModelBase
         {
             await _mambaClient.ConnectAsync(parts[0], port, Username, Password);
             
-            _onLoginSucceeded(parts[0], port, Username, Password, _mambaClient);
+            _onConnectSucceeded(parts[0], port, Username, Password, _mambaClient);
         }
         catch (Exception exception)
         {

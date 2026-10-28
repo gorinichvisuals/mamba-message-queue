@@ -4,6 +4,10 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591</NoWarn>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProtocolAssemblyInPackage</TargetsForTfmSpecificBuildOutput>
     </PropertyGroup>
 
     <ItemGroup>
@@ -11,7 +15,22 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MambaMQ.Protocol\MambaMQ.Protocol.csproj" />
+      <ProjectReference Include="..\MambaMQ.Protocol\MambaMQ.Protocol.csproj">
+        <PrivateAssets>all</PrivateAssets>
+      </ProjectReference>
     </ItemGroup>
+
+    <ItemGroup>
+      <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <Target Name="IncludeProtocolAssemblyInPackage" DependsOnTargets="ResolveReferences">
+        <ItemGroup>
+            <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+                                  Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and '%(ReferenceCopyLocalPaths.Filename)' == 'MambaMQ.Protocol'">
+                <TargetPath>%(ReferenceCopyLocalPaths.DestinationSubPath)</TargetPath>
+            </BuildOutputInPackage>
+        </ItemGroup>
+    </Target>
 
 </Project>

@@ -1,0 +1,13 @@
+.git
+.idea
+.vs
+.vscode
+**/bin/
+**/obj/
+**/TestResults/
+**/data/
+**/logs/
+.env
+.env.*
+*.user
+*.suo

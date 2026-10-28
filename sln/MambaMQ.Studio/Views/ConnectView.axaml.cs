@@ -1,10 +1,8 @@
 namespace MambaMQ.Studio.Views;
 
-using MambaMQ.Studio.Controls;
-
-public partial class LoginView : UserControl
+public partial class ConnectView : UserControl
 {
-    public LoginView()
+    public ConnectView()
     {
         InitializeComponent();
     }
@@ -23,18 +21,18 @@ public partial class LoginView : UserControl
             element = element.GetVisualParent() as Control;
 
         if (element?.DataContext is ConnectionProfile profile)
-            ProfilesList.SelectedItem = profile;
+            this.FindControl<ListBox>("ProfilesList")!.SelectedItem = profile;
     }
 
     private void OnDeleteProfileClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is LoginViewModel viewModel && viewModel.DeleteProfileCommand.CanExecute(null))
+        if (DataContext is ConnectViewModel viewModel && viewModel.DeleteProfileCommand.CanExecute(null))
             viewModel.DeleteProfileCommand.Execute(null);
     }
 
     private async void OnConnectClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not LoginViewModel viewModel)
+        if (DataContext is not ConnectViewModel viewModel)
             return;
 
         if (!viewModel.IsCurrentProfileSaved && TopLevel.GetTopLevel(this) is Window owner)
@@ -46,6 +44,6 @@ public partial class LoginView : UserControl
                 return;
         }
 
-        await viewModel.LoginAsync();
+        await viewModel.ConnectAsync();
     }
 }

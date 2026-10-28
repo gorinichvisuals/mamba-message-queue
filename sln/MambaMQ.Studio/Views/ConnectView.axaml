@@ -4,16 +4,16 @@
              xmlns:models="using:MambaMQ.Studio.Persistence.Models"
              xmlns:controls="using:MambaMQ.Studio.Controls"
              xmlns:views="clr-namespace:MambaMQ.Studio.Views"
-             x:Class="MambaMQ.Studio.Views.LoginView"
-             x:DataType="vm:LoginViewModel">
+             x:Class="MambaMQ.Studio.Views.ConnectView"
+             x:DataType="vm:ConnectViewModel">
 
     <Grid PointerPressed="OnWindowDragPointerPressed">
 
-        <Image Source="/Assets/login-background.png"
+        <Image Source="/Assets/connect-background.png"
                Stretch="UniformToFill"
-               IsVisible="{Binding ShowLoginBackground}" />
+               IsVisible="{Binding ShowConnectBackground}" />
         <Border Background="#70000000"
-                IsVisible="{Binding ShowLoginBackground}" />
+                IsVisible="{Binding ShowConnectBackground}" />
 
         <Border Width="720"
                 Padding="28"
@@ -75,10 +75,16 @@
                                Height="84"
                                HorizontalAlignment="Center"
                                Stretch="Uniform" />
-                        <TextBlock Text="MambaMQ Studio"
-                                   FontSize="28"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                            <TextBlock Text="MambaMQ Studio"
+                                       FontSize="28"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding VersionText}"
+                                       FontSize="12"
+                                       Opacity="0.6"
+                                       VerticalAlignment="Bottom" />
+                        </StackPanel>
                         <TextBlock Text="Connect to MambaMQ Server"
                                    FontSize="14"
                                    Opacity="0.65"

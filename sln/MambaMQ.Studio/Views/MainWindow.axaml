@@ -23,7 +23,10 @@
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" Margin="20,0">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                             <Image Source="avares://MambaMQ.Studio/Assets/logo.png" Width="36" Height="36" Stretch="Uniform" />
-                            <TextBlock Text="MambaMQ Studio" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="7">
+                                <TextBlock Text="MambaMQ Studio" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding VersionText}" FontSize="10" Opacity="0.6" VerticalAlignment="Bottom" />
+                            </StackPanel>
                         </StackPanel>
                         <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                             <ItemsControl ItemsSource="{Binding Tabs}" VerticalAlignment="Center">
@@ -139,9 +142,9 @@
                 </Border>
                 <ContentControl x:Name="ActiveDashboardHost" Grid.Row="1" Content="{Binding ActiveDashboard}" />
             </Grid>
-            <Grid IsVisible="{Binding IsLoginOverlayOpen}" Panel.ZIndex="2">
+            <Grid IsVisible="{Binding IsConnectOverlayOpen}" Panel.ZIndex="2">
                 <Border Background="#88080B10" />
-                <ContentControl Content="{Binding LoginViewModel}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                <ContentControl Content="{Binding ConnectViewModel}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
             </Grid>
         </Grid>
     </Border>
