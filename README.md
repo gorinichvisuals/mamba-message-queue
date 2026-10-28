@@ -82,6 +82,36 @@ MambaServerOptions__Authentication__Password=replace-with-a-strong-password
 MambaServerOptions__Authentication__ServerKey=replace-with-a-long-random-key
 ```
 
+#### Configuration options
+
+**Networking**
+- `MAMBA_HOST_PORT` — The host port exposed by Docker. Map this port to the container's listening port to make the server accessible from outside the container.
+- `MambaServerOptions__Port` — The port on which the MambaMQ server listens for client connections inside the container.
+- `MambaServerOptions__MaxMessageSizeInBytes` — The maximum allowed message size in bytes. Messages exceeding this limit are rejected. The default value shown above is 1 MiB (1,048,576 bytes).
+
+**Authorization**
+- `MambaServerOptions__AuthorizationEnabled` — Enables or disables service-level authorization. When enabled, permissions control which operations a service can perform on a queue. For example, one service can be allowed to publish messages while another can read and delete messages without being allowed to publish new ones. Configure the appropriate queue permissions for each service identity. When disabled, queue permission checks are bypassed.
+
+**Queue storage**
+- `MambaServerOptions__QueueStorage__Path` — The directory used to store persistent queue data. In Docker, `/app/data` is the container path. Mount a persistent volume to this directory to preserve queue data across container recreation or upgrades.
+- `MambaServerOptions__QueueStorage__MessageCleanupEnabled` — Enables or disables automatic message storage cleanup. When enabled, MambaMQ periodically checks message segments and removes eligible segments according to its cleanup rules. Cleanup does not simply delete the oldest messages: a segment can only be removed when it is no longer active and all messages in it have corresponding delete records. Keep this disabled if you do not want automatic cleanup.
+- `MambaServerOptions__QueueStorage__MessageSegmentSizeInBytes` — The maximum target size of a message storage segment in bytes. Once a segment reaches this size, storage continues in another segment. Larger segments reduce the number of files but can increase the amount of data held in a single segment.
+- `MambaServerOptions__QueueStorage__MaxMessageSegments` — The target maximum number of message storage segments retained before cleanup becomes necessary. For example, `2` configures MambaMQ to trigger cleanup when the number of segments exceeds two. This is not a strict disk usage limit: the active segment and segments containing messages that have not been deleted must be preserved. As a result, the actual number of segments can exceed this value.
+- `MambaServerOptions__QueueStorage__CleanupMessageInterval` — The interval between automatic message cleanup checks. The example value, `00:10:00`, means cleanup runs every 10 minutes when message cleanup is enabled.
+
+**Logging**
+- `MambaServerOptions__ServerLogging__MinimumLevel` — The minimum severity level written to the server console. Common values are `Trace`, `Debug`, `Information`, `Warning`, `Error`, and `Critical`. Messages below the configured level are ignored.
+- `MambaServerOptions__ServerLogging__ConsoleEnabled` — Enables or disables console logging. Set this to `true` to see server logs in the Docker container output.
+
+**Authentication**
+- `MambaServerOptions__Authentication__Username` — The username used to sign in to MambaMQ Studio.
+- `MambaServerOptions__Authentication__Password` — The password used to sign in to MambaMQ Studio. Replace the example value with a strong password.
+- `MambaServerOptions__Authentication__ServerKey` — The server key used by application clients to authenticate with MambaMQ. Replace the example value with a long, randomly generated secret.
+
+The double underscores in `MambaServerOptions__...` map environment variables to nested .NET configuration settings.
+
+**Important:** Authentication and authorization serve different purposes. Authentication verifies a client's credentials, while authorization determines which operations an authenticated service is allowed to perform. Enable `AuthorizationEnabled` when you need to restrict services to specific queue operations.
+
 The management username and password are used when signing in to Studio. `ServerKey` is the credential for application clients. The double underscores in `MambaServerOptions__...` map environment variables to nested .NET configuration settings.
 
 ```bash
