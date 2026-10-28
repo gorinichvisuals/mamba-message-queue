@@ -40,5 +40,8 @@
         <DependentUpon>WindowChromeButtons.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
+      <Compile Update="Views\ConnectView.axaml.cs">
+        <DependentUpon>ConnectView.axaml</DependentUpon>
+      </Compile>
     </ItemGroup>
 </Project>

@@ -1,5 +1,3 @@
-using MambaMQ.Studio.Controls;
-
 namespace MambaMQ.Studio.Views;
 
 public partial class UpdateExchangeWindow : Window
@@ -24,8 +22,7 @@ public partial class UpdateExchangeWindow : Window
 
     private void RemovePermissionButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is Button { Tag: ExchangePermissionModel permission } &&
-            DataContext is UpdateExchangeViewModel viewModel)
+        if (sender is Button { Tag: ExchangePermissionModel permission } && DataContext is UpdateExchangeViewModel viewModel)
             viewModel.RemovePermission(permission);
     }
 }

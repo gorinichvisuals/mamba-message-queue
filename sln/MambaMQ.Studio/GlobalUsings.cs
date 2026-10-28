@@ -2,6 +2,7 @@
 global using System.Linq;
 global using System.Text;
 global using System.Threading;
+global using System.Reflection;
 global using System.Globalization;
 global using System.ComponentModel;
 global using System.Threading.Tasks;
@@ -16,6 +17,7 @@ global using Avalonia.Input;
 global using Avalonia.Media;
 global using Avalonia.Layout;
 global using Avalonia.Controls;
+global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 global using Avalonia.Markup.Xaml;
 global using Avalonia.Interactivity;

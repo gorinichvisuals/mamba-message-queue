@@ -11,10 +11,10 @@ public partial class MainViewModel : ViewModelBase
     private DashboardViewModel? _activeDashboard;
 
     [ObservableProperty]
-    private LoginViewModel _loginViewModel = null!;
+    private ConnectViewModel _connectViewModel = null!;
 
     [ObservableProperty]
-    private bool _isLoginOverlayOpen;
+    private bool _isConnectOverlayOpen;
 
     public bool HasActiveDashboard => ActiveDashboard is not null;
 
@@ -22,11 +22,11 @@ public partial class MainViewModel : ViewModelBase
     {
         _clientFactory = clientFactory;
         _profileService = profileService;
-        ShowLoginOverlay();
+        ShowConnectOverlay();
     }
 
     [RelayCommand]
-    private void ConnectTo() => ShowLoginOverlay();
+    private void ConnectTo() => ShowConnectOverlay();
 
     private void SelectTab(DashboardViewModel? dashboard)
     {
@@ -46,12 +46,12 @@ public partial class MainViewModel : ViewModelBase
             string.Equals(tab.ConnectionInfo, $"{host}:{port}", StringComparison.OrdinalIgnoreCase)
             && string.Equals(tab.Username.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    private void OnLoginSucceeded(string host, int port, string username, string password, IMambaStudioClient client)
+    private void OnConnectSucceeded(string host, int port, string username, string password, IMambaStudioClient client)
     {
         DashboardViewModel dashboard = new(client, host, port, username, password, OnDisconnected, SelectTab);
         Tabs.Add(dashboard);
         SelectTab(dashboard);
-        IsLoginOverlayOpen = false;
+        IsConnectOverlayOpen = false;
     }
 
     private void OnDisconnected(DashboardViewModel dashboard)
@@ -70,20 +70,20 @@ public partial class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasActiveDashboard));
 
         if (Tabs.Count == 0)
-            ShowLoginOverlay();
+            ShowConnectOverlay();
     }
 
-    private void ShowLoginOverlay()
+    private void ShowConnectOverlay()
     {
         IMambaStudioClient client = _clientFactory.Create();
 
-        LoginViewModel = new LoginViewModel(
+        ConnectViewModel = new ConnectViewModel(
             client,
             _profileService,
             ConnectionExists,
-            OnLoginSucceeded,
-            () => IsLoginOverlayOpen = false,
+            OnConnectSucceeded,
+            () => IsConnectOverlayOpen = false,
             Tabs.Count > 0);
-        IsLoginOverlayOpen = true;
+        IsConnectOverlayOpen = true;
     }
 }

@@ -1,4 +1,12 @@
 <Solution>
+  <Folder Name="/Docker Deployment/">
+    <File Path=".dockerignore" />
+    <File Path=".env.example" />
+    <File Path="Dockerfile" />
+    <File Path="compose.yaml" />
+    <File Path="docker-entrypoint.sh" />
+  </Folder>
+  <File Path="Directory.Build.props" />
   <Folder Name="/sln/" />
   <Folder Name="/sln/Client/">
     <Project Path="sln/MambaMQ.Client.NET/MambaMQ.Client.NET.csproj" />

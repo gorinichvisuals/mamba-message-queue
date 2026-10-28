@@ -1,0 +1,29 @@
+services:
+  mambamq-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mambamq-server:local
+    container_name: mambamq-server
+    restart: unless-stopped
+    ports:
+      - "${MAMBA_HOST_PORT:-24}:${MambaServerOptions__Port:-24}"
+    environment:
+      MambaServerOptions__Port: "${MambaServerOptions__Port:-24}"
+      MambaServerOptions__MaxMessageSizeInBytes: "${MambaServerOptions__MaxMessageSizeInBytes:-1048576}"
+      MambaServerOptions__AuthorizationEnabled: "${MambaServerOptions__AuthorizationEnabled:-false}"
+      MambaServerOptions__QueueStorage__Path: /app/data
+      MambaServerOptions__QueueStorage__MessageCleanupEnabled: "${MambaServerOptions__QueueStorage__MessageCleanupEnabled:-false}"
+      MambaServerOptions__QueueStorage__MessageSegmentSizeInBytes: "${MambaServerOptions__QueueStorage__MessageSegmentSizeInBytes:-16777216}"
+      MambaServerOptions__QueueStorage__MaxMessageSegments: "${MambaServerOptions__QueueStorage__MaxMessageSegments:-2}"
+      MambaServerOptions__QueueStorage__CleanupMessageInterval: "${MambaServerOptions__QueueStorage__CleanupMessageInterval:-00:10:00}"
+      MambaServerOptions__ServerLogging__MinimumLevel: "${MambaServerOptions__ServerLogging__MinimumLevel:-Information}"
+      MambaServerOptions__ServerLogging__ConsoleEnabled: "${MambaServerOptions__ServerLogging__ConsoleEnabled:-true}"
+      MambaServerOptions__Authentication__Username: "${MambaServerOptions__Authentication__Username:?Set MambaServerOptions__Authentication__Username in .env}"
+      MambaServerOptions__Authentication__Password: "${MambaServerOptions__Authentication__Password:?Set MambaServerOptions__Authentication__Password in .env}"
+      MambaServerOptions__Authentication__ServerKey: "${MambaServerOptions__Authentication__ServerKey:?Set MambaServerOptions__Authentication__ServerKey in .env}"
+    volumes:
+      - mambamq-data:/app/data
+
+volumes:
+  mambamq-data:

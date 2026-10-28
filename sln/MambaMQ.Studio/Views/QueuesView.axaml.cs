@@ -59,7 +59,7 @@ public partial class QueuesView : UserControl
         if (e.Key != Key.C || e.KeyModifiers != KeyModifiers.Control)
             return;
 
-        if (_selectedQueue is not QueueModel queue)
+        if (_selectedQueue is not { } queue)
             return;
 
         string? value = _selectedColumnIndex switch

@@ -1,6 +1,4 @@
-﻿using MambaMQ.Studio.Controls;
-
-namespace MambaMQ.Studio.Views;
+﻿namespace MambaMQ.Studio.Views;
 
 public partial class ConfirmDeleteWindow : Window
 {
