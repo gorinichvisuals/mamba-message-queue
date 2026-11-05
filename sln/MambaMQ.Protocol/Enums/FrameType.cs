@@ -2,7 +2,7 @@
 
 public enum FrameType : byte
 {
-    ServiceAuthenticateCommand = 1,
+    AuthenticateCommand = 1,
     ServiceIdentitySetCommand = 2,
 
     ConnectionPingCommand = 3,
@@ -32,5 +32,4 @@ public enum FrameType : byte
     ExchangeBindCommand = 25,
     ExchangeUnbindCommand = 26,
     ExchangeMessagePublishCommand = 27,
-    ManagementAuthenticateCommand = 28,
 }

@@ -10,7 +10,7 @@ public static class CommandConstants
     public const int MessageRetentionPeriodSize = sizeof(long);
     public const int UsernameLengthSize = sizeof(int);
     public const int PasswordLengthSize = sizeof(int);
-    public const int ServerKeyLengthSize = sizeof(int);
+    public const int ClientTypeSize = sizeof(byte);
     public const int LoadBalancingAlgorithmSize = sizeof(byte);
     public const int MaxMessagesSize = sizeof(int);
     public const int MaxBytesSize = sizeof(int);

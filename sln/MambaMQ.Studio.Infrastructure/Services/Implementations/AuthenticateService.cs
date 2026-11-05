@@ -3,14 +3,15 @@
 internal sealed class AuthenticateService(IConnection connection) : IAuthenticateService
 {
     private const int MaxMessageSizeInBytes = 1048576;
+    private const ClientType ClientTypeValue = ClientType.Management;
 
     public async Task AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        ManagementAuthenticateCommand command = new(username, password);
+        AuthenticateCommand command = new(username, password, ClientTypeValue);
 
         byte[] payload = CommandEncoder.Encode(command);
 
-        Frame frame = new(FrameType.ManagementAuthenticateCommand, payload);
+        Frame frame = new(FrameType.AuthenticateCommand, payload);
 
         byte[] buffer = FrameEncoder.Encode(frame);
 

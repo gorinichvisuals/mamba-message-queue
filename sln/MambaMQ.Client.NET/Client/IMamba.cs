@@ -47,8 +47,8 @@ public interface IMamba
     /// <param name="message">The message to publish.</param>
     /// <param name="cancellationToken">A token that can cancel the request.</param>
     Task PublishToExchangeAsync<T>(string exchangeName, string routingKey, T message, CancellationToken cancellationToken = default);
-
-
+    
+    
     /// <summary>Creates a queue.</summary>
     /// <param name="queueCreateOptions">The queue settings.</param>
     /// <param name="cancellationToken">A token that can cancel the request.</param>

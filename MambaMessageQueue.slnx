@@ -2,9 +2,9 @@
   <Folder Name="/Docker Deployment/">
     <File Path=".dockerignore" />
     <File Path=".env.example" />
+    <File Path="docker-compose.development.yml" />
+    <File Path="docker-compose.release.yaml" />
     <File Path="Dockerfile" />
-    <File Path="compose.yaml" />
-    <File Path="docker-entrypoint.sh" />
   </Folder>
   <File Path="Directory.Build.props" />
   <Folder Name="/sln/" />

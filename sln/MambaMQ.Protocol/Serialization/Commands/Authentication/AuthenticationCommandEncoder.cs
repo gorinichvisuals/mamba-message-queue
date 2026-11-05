@@ -2,28 +2,24 @@
 
 internal static class AuthenticationCommandEncoder
 {
-    internal static byte[] EncodeServiceAuthentication(ServiceAuthenticateCommand command)
-    {
-        byte[] serverKey = Encoding.UTF8.GetBytes(command.ServerKey);
-        byte[] buffer = new byte[CommandConstants.ServerKeyLengthSize + serverKey.Length];
-        
-        ProtocolWriter.WriteString(buffer, 0, command.ServerKey);
-        
-        return buffer;
-    }
-
-    internal static byte[] EncodeManagementAuthentication(ManagementAuthenticateCommand command)
+    internal static byte[] EncodeAuthentication(AuthenticateCommand command)
     {
         byte[] username = Encoding.UTF8.GetBytes(command.UserName);
         byte[] password = Encoding.UTF8.GetBytes(command.Password);
+
         byte[] buffer = new byte[
             CommandConstants.UsernameLengthSize + username.Length +
-            CommandConstants.PasswordLengthSize + password.Length];
+            CommandConstants.PasswordLengthSize + password.Length +
+            CommandConstants.ClientTypeSize];
 
-        int offset = ProtocolWriter.WriteString(buffer, 0, command.UserName);
-        
-        ProtocolWriter.WriteString(buffer, offset, command.Password);
-        
+        Span<byte> span = buffer;
+
+        int offset = ProtocolWriter.WriteString(span, 0, command.UserName);
+
+        offset = ProtocolWriter.WriteString(span, offset, command.Password);
+
+        span[offset] = (byte)command.ClientType;
+
         return buffer;
     }
 

@@ -1,0 +1,28 @@
+services:
+  mambamq-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gorinichvisuals/mambamq-server:latest
+    container_name: mambamq-server
+    restart: unless-stopped
+    ports:
+      - "${MambaServerOptions__Port:-8024}:${MambaServerOptions__Port:-8024}"
+    environment:
+      MambaServerOptions__Port: "${MambaServerOptions__Port:-8024}"
+      MambaServerOptions__MaxMessageSizeInBytes: "${MambaServerOptions__MaxMessageSizeInBytes:-1048576}"
+      MambaServerOptions__AuthorizationEnabled: "${MambaServerOptions__AuthorizationEnabled:-false}"
+      QueueStorageOptions__Path: /app/data
+      QueueStorageOptions__MessageCleanupEnabled: "${QueueStorageOptions__MessageCleanupEnabled:-false}"
+      QueueStorageOptions__MessageSegmentSizeInBytes: "${QueueStorageOptions__MessageSegmentSizeInBytes:-16777216}"
+      QueueStorageOptions__MaxMessageSegments: "${QueueStorageOptions__MaxMessageSegments:-2}"
+      QueueStorageOptions__CleanupMessageInterval: "${QueueStorageOptions__CleanupMessageInterval:-00:10:00}"
+      ServerLoggingOptions__MinimumLevel: "${ServerLoggingOptions__MinimumLevel:-Information}"
+      ServerLoggingOptions__ConsoleEnabled: "${ServerLoggingOptions__ConsoleEnabled:-true}"
+      AuthenticationOptions__Username: "${AuthenticationOptions__Username:-admin}"
+      AuthenticationOptions__Password: "${AuthenticationOptions__Password:-admin}"
+    volumes:
+      - mambamq-data:/app/data
+
+volumes:
+  mambamq-data:

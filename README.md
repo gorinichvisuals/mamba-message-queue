@@ -2,7 +2,7 @@
 
 **A lightweight message broker built with .NET.** MambaMQ lets applications exchange messages through queues and exchanges, with a server, a .NET client library, a shared wire protocol, and a desktop management app.
 
-> **Mamba + 24** is a tribute to Kobe Bryant: both the project name and its default server port reference the legendary NBA player.
+> **Mamba + 8024** is a tribute to Kobe Bryant: both the project name and its default server port reference the legendary NBA player.
 
 ## At a glance
 
@@ -37,7 +37,7 @@ After the first NuGet release, install the client package in your .NET project (
 dotnet add package MambaMQ.Client.NET --version 0.1.0
 ```
 
-Register the client in dependency injection and provide the server address and server key:
+Register the client in dependency injection and provide the server address, username and password:
 
 ```csharp
 using MambaMQ.Client.NET;
@@ -46,123 +46,275 @@ using MambaMQ.Client.NET.Configure;
 services.AddMamba(options =>
 {
     options.Host = "localhost";
-    options.Port = 24;
-    options.ServiceName = "orders-service";
-    options.Credentials.ServerKey = Environment.GetEnvironmentVariable("MAMBA_SERVER_KEY")
-        ?? throw new InvalidOperationException("MAMBA_SERVER_KEY is required.");
+    options.Port = 8024;
+    options.ServiceName = "orders-service"; // You can skip it if 'AuthorizationEnabled = false' on server
+    options.Credentials.Username = Environment.GetEnvironmentVariable("USER_NAME")
+        ?? throw new InvalidOperationException("USER_NAME is required.");
+    options.Credentials.Password = Environment.GetEnvironmentVariable("PASSWORD")
+        ?? throw new InvalidOperationException("PASSWORD is required.");
 });
 ```
 
-Inject `IMamba` into your application services to use the broker. The NuGet package has **not been published yet**; the install command is shown as the intended usage after release.
+Inject `IMamba` into your application services to use the broker.
+```bash
+dotnet add package MambaMQ.Client.NET --version 0.1.0
+```
+
+Publisher example:
+```csharp
+using MambaMQ.Client.NET;
+using MambaMQ.Client.NET.Options;
+
+public class PublishToQueueExample(IMamba mamba)
+{
+    public async Task CreateQueueAsync()
+    {
+        await mamba.CreateQueueAsync(new QueueCreateOptions()
+        {
+            QueueName = "queue-name",
+            IsDurable = false,
+            LoadBalancingAlgorithm = LoadBalancingAlgorithm.LeastInFlight,
+        });
+    }
+    
+    public async Task PublishToQueueAsync()
+    {
+        await mamba.PublishToQueueAsync(
+            "queue-name",
+            new TestMessage
+            {
+                Message = "Some message here"
+            });
+    }
+}
+
+internal class TestMessage
+{
+    public required string Message { get; set; }
+}
+```
+Message type by defauilt is generic type and you can use your own message structure.
+
+Consumer example:
+```csharp
+using MambaMQ.Client.NET;
+using MambaMQ.Protocol.Messages;
+
+public class ConsumerExample(IMamba mamba)
+{
+    public async Task ProcessMessage(CancellationToken cancellationToken)
+    {
+        await foreach(MambaMessage message in mamba.SubscribeQueueAsync("queue-name")
+        {
+            //Your implementation
+        }
+    }
+}
+```
+
+### MambaMQ Features:
+
+MambaMQ provides a simple API for managing exchanges and queues, publishing and consuming messages, and controlling message lifecycle.
+Exchanges
+- Create exchanges — create a new exchange with the specified configuration.
+- Get exchanges — retrieve all configured exchanges.
+- Update exchanges — update an existing exchange.
+- Delete exchanges — remove an exchange.
+- Bind queues — bind a queue to an exchange using a routing key.
+- Unbind queues — remove an existing queue binding.
+- Publish to exchanges — publish messages to an exchange with a routing key.
+  Queues
+- Create queues — create queues with configurable durability, load-balancing strategy, permissions, and message retention.
+- Get queues — retrieve all configured queues.
+- Update queues — update an existing queue.
+- Delete queues — remove a queue.
+- Publish to queues — publish messages directly to a queue.
+  Message Consumption
+- Subscribe to queues — consume messages asynchronously using IAsyncEnumerable<MambaMessage>.
+- Batch subscriptions — consume multiple messages at once using configurable batch options.
+  Message Management
+- Get messages — retrieve messages from a queue with pagination.
+- Delete messages — delete a specific message or multiple messages by their IDs.
 
 ## Run the server with Docker
 
-### Public Docker image status
+MambaMQ Server is available as a public Docker image on Docker Hub.
 
-The Docker image is **not published to Docker Hub yet**. After the first public release, the image will be available as `docker.io/your-dockerhub-username/mambamq-server:0.1.0`. Replace `your-dockerhub-username` and the version with the publisher's Docker Hub namespace and a published tag. A public image can be pulled and managed from Docker Desktop or the command line.
+- **Docker Hub:** [gorinichvisuals/mambamq-server](https://hub.docker.com/r/gorinichvisuals/mambamq-server)
+- **Current version:** `0.1.0`
+- **Latest image:** `gorinichvisuals/mambamq-server:latest`
 
-### Configure and start a published image
+### Configuration
 
-Download or create an `.env` file containing the settings you need. Start with the repository's `.env.example`, copy it to `.env`, and set at least the management username, management password, and server key to non-empty values. Choose strong, unique secrets; do not commit `.env` to source control.
+MambaMQ Server can be configured using environment variables. Create an `.env` file in the same directory as your Docker Compose file:
 
 ```dotenv
-MAMBA_HOST_PORT=24
-MambaServerOptions__Port=24
+MambaServerOptions__Port=8024
 MambaServerOptions__MaxMessageSizeInBytes=1048576
 MambaServerOptions__AuthorizationEnabled=false
-MambaServerOptions__QueueStorage__Path=/app/data
-MambaServerOptions__QueueStorage__MessageCleanupEnabled=false
-MambaServerOptions__QueueStorage__MessageSegmentSizeInBytes=16777216
-MambaServerOptions__QueueStorage__MaxMessageSegments=2
-MambaServerOptions__QueueStorage__CleanupMessageInterval=00:10:00
-MambaServerOptions__ServerLogging__MinimumLevel=Information
-MambaServerOptions__ServerLogging__ConsoleEnabled=true
-MambaServerOptions__Authentication__Username=admin
-MambaServerOptions__Authentication__Password=replace-with-a-strong-password
-MambaServerOptions__Authentication__ServerKey=replace-with-a-long-random-key
+
+QueueStorageOptions__MessageCleanupEnabled=false
+QueueStorageOptions__MessageSegmentSizeInBytes=16777216
+QueueStorageOptions__MaxMessageSegments=2
+QueueStorageOptions__CleanupMessageInterval=00:10:00
+
+ServerLoggingOptions__MinimumLevel=Information
+ServerLoggingOptions__ConsoleEnabled=true
+
+AuthenticationOptions__Username=admin
+AuthenticationOptions__Password=change-me
 ```
 
-#### Configuration options
+Replace the default authentication credentials with strong, unique values before starting the server. Do not commit your `.env` file to source control.
+
+### Configuration options
 
 **Networking**
-- `MAMBA_HOST_PORT` — The host port exposed by Docker. Map this port to the container's listening port to make the server accessible from outside the container.
-- `MambaServerOptions__Port` — The port on which the MambaMQ server listens for client connections inside the container.
-- `MambaServerOptions__MaxMessageSizeInBytes` — The maximum allowed message size in bytes. Messages exceeding this limit are rejected. The default value shown above is 1 MiB (1,048,576 bytes).
+- `MambaServerOptions__Port` — The port on which MambaMQ Server listens for client connections. Default: `8024`.
+- `MambaServerOptions__MaxMessageSizeInBytes` — The maximum allowed message size in bytes. Messages exceeding this limit are rejected. Default: `1048576` (1 MiB).
 
 **Authorization**
-- `MambaServerOptions__AuthorizationEnabled` — Enables or disables service-level authorization. When enabled, permissions control which operations a service can perform on a queue. For example, one service can be allowed to publish messages while another can read and delete messages without being allowed to publish new ones. Configure the appropriate queue permissions for each service identity. When disabled, queue permission checks are bypassed.
+- `MambaServerOptions__AuthorizationEnabled` — Enables or disables service-level authorization. When enabled, permissions control which operations a service can perform on a queue. For example, one service can publish messages while another can read and delete them. When disabled, queue permission checks are bypassed.
 
 **Queue storage**
-- `MambaServerOptions__QueueStorage__Path` — The directory used to store persistent queue data. In Docker, `/app/data` is the container path. Mount a persistent volume to this directory to preserve queue data across container recreation or upgrades.
-- `MambaServerOptions__QueueStorage__MessageCleanupEnabled` — Enables or disables automatic message storage cleanup. When enabled, MambaMQ periodically checks message segments and removes eligible segments according to its cleanup rules. Cleanup does not simply delete the oldest messages: a segment can only be removed when it is no longer active and all messages in it have corresponding delete records. Keep this disabled if you do not want automatic cleanup.
-- `MambaServerOptions__QueueStorage__MessageSegmentSizeInBytes` — The maximum target size of a message storage segment in bytes. Once a segment reaches this size, storage continues in another segment. Larger segments reduce the number of files but can increase the amount of data held in a single segment.
-- `MambaServerOptions__QueueStorage__MaxMessageSegments` — The target maximum number of message storage segments retained before cleanup becomes necessary. For example, `2` configures MambaMQ to trigger cleanup when the number of segments exceeds two. This is not a strict disk usage limit: the active segment and segments containing messages that have not been deleted must be preserved. As a result, the actual number of segments can exceed this value.
-- `MambaServerOptions__QueueStorage__CleanupMessageInterval` — The interval between automatic message cleanup checks. The example value, `00:10:00`, means cleanup runs every 10 minutes when message cleanup is enabled.
+- `QueueStorageOptions__Path` — The directory used to store persistent queue data. In Docker, use `/app/data`. Mount a persistent volume to preserve data across container recreation and upgrades.
+- `QueueStorageOptions__MessageCleanupEnabled` — Enables or disables automatic message storage cleanup. When enabled, MambaMQ periodically removes eligible message segments. A segment can only be removed when it is no longer active and all messages in it have corresponding delete records.
+- `QueueStorageOptions__MessageSegmentSizeInBytes` — The target maximum size of an individual message storage segment. When a segment reaches this size, storage continues in another segment.
+- `QueueStorageOptions__MaxMessageSegments` — The target maximum number of message storage segments retained before cleanup becomes necessary. This is not a strict disk usage limit because active segments and segments containing undeleted messages must be preserved.
+- `QueueStorageOptions__CleanupMessageInterval` — The interval between automatic message cleanup checks. Default example: `00:10:00` (10 minutes).
 
 **Logging**
-- `MambaServerOptions__ServerLogging__MinimumLevel` — The minimum severity level written to the server console. Common values are `Trace`, `Debug`, `Information`, `Warning`, `Error`, and `Critical`. Messages below the configured level are ignored.
-- `MambaServerOptions__ServerLogging__ConsoleEnabled` — Enables or disables console logging. Set this to `true` to see server logs in the Docker container output.
+- `ServerLoggingOptions__MinimumLevel` — The minimum severity level written to the server console. Supported values include `Trace`, `Debug`, `Information`, `Warning`, `Error`, and `Critical`.
+- `ServerLoggingOptions__ConsoleEnabled` — Enables or disables console logging.
 
 **Authentication**
-- `MambaServerOptions__Authentication__Username` — The username used to sign in to MambaMQ Studio.
-- `MambaServerOptions__Authentication__Password` — The password used to sign in to MambaMQ Studio. Replace the example value with a strong password.
-- `MambaServerOptions__Authentication__ServerKey` — The server key used by application clients to authenticate with MambaMQ. Replace the example value with a long, randomly generated secret.
+- `AuthenticationOptions__Username` — The username used to authenticate connections and sign in to MambaMQ Studio.
+- `AuthenticationOptions__Password` — The password used to authenticate connections and sign in to MambaMQ Studio.
 
-The double underscores in `MambaServerOptions__...` map environment variables to nested .NET configuration settings.
+### Start with Docker Compose (recommended)
 
-**Important:** Authentication and authorization serve different purposes. Authentication verifies a client's credentials, while authorization determines which operations an authenticated service is allowed to perform. Enable `AuthorizationEnabled` when you need to restrict services to specific queue operations.
+Download `docker-compose.release.yml` and `.env.example` from the repository.
 
-The management username and password are used when signing in to Studio. `ServerKey` is the credential for application clients. The double underscores in `MambaServerOptions__...` map environment variables to nested .NET configuration settings.
+Copy `.env.example` to `.env`:
 
 ```bash
-docker pull your-dockerhub-username/mambamq-server:0.1.0
+cp .env.example .env
+```
+
+Edit `.env` and configure your credentials and other settings.
+
+Start MambaMQ Server:
+
+```bash
+docker compose -f docker-compose.release.yml up -d
+```
+
+Docker Compose automatically pulls the published image from Docker Hub.
+
+View server logs:
+
+```bash
+docker compose -f docker-compose.release.yml logs -f
+```
+
+Update to the latest published image:
+
+```bash
+docker compose -f docker-compose.release.yml pull
+docker compose -f docker-compose.release.yml up -d
+```
+
+Stop the server:
+
+```bash
+docker compose -f docker-compose.release.yml down
+```
+
+Queue data is stored in a persistent Docker volume named `mambamq-data` and is preserved when the container is stopped, removed, or recreated.
+
+**Warning:** Removing volumes with `docker compose down --volumes` permanently deletes the stored queue data. Back up your data before doing this.
+
+### Run with Docker CLI
+
+You can also run MambaMQ Server directly without Docker Compose.
+
+Pull the image:
+
+```bash
+docker pull gorinichvisuals/mambamq-server:0.1.0
+```
+
+Run the container:
+
+```bash
 docker run -d \
   --name mambamq-server \
   --restart unless-stopped \
-  -p 24:24 \
+  -p 8024:8024 \
   --env-file .env \
   -v mambamq-data:/app/data \
-  your-dockerhub-username/mambamq-server:0.1.0
+  gorinichvisuals/mambamq-server:0.1.0
 ```
 
-The `-p` value is `host-port:container-port`: the first `24` is where clients connect on your computer; the second is the port MambaMQ listens on inside the container. Keep the container port aligned with `MambaServerOptions__Port`. For example, to use host port `8080` while the container listens on `24`, use `-p 8080:24`. `MAMBA_HOST_PORT` is used by the included Compose setup; `docker run -p` sets the mapping directly.
+The `-p` option uses the `host-port:container-port` format. The container port must match `MambaServerOptions__Port`.
 
-The named volume keeps queue data across container replacement. View logs or stop the server with:
+View logs:
 
 ```bash
 docker logs -f mambamq-server
+```
+
+Stop the server:
+
+```bash
 docker stop mambamq-server
 ```
 
-### Build and run from this repository
+### Build and run from source
 
-Until the public image is released, build the server locally with Docker Compose. From the repository root:
+If you prefer to build MambaMQ Server yourself, clone the repository and run the following commands from its root directory.
 
-```powershell
-Copy-Item .env.example .env
+Copy the example environment file:
+
+```bash
+cp .env.example .env
 ```
 
-Edit `.env` and replace the empty authentication values, then start the server:
+Configure your credentials in `.env`, then build and start the server:
 
 ```bash
 docker compose up --build -d
+```
+
+View logs:
+
+```bash
 docker compose logs -f mambamq-server
 ```
 
-Stop the Compose service with `docker compose down`. The `mambamq-data` volume remains so queue data is preserved; remove it only when you intentionally want to erase stored data:
+Stop the server:
 
 ```bash
-docker compose down --volumes
+docker compose down
 ```
 
-## Publish the server image
+The `mambamq-data` volume is preserved when the service is stopped or removed.
 
-When you are ready to publish, create a **public** Docker Hub repository named `mambamq-server`, sign in, then build and push a versioned image from the repository root:
+### Publish a Docker image
+
+To publish a new MambaMQ Server release, build the image with a version-specific tag and the `latest` tag:
 
 ```bash
 docker login
-docker build -t your-dockerhub-username/mambamq-server:0.1.0 .
-docker push your-dockerhub-username/mambamq-server:0.1.0
+
+docker build \
+  -t gorinichvisuals/mambamq-server:0.1.0 \
+  -t gorinichvisuals/mambamq-server:latest .
+
+docker push gorinichvisuals/mambamq-server:0.1.0
+docker push gorinichvisuals/mambamq-server:latest
 ```
 
-The repository version is currently **0.1.0**. Publish a new immutable version tag for each release; optionally also tag that same image as `latest` for users who deliberately want the newest release. After publishing, replace the placeholders in the Docker install instructions with the real Docker Hub namespace and link the image page here.
+Replace `0.1.0` with the version being released.
+
+Each release should have its own version-specific tag. The `latest` tag should point to the most recently published release.
