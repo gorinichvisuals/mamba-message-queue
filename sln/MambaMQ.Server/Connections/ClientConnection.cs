@@ -35,7 +35,7 @@ internal sealed class ClientConnection(
 
                 if (!_isAuthenticated)
                 {
-                    if (command is not ServiceAuthenticateCommand and not ManagementAuthenticateCommand)
+                    if (command is not AuthenticateCommand and not AuthenticateCommand)
                     {
                         mambaLogger.Server.LogWarning("Client {ClientId} attempted to execute a command before authentication.", Id);
 

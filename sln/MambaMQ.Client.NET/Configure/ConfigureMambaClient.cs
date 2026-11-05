@@ -1,5 +1,4 @@
-﻿
-namespace MambaMQ.Client.NET.Configure;
+﻿namespace MambaMQ.Client.NET.Configure;
 
 public static class ConfigureMambaClient
 {

@@ -5,7 +5,8 @@ internal sealed class MambaServer(
     IAuthenticationService authenticationService,
     IQueueRecoveryService queueRecoveryService,
     IServerStorageService serverStorage,
-    IOptions<MambaServerOptions> options,
+    IOptions<MambaServerOptions> mambaServerOptions,
+    IOptions<QueueStorageOptions> queueStorageOptions,
     IMambaLogger mambaLogger)
 {
     private readonly ILogger _logger = mambaLogger.Server;
@@ -20,11 +21,11 @@ internal sealed class MambaServer(
         
         _logger.LogInformation("Queues recovered successfully.");
         
-        _tcpListener = new TcpListener(IPAddress.Any,  options.Value.Port);
+        _tcpListener = new TcpListener(IPAddress.Any,  mambaServerOptions.Value.Port);
         
         _tcpListener.Start();
         
-        _logger.LogInformation("MambaMQ server started on port {Port}.", options.Value.Port);
+        _logger.LogInformation("MambaMQ server started on port {Port}.", mambaServerOptions.Value.Port);
         
         Task serverTask = AcceptClientsAsync(cancellationToken);
         Task cleanupMessagesTask = RunMessagesCleanup(cancellationToken);
@@ -46,10 +47,10 @@ internal sealed class MambaServer(
 
     private async Task RunMessagesCleanup(CancellationToken cancellationToken)
     {    
-        if (!options.Value.QueueStorage.MessageCleanupEnabled)
+        if (!queueStorageOptions.Value.MessageCleanupEnabled)
             return;
         
-        using PeriodicTimer timer = new(options.Value.QueueStorage.CleanupMessageInterval);
+        using PeriodicTimer timer = new(queueStorageOptions.Value.CleanupMessageInterval);
 
         while (await timer.WaitForNextTickAsync(cancellationToken))
         {
@@ -69,7 +70,7 @@ internal sealed class MambaServer(
     
     private async Task HandleClient(TcpClient client, CancellationToken cancellationToken)
     {
-        await using ClientConnection connection = new(client, dispatcher, options.Value.MaxMessageSizeInBytes, mambaLogger);
+        await using ClientConnection connection = new(client, dispatcher, mambaServerOptions.Value.MaxMessageSizeInBytes, mambaLogger);
 
         int activeConnections = Interlocked.Increment(ref _activeConnections);
 

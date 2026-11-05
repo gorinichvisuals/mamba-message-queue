@@ -1,15 +1,15 @@
 namespace MambaMQ.Server.Handlers.System;
 
-internal sealed class ManagementAuthenticateCommandHandler(IAuthenticationService authenticationService) : ICommandHandler<ManagementAuthenticateCommand>
+internal sealed class AuthenticateCommandHandler(IAuthenticationService authenticationService) : ICommandHandler<AuthenticateCommand>
 {
-    public async Task Handle(ManagementAuthenticateCommand command, IClientConnection connection, CancellationToken cancellationToken = default)
+    public async Task Handle(AuthenticateCommand command, IClientConnection connection, CancellationToken cancellationToken = default)
     {
-        CommandResponse response = authenticationService.AuthenticateManagement(command.UserName, command.Password, cancellationToken);
+        CommandResponse response = authenticationService.AuthenticateClient(command.UserName, command.Password, cancellationToken);
         
         await SendResponse(connection, response, cancellationToken);
 
         if (response.IsSucceed)
-            connection.Authenticate(ClientType.Management);
+            connection.Authenticate(command.ClientType);
     }
 
     private static async Task SendResponse(IClientConnection connection, CommandResponse response, CancellationToken cancellationToken)

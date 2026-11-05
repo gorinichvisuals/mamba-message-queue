@@ -5,19 +5,22 @@ public static class ServerConfiguration
     public static void ConfigureServerServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MambaServerOptions>(configuration.GetSection(nameof(MambaServerOptions)));
-        services.Configure<AuthenticationOptions>(
-            configuration.GetSection($"{nameof(MambaServerOptions)}:{nameof(MambaServerOptions.Authentication)}"));
-
-        MambaServerOptions options = configuration.GetSection(nameof(MambaServerOptions)).Get<MambaServerOptions>()!;
-
-        services.ConfigurePersistence(
-            options.QueueStorage.Path,
-            options.QueueStorage.MessageSegmentSizeInBytes,
-            options.QueueStorage.MaxMessageSegments);
+        services.Configure<AuthenticationOptions>(configuration.GetSection(nameof(AuthenticationOptions)));
+        services.Configure<QueueStorageOptions>(configuration.GetSection(nameof(QueueStorageOptions)));
+        services.Configure<ServerLoggingOptions>(configuration.GetSection(nameof(ServerLoggingOptions)));
         
-        services.AddServerLogging(options.ServerLogging);
+        MambaServerOptions serverOptions = configuration.GetSection(nameof(MambaServerOptions)).Get<MambaServerOptions>()!;
+        QueueStorageOptions queueStorageOptions = configuration.GetSection(nameof(QueueStorageOptions)).Get<QueueStorageOptions>()!;
+        ServerLoggingOptions serverLoggingOptions = configuration.GetSection(nameof(ServerLoggingOptions)).Get<ServerLoggingOptions>()!;
+        
+        services.ConfigurePersistence(
+            queueStorageOptions.Path,
+            queueStorageOptions.MessageSegmentSizeInBytes,
+            queueStorageOptions.MaxMessageSegments);
+        
+        services.AddServerLogging(serverLoggingOptions);
         services.AddAuthentication();
-        services.AddCoreExtensions(options.AuthorizationEnabled);
+        services.AddCoreExtensions(serverOptions.AuthorizationEnabled);
         
         services.AddSingleton<ICommandDispatcher, CommandDispatcher>();
         services.AddSingleton<IQueueRecoveryService, QueueRecoveryService>();

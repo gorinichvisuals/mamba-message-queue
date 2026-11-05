@@ -8,7 +8,7 @@ public partial class ConnectViewModel : ViewModelBase
     private readonly Action<string, int, string, string, IMambaStudioClient> _onConnectSucceeded;
     private readonly Action _onCancelled;
     private bool _isApplyingProfile;
-    private Avalonia.Threading.DispatcherTimer? _connectionStatusTimer;
+    private DispatcherTimer? _connectionStatusTimer;
     private int _connectionDots;
 
     public ObservableCollection<ConnectionProfile> SavedProfiles { get; } = [];
@@ -191,7 +191,7 @@ public partial class ConnectViewModel : ViewModelBase
             
             UpdateConnectionStatusText();
             
-            _connectionStatusTimer = new Avalonia.Threading.DispatcherTimer
+            _connectionStatusTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(350)
             };
