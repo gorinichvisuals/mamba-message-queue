@@ -36,6 +36,10 @@ After the first NuGet release, install the client package in your .NET project (
 ```bash
 dotnet add package MambaMQ.Client.NET --version 0.1.0
 ```
+Or you can download this repository and use this command:
+```bash
+dotnet add reference "<Enter_repository_path>/mamba-message-queue/sln/MambaMQ.Client.NET/MambaMQ.Client.NET.csproj"
+```
 
 Register the client in dependency injection and provide the server address, username and password:
 
