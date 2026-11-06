@@ -72,65 +72,47 @@
                                         <Flyout.FlyoutPresenterClasses>
                                             <x:String>settings-menu</x:String>
                                         </Flyout.FlyoutPresenterClasses>
-                                        <Border Width="210"
+                                        <Border Width="240"
                                                 Padding="6"
                                                 Background="#151922"
                                                 BorderBrush="#35404F"
                                                 BorderThickness="1"
                                                 CornerRadius="9">
                                             <StackPanel Spacing="2">
-                                                <Button Command="{Binding ConnectToCommand}"
+                                                <Button Click="OnConnectToClick"
                                                         MinHeight="42"
-                                                        Width="196"
+                                                        Width="226"
                                                         Padding="12,8"
-                                                        HorizontalContentAlignment="Center"
+                                                        HorizontalContentAlignment="Left"
                                                         HorizontalAlignment="Stretch"
                                                         Background="Transparent"
                                                         BorderThickness="0">
-                                                    <TextBlock Text="Connect to" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <TextBlock Text="Connect to" FontSize="14" VerticalAlignment="Center" />
                                                 </Button>
-                                                <Button MinHeight="42"
-                                                        Width="196"
-                                                        Padding="12,8"
-                                                        HorizontalContentAlignment="Center"
-                                                        HorizontalAlignment="Stretch"
-                                                        Background="Transparent"
-                                                        BorderThickness="0">
-                                                    <TextBlock Text="Disconnect from" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    <Button.Flyout>
-                                                        <Flyout Placement="RightEdgeAlignedTop" ShowMode="Transient">
-                                                            <Flyout.FlyoutPresenterClasses>
-                                                                <x:String>settings-menu</x:String>
-                                                            </Flyout.FlyoutPresenterClasses>
-                                                            <Border Width="240"
-                                                                    Padding="6"
-                                                                    Background="#151922"
-                                                                    BorderBrush="#35404F"
-                                                                    BorderThickness="1"
-                                                                    CornerRadius="9">
-                                                                <ItemsControl ItemsSource="{Binding Tabs}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate x:DataType="vm:DashboardViewModel">
-                                                                            <Button Command="{Binding DisconnectCommand}"
-                                                                                    MinHeight="40"
-                                                                                    Width="226"
-                                                                                    Padding="10,8"
-                                                                                    HorizontalAlignment="Stretch"
-                                                                                    HorizontalContentAlignment="Center"
-                                                                                    Background="Transparent"
-                                                                                    BorderThickness="0">
-                                                                                <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
-                                                                                    <Ellipse Width="8" Height="8" Fill="{Binding ConnectionLampBrush}" VerticalAlignment="Center" />
-                                                                                    <TextBlock Text="{Binding TabTitle}" FontSize="13" VerticalAlignment="Center" />
-                                                                                </StackPanel>
-                                                                            </Button>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </Border>
-                                                        </Flyout>
-                                                    </Button.Flyout>
-                                                </Button>
+                                                <Border Height="1" Margin="8,3" Background="#35404F" />
+                                                <TextBlock Text="Disconnect from"
+                                                           FontSize="12"
+                                                           Opacity="0.65"
+                                                           Margin="12,6,12,2" />
+                                                <ItemsControl ItemsSource="{Binding Tabs}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:DashboardViewModel">
+                                                            <Button Command="{Binding DisconnectCommand}"
+                                                                    MinHeight="40"
+                                                                    Width="226"
+                                                                    Padding="12,8"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    HorizontalContentAlignment="Left"
+                                                                    Background="Transparent"
+                                                                    BorderThickness="0">
+                                                                <StackPanel Orientation="Horizontal" Spacing="9">
+                                                                    <Ellipse Width="8" Height="8" Fill="{Binding ConnectionLampBrush}" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="{Binding TabTitle}" FontSize="13" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
                                             </StackPanel>
                                         </Border>
                                     </Flyout>
@@ -143,7 +125,7 @@
                 <ContentControl x:Name="ActiveDashboardHost" Grid.Row="1" Content="{Binding ActiveDashboard}" />
             </Grid>
             <Grid IsVisible="{Binding IsConnectOverlayOpen}" Panel.ZIndex="2">
-                <Border Background="#88080B10" />
+                <Border Background="#50080B10" />
                 <ContentControl Content="{Binding ConnectViewModel}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
             </Grid>
         </Grid>

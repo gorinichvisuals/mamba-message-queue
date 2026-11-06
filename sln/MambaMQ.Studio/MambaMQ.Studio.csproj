@@ -43,5 +43,8 @@
       <Compile Update="Views\ConnectView.axaml.cs">
         <DependentUpon>ConnectView.axaml</DependentUpon>
       </Compile>
+      <Compile Update="Views\ProfileEditorWindow.axaml.cs">
+        <DependentUpon>ProfileEditorWindow.axaml</DependentUpon>
+      </Compile>
     </ItemGroup>
 </Project>

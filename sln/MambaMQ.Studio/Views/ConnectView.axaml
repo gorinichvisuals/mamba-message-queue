@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MambaMQ.Studio.ViewModels"
              xmlns:models="using:MambaMQ.Studio.Persistence.Models"
-             xmlns:controls="using:MambaMQ.Studio.Controls"
              xmlns:views="clr-namespace:MambaMQ.Studio.Views"
              x:Class="MambaMQ.Studio.Views.ConnectView"
              x:DataType="vm:ConnectViewModel">
@@ -12,14 +11,14 @@
         <Image Source="/Assets/connect-background.png"
                Stretch="UniformToFill"
                IsVisible="{Binding ShowConnectBackground}" />
-        <Border Background="#70000000"
+        <Border Background="#A8000000"
                 IsVisible="{Binding ShowConnectBackground}" />
 
         <Border Width="720"
                 Padding="28"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Background="#E0151820"
+                Background="#E0000612"
                 BorderBrush="#40FFFFFF"
                 BorderThickness="1"
                 CornerRadius="18">
@@ -32,7 +31,7 @@
                                FontWeight="SemiBold" />
 
                     <Border Height="360"
-                            Background="#30151820"
+                            Background="#30000612"
                             BorderBrush="#30FFFFFF"
                             BorderThickness="1"
                             CornerRadius="8">
@@ -46,13 +45,18 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="models:ConnectionProfile">
                                     <StackPanel Spacing="1" Margin="8,2">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Text=":" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Host}" FontWeight="SemiBold" />
+                                        </StackPanel>
                                         <TextBlock Text="{Binding Username}" FontSize="12" Opacity="0.65" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                             <ListBox.ContextMenu>
                                 <ContextMenu>
+                                    <MenuItem Header="Update profile" Click="OnUpdateProfileClick" />
                                     <MenuItem Header="Delete profile" Click="OnDeleteProfileClick" />
                                 </ContextMenu>
                             </ListBox.ContextMenu>
@@ -155,21 +159,21 @@
                                 Spacing="12">
                         <Button Content="{Binding ConnectButtonText}"
                                 Click="OnConnectClick"
-                                Width="132"
+                                Width="116"
                                 Height="44"
                                 IsEnabled="{Binding IsNotConnecting}"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center" />
                         <Button Content="Save profile"
-                                Command="{Binding SaveProfileCommand}"
-                                Width="132"
+                                Click="OnSaveProfileClick"
+                                Width="116"
                                 Height="44"
                                 IsEnabled="{Binding IsNotConnecting}"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center" />
                         <Button Content="Cancel"
                                 Command="{Binding CancelCommand}"
-                                Width="96"
+                                Width="84"
                                 Height="44"
                                 IsVisible="{Binding IsOverlay}"
                                 IsEnabled="{Binding IsNotConnecting}"
@@ -185,7 +189,8 @@
         <views:WindowChromeButtons
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
-            Margin="0,8,12,0" />
+            Margin="0,8,12,0"
+            IsVisible="{Binding ShowConnectBackground}" />
 
     </Grid>
 

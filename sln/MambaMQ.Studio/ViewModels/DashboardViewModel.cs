@@ -13,6 +13,7 @@ public partial class DashboardViewModel : ViewModelBase
 
     private string Host { get; }
     private int Port { get; }
+    public string ProfileName { get; }
     public string Username { get; }
 
     [ObservableProperty]
@@ -59,7 +60,9 @@ public partial class DashboardViewModel : ViewModelBase
         : new SolidColorBrush(Color.Parse("#F05B63"));
 
     public string ConnectionInfo => $"{Host}:{Port}";
-    public string TabTitle => ConnectionInfo;
+    public string TabTitle => string.Equals(ProfileName, ConnectionInfo, StringComparison.OrdinalIgnoreCase)
+        ? ConnectionInfo
+        : ProfileName + " : " + ConnectionInfo;
     public IBrush TabBackgroundBrush => IsActive
         ? new SolidColorBrush(Color.Parse("#55475E7A"))
         : new SolidColorBrush(Color.Parse("#201A202B"));
@@ -77,6 +80,7 @@ public partial class DashboardViewModel : ViewModelBase
         IMambaStudioClient mambaClient,
         string host,
         int port,
+        string profileName,
         string username,
         string password,
         Action<DashboardViewModel> onDisconnected,
@@ -88,6 +92,7 @@ public partial class DashboardViewModel : ViewModelBase
         _password = password;
         Host = host;
         Port = port;
+        ProfileName = string.IsNullOrWhiteSpace(profileName) ? host + ":" + port : profileName;
         Username = username;
         _exchangesViewModel = new ExchangesViewModel(mambaClient, ShowExchangeDetails);
         _currentViewModel = _exchangesViewModel;
@@ -193,7 +198,9 @@ public partial class DashboardViewModel : ViewModelBase
                     try
                     {
                         using CancellationTokenSource pingTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        
                         pingTimeout.CancelAfter(TimeSpan.FromSeconds(8));
+                        
                         await _mambaClient.PingAsync(pingTimeout.Token);
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -232,7 +239,9 @@ public partial class DashboardViewModel : ViewModelBase
                 await _mambaClient.DisconnectAsync(cancellationToken);
 
                 using CancellationTokenSource reconnectTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+               
                 reconnectTimeout.CancelAfter(TimeSpan.FromSeconds(8));
+                
                 await _mambaClient.ConnectAsync(Host, Port, Username, _password, reconnectTimeout.Token);
 
                 await UpdateConnectionStatusAsync(true, false);
@@ -256,7 +265,7 @@ public partial class DashboardViewModel : ViewModelBase
 
     private async Task UpdateConnectionStatusAsync(bool isConnected, bool isReconnecting)
     {
-        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
             IsConnected = isConnected;
             IsReconnecting = isReconnecting;

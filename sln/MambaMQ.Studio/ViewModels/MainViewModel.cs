@@ -46,9 +46,9 @@ public partial class MainViewModel : ViewModelBase
             string.Equals(tab.ConnectionInfo, $"{host}:{port}", StringComparison.OrdinalIgnoreCase)
             && string.Equals(tab.Username.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    private void OnConnectSucceeded(string host, int port, string username, string password, IMambaStudioClient client)
+    private void OnConnectSucceeded(string host, int port, string profileName, string username, string password, IMambaStudioClient client)
     {
-        DashboardViewModel dashboard = new(client, host, port, username, password, OnDisconnected, SelectTab);
+        DashboardViewModel dashboard = new(client, host, port, profileName, username, password, OnDisconnected, SelectTab);
         Tabs.Add(dashboard);
         SelectTab(dashboard);
         IsConnectOverlayOpen = false;
@@ -63,13 +63,14 @@ public partial class MainViewModel : ViewModelBase
         if (wasActive)
         {
             ActiveDashboard = Tabs.LastOrDefault();
+            
             if (ActiveDashboard is not null)
                 ActiveDashboard.IsActive = true;
         }
 
         OnPropertyChanged(nameof(HasActiveDashboard));
 
-        if (Tabs.Count == 0)
+        if (Tabs.Count is 0)
             ShowConnectOverlay();
     }
 

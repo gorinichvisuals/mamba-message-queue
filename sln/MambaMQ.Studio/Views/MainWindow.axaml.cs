@@ -5,11 +5,20 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
         DataContextChanged += OnDataContextChanged;
     }
 
     private void OnWindowDragPointerPressed(object? sender, PointerPressedEventArgs e)
         => WindowDragHelper.TryBeginMoveDrag(this, e);
+
+    private void OnConnectToClick(object? sender, RoutedEventArgs e)
+    {
+        SettingsButton.Flyout?.Hide();
+
+        if (DataContext is MainViewModel viewModel && viewModel.ConnectToCommand.CanExecute(null))
+            viewModel.ConnectToCommand.Execute(null);
+    }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
@@ -21,16 +30,14 @@ public partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(MainViewModel.IsConnectOverlayOpen)
-            or nameof(MainViewModel.ActiveDashboard)
-            or nameof(MainViewModel.HasActiveDashboard))
+        if (e.PropertyName is nameof(MainViewModel.IsConnectOverlayOpen) or nameof(MainViewModel.ActiveDashboard) or nameof(MainViewModel.HasActiveDashboard))
             UpdateOverlayVisuals();
     }
 
     private void UpdateOverlayVisuals()
     {
         bool shouldBlur = DataContext is MainViewModel { IsConnectOverlayOpen: true, HasActiveDashboard: true };
-        DashboardHost.Effect = shouldBlur ? new BlurEffect { Radius = 8 } : null;
+        DashboardHost.Effect = shouldBlur ? new BlurEffect { Radius = 5 } : null;
 
         if (DataContext is MainViewModel { HasActiveDashboard: false })
             SettingsButton.Flyout?.Hide();
