@@ -5,7 +5,7 @@ public partial class ConnectViewModel : ViewModelBase
     private readonly IMambaStudioClient _mambaClient;
     private readonly IConnectionProfileService _profileService;
     private readonly Func<string, int, string, bool> _connectionExists;
-    private readonly Action<string, int, string, string, IMambaStudioClient> _onConnectSucceeded;
+    private readonly Action<string, int, string, string, string, IMambaStudioClient> _onConnectSucceeded;
     private readonly Action _onCancelled;
     private bool _isApplyingProfile;
     private DispatcherTimer? _connectionStatusTimer;
@@ -19,7 +19,7 @@ public partial class ConnectViewModel : ViewModelBase
         IMambaStudioClient mambaClient,
         IConnectionProfileService profileService,
         Func<string, int, string, bool> connectionExists,
-        Action<string, int, string, string, IMambaStudioClient> onConnectSucceeded,
+        Action<string, int, string, string, string, IMambaStudioClient> onConnectSucceeded,
         Action onCancelled,
         bool isOverlay)
     {
@@ -75,28 +75,21 @@ public partial class ConnectViewModel : ViewModelBase
         _onCancelled();
     }
 
-    [RelayCommand]
-    private Task SaveProfileAsync() => SaveProfileForConnectionAsync();
-
-    public async Task<bool> SaveProfileForConnectionAsync()
+    public async Task<bool> SaveProfileAsync(ConnectionProfile profile)
     {
         ErrorMessage = null;
 
-        if (string.IsNullOrWhiteSpace(Host) || string.IsNullOrWhiteSpace(Username) || string.IsNullOrEmpty(Password))
+        if (string.IsNullOrWhiteSpace(profile.Name) || string.IsNullOrWhiteSpace(profile.Host) ||
+            string.IsNullOrWhiteSpace(profile.Username) || string.IsNullOrEmpty(profile.Password))
         {
-            ErrorMessage = "Enter a host, username, and password before saving the profile.";
+            ErrorMessage = "Enter a profile name, host, username, and password.";
             
             return false;
         }
 
-        ConnectionProfile profile = new()
-        {
-            Id = Guid.CreateVersion7().ToString("N"),
-            Name = Host.Trim(),
-            Host = Host.Trim(),
-            Username = Username.Trim(),
-            Password = Password
-        };
+        profile.Name = profile.Name.Trim();
+        profile.Host = profile.Host.Trim();
+        profile.Username = profile.Username.Trim();
 
         try
         {
@@ -109,14 +102,40 @@ public partial class ConnectViewModel : ViewModelBase
             return false;
         }
 
-        SavedProfiles.Add(profile);
+        int existingIndex = -1;
+        for (int i = 0; i < SavedProfiles.Count; i++)
+            if (SavedProfiles[i].Id == profile.Id)
+            {
+                existingIndex = i;
+                break;
+            }
+
+        if (existingIndex < 0)
+            SavedProfiles.Add(profile);
+        else
+            SavedProfiles[existingIndex] = profile;
+
         SelectedProfile = profile;
+        _isApplyingProfile = true;
+        Host = profile.Host;
+        Username = profile.Username;
+        Password = profile.Password;
+        _isApplyingProfile = false;
         IsCurrentProfileSaved = true;
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(ShowEmptyProfilesMessage));
         
         return true;
     }
+
+    public ConnectionProfile CreateProfileFromCurrentConnection(string name)
+        => new()
+        {
+            Name = name,
+            Host = Host.Trim(),
+            Username = Username.Trim(),
+            Password = Password
+        };
 
     [RelayCommand]
     private async Task DeleteProfileAsync()
@@ -138,6 +157,17 @@ public partial class ConnectViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(ShowEmptyProfilesMessage));
     }
+
+    public ConnectionProfile? GetProfileForEditing() => SelectedProfile is null
+        ? null
+        : new ConnectionProfile
+        {
+            Id = SelectedProfile.Id,
+            Name = SelectedProfile.Name,
+            Host = SelectedProfile.Host,
+            Username = SelectedProfile.Username,
+            Password = SelectedProfile.Password
+        };
 
     [RelayCommand]
     public async Task ConnectAsync()
@@ -168,7 +198,7 @@ public partial class ConnectViewModel : ViewModelBase
         {
             await _mambaClient.ConnectAsync(parts[0], port, Username, Password);
             
-            _onConnectSucceeded(parts[0], port, Username, Password, _mambaClient);
+            _onConnectSucceeded(parts[0], port, SelectedProfile?.Name ?? string.Empty, Username, Password, _mambaClient);
         }
         catch (Exception exception)
         {

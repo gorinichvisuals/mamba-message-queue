@@ -106,6 +106,7 @@ public partial class QueueDetailsViewModel(
             return;
 
         PageIndex++;
+        
         await LoadMessagesAsync();
     }
 
