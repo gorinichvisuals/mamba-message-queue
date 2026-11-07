@@ -17,7 +17,7 @@ internal sealed partial class MambaStudioClient
             : GetExchangesResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
-    public async Task<CommandResponse<ExchangeModel>> CreateExchangeAsync(ExchangeOptions options, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<ExchangeModel>> CreateExchangeAsync(ExchangeCreateOptions options, CancellationToken cancellationToken = default)
     {
         ExchangeCreateCommand command = new(
             options.Name,
@@ -89,12 +89,11 @@ internal sealed partial class MambaStudioClient
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
-    public async Task<CommandResponse<ExchangeModel>> UpdateExchangeAsync(Guid exchangeId, ExchangeOptions options, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<ExchangeModel>> UpdateExchangeAsync(Guid exchangeId, ExchangeUpdateOptions options, CancellationToken cancellationToken = default)
     {
         ExchangeUpdateCommand command = new(
             exchangeId,
             options.Name,
-            options.IsDurable,
             options.Type,
             options.Permissions);
 

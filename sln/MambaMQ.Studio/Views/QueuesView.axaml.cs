@@ -25,7 +25,7 @@ public partial class QueuesView : UserControl
         if (TopLevel.GetTopLevel(this) is not Window owner)
             return;
 
-        QueueOptions? options = await window.ShowDialog<QueueOptions?>(owner);
+        QueueCreateOptions? options = await window.ShowDialog<QueueCreateOptions?>(owner);
 
         if (options is null)
             return;

@@ -1,6 +1,6 @@
 namespace MambaMQ.Studio.Infrastructure.Options;
 
-public sealed class ExchangeOptions
+public sealed class ExchangeCreateOptions
 {
     public required string Name { get; init; }
     public bool IsDurable { get; init; } = true;

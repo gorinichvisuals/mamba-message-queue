@@ -1,6 +1,6 @@
 namespace MambaMQ.Client.NET.Options;
 
-/// <summary>Specifies the settings used to create or update an exchange.</summary>
+/// <summary>Specifies the settings used to create an exchange.</summary>
 public class ExchangeCreateOptions
 {
     /// <summary>The required exchange name.</summary>

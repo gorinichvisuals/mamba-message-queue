@@ -86,10 +86,9 @@ public partial class UpdateExchangeViewModel : ViewModelBase
         Permissions.Remove(permission);
     }
 
-    public ExchangeOptions ToOptions() => new()
+    public ExchangeUpdateOptions ToOptions() => new()
     {
         Name = ExchangeName.Trim(),
-        IsDurable = IsDurable,
         Type = ExchangeType,
         Permissions = Permissions.ToDictionary(permission => permission.ServiceName, permission => permission.Permissions)
     };

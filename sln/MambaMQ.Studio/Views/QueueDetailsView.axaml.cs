@@ -14,7 +14,7 @@ public partial class QueueDetailsView : UserControl
 
         UpdateQueueWindow window = new(viewModel.Queue);
 
-        QueueOptions? options = await window.ShowDialog<QueueOptions?>(owner);
+        QueueUpdateOptions? options = await window.ShowDialog<QueueUpdateOptions?>(owner);
 
         if (options is null)
             return;

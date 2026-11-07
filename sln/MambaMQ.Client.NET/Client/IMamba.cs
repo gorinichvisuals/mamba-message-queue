@@ -16,10 +16,10 @@ public interface IMamba
 
     /// <summary>Updates an existing exchange.</summary>
     /// <param name="exchangeId">The ID of the exchange to update.</param>
-    /// <param name="exchangeCreateOptions">The new exchange settings.</param>
+    /// <param name="exchangeUpdateOptions">The exchange settings to update.</param>
     /// <param name="cancellationToken">A token that can cancel the request.</param>
     /// <returns>The updated exchange.</returns>
-    Task<ExchangeModel> UpdateExchangeAsync(Guid exchangeId, ExchangeCreateOptions exchangeCreateOptions, CancellationToken cancellationToken = default);
+    Task<ExchangeModel> UpdateExchangeAsync(Guid exchangeId, ExchangeUpdateOptions exchangeUpdateOptions, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes an exchange.</summary>
     /// <param name="exchangeId">The ID of the exchange to delete.</param>
@@ -62,10 +62,10 @@ public interface IMamba
 
     /// <summary>Updates an existing queue.</summary>
     /// <param name="queueId">The ID of the queue to update.</param>
-    /// <param name="queueCreateOptions">The new queue settings.</param>
+    /// <param name="queueUpdateOptions">The queue settings to update.</param>
     /// <param name="cancellationToken">A token that can cancel the request.</param>
     /// <returns>The updated queue.</returns>
-    Task<QueueModel> UpdateQueueAsync(Guid queueId, QueueCreateOptions queueCreateOptions, CancellationToken cancellationToken = default);
+    Task<QueueModel> UpdateQueueAsync(Guid queueId, QueueUpdateOptions queueUpdateOptions, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes a queue.</summary>
     /// <param name="queueId">The ID of the queue to delete.</param>

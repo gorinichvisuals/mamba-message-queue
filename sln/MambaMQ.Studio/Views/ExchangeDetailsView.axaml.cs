@@ -13,7 +13,7 @@ public partial class ExchangeDetailsView : UserControl
             return;
         
         UpdateExchangeWindow window = new(viewModel.Exchange);
-        ExchangeOptions? options = await window.ShowDialog<ExchangeOptions?>(owner);
+        ExchangeUpdateOptions? options = await window.ShowDialog<ExchangeUpdateOptions?>(owner);
         
         if (options is not null)
             await viewModel.UpdateExchange(options);

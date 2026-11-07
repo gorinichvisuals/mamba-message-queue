@@ -42,7 +42,7 @@ public partial class ExchangesViewModel(
     }
 
     [RelayCommand]
-    private async Task CreateExchange(ExchangeOptions options)
+    private async Task CreateExchange(ExchangeCreateOptions options)
     {
         try
         {

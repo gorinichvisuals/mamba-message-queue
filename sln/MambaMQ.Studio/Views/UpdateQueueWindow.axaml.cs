@@ -39,17 +39,12 @@ public partial class UpdateQueueWindow : Window
                 x => x.ServiceName,
                 x => x.Permissions);
 
-        QueueOptions options = new()
+        QueueUpdateOptions options = new()
         {
             QueueName = viewModel.QueueName.Trim(),
-            IsDurable = viewModel.IsDurable,
             LoadBalancingAlgorithm = viewModel.LoadBalancingAlgorithm,
             Permissions = permissions,
-            MessageRetention = new MessageRetentionOptions
-            {
-                Enabled = viewModel.MessageRetentionEnabled,
-                RetentionPeriod = TimeSpan.FromMinutes(viewModel.RetentionPeriod)
-            }
+            MessageRetentionPeriod = TimeSpan.FromMinutes(viewModel.RetentionPeriod)
         };
 
         Close(options);

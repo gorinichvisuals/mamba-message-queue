@@ -41,7 +41,7 @@ public partial class UpdateQueueViewModel : ViewModelBase
         QueueName = queue.Name;
         IsDurable = queue.IsDurable;
         LoadBalancingAlgorithm = queue.LoadBalancingAlgorithm;
-        MessageRetentionEnabled = queue.MessageRetentionEnabled || queue.IsDurable;
+        MessageRetentionEnabled = queue.MessageRetentionEnabled;
 
         RetentionPeriod = queue.MessageRetentionPeriod.TotalMinutes;
 
@@ -102,21 +102,16 @@ public partial class UpdateQueueViewModel : ViewModelBase
         Permissions.Remove(permission);
     }
 
-    public QueueOptions ToOptions()
+    public QueueUpdateOptions ToOptions()
     {
-        return new QueueOptions
+        return new QueueUpdateOptions
         {
             QueueName = QueueName,
-            IsDurable = IsDurable,
             LoadBalancingAlgorithm = LoadBalancingAlgorithm,
             Permissions = Permissions.ToDictionary(
                 x => x.ServiceName,
                 x => x.Permissions),
-            MessageRetention = new MessageRetentionOptions
-            {
-                Enabled = MessageRetentionEnabled,
-                RetentionPeriod = TimeSpan.FromMinutes(RetentionPeriod)
-            }
+            MessageRetentionPeriod = TimeSpan.FromMinutes(RetentionPeriod)
         };
     }
 }

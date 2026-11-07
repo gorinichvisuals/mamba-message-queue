@@ -76,13 +76,6 @@ internal sealed partial class QueueManager
         if (dto.QueueId == Guid.Empty)
             return CommandResponse<QueueModel>.Fail(ErrorCode.InvalidArgument, "Queue ID cannot be empty.");
 
-        CommandResponse validationResponse = ValidateQueueOptions(
-            dto.QueueName, dto.IsDurable, dto.LoadBalancingAlgorithm, dto.Permissions,
-            dto.MessageRetentionEnabled, dto.MessageRetentionPeriod);
-
-        if (!validationResponse.IsSucceed)
-            return CommandResponse<QueueModel>.Fail(validationResponse.ErrorCode, validationResponse.ErrorMessage ?? "Queue validation failed.");
-
         MambaQueue? queue = GetQueueById(dto.QueueId);
 
         if (queue is null)
@@ -91,6 +84,13 @@ internal sealed partial class QueueManager
 
             return CommandResponse<QueueModel>.Fail(ErrorCode.QueueNotFound, $"Queue '{dto.QueueName}' does not exist.");
         }
+
+        CommandResponse validationResponse = ValidateQueueOptions(
+            dto.QueueName, queue.IsDurable, dto.LoadBalancingAlgorithm, dto.Permissions,
+            queue.MessageRetentionEnabled, dto.MessageRetentionPeriod);
+
+        if (!validationResponse.IsSucceed)
+            return CommandResponse<QueueModel>.Fail(validationResponse.ErrorCode, validationResponse.ErrorMessage ?? "Queue validation failed.");
 
         MambaQueue? queueWithSameName = GetQueueByName(dto.QueueName);
 
@@ -103,21 +103,7 @@ internal sealed partial class QueueManager
 
         string previousQueueName = queue.Name;
         LoadBalancingAlgorithm previousLoadBalancingAlgorithm = queue.LoadBalancingAlgorithm;
-        
-        if (queue.IsDurable && !dto.IsDurable)
-        {
-            try
-            {
-                await serverStorageService.DeleteQueue(queue.Id, cancellationToken);
-            }
-            catch (Exception exception)
-            {
-                mambaLogger.Queue(queue.Name).LogError(exception, "Failed to delete queue.");
 
-                return CommandResponse<QueueModel>.Fail(ErrorCode.PersistenceError, "Failed to delete queue.");
-            }
-        }
-        
         queue.Update(dto);
 
         if (previousQueueName != dto.QueueName)
@@ -129,7 +115,7 @@ internal sealed partial class QueueManager
         if (previousLoadBalancingAlgorithm != dto.LoadBalancingAlgorithm)
             _loadBalancingStrategies[dto.QueueId] = LoadBalancingStrategyFactory.Create(dto.LoadBalancingAlgorithm);
 
-        if (dto.IsDurable)
+        if (queue.IsDurable)
         {
             CommandResponse response = await PersistQueue(queue, cancellationToken);
 

@@ -17,7 +17,6 @@ internal static class ExchangeCommandEncoder
         byte[] buffer = new byte[
             CommandConstants.ExchangeIdSize +
             CommandConstants.ExchangeNameLengthSize + Encoding.UTF8.GetByteCount(command.ExchangeName) +
-            CommandConstants.IsDurableSize +
             CommandConstants.ExchangeTypeSize +
             permissionsSize];
 
@@ -25,7 +24,6 @@ internal static class ExchangeCommandEncoder
         command.ExchangeId.TryWriteBytes(span);
         int offset = CommandConstants.ExchangeIdSize;
         offset = ProtocolWriter.WriteString(span, offset, command.ExchangeName);
-        span[offset++] = command.IsDurable ? (byte)1 : (byte)0;
         span[offset++] = (byte)command.ExchangeType;
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], command.Permissions.Count);
         offset += CommandConstants.PermissionsCountSize;

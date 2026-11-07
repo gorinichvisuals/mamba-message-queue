@@ -7,7 +7,6 @@ internal sealed class ExchangeUpdateCommandHandler(IExchangeManager exchangeMana
         ExchangeUpdateDto dto = new(
             command.ExchangeId,
             command.ExchangeName,
-            command.IsDurable,
             command.ExchangeType,
             command.Permissions);
 

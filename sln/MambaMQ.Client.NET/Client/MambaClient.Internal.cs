@@ -86,6 +86,20 @@ internal sealed partial class MambaClient
             throw new ArgumentException("Message retention cannot be enabled for a non-durable queue.", nameof(queueCreateOptions));
     }
 
+    private static void ValidateQueueUpdateOptions(QueueUpdateOptions queueUpdateOptions)
+    {
+        ArgumentNullException.ThrowIfNull(queueUpdateOptions);
+        ValidateName(queueUpdateOptions.QueueName, nameof(queueUpdateOptions.QueueName));
+
+        if (!Enum.IsDefined(queueUpdateOptions.LoadBalancingAlgorithm))
+            throw new ArgumentOutOfRangeException(nameof(queueUpdateOptions.LoadBalancingAlgorithm), "Unknown load balancing algorithm.");
+
+        ValidatePermissions(queueUpdateOptions.Permissions, QueuePermission.Read | QueuePermission.Write | QueuePermission.Delete, nameof(queueUpdateOptions.Permissions));
+
+        if (queueUpdateOptions.MessageRetentionPeriod <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(queueUpdateOptions.MessageRetentionPeriod), "Retention period must be greater than zero.");
+    }
+
     private static void ValidateExchangeOptions(ExchangeCreateOptions exchangeCreateOptions)
     {
         ArgumentNullException.ThrowIfNull(exchangeCreateOptions);
@@ -95,6 +109,17 @@ internal sealed partial class MambaClient
             throw new ArgumentOutOfRangeException(nameof(exchangeCreateOptions.Type), "Unknown exchange type.");
 
         ValidatePermissions(exchangeCreateOptions.Permissions, ExchangePermission.Read | ExchangePermission.Write | ExchangePermission.Delete, nameof(exchangeCreateOptions.Permissions));
+    }
+
+    private static void ValidateExchangeUpdateOptions(ExchangeUpdateOptions exchangeUpdateOptions)
+    {
+        ArgumentNullException.ThrowIfNull(exchangeUpdateOptions);
+        ValidateName(exchangeUpdateOptions.Name, nameof(exchangeUpdateOptions.Name));
+
+        if (!Enum.IsDefined(exchangeUpdateOptions.Type))
+            throw new ArgumentOutOfRangeException(nameof(exchangeUpdateOptions.Type), "Unknown exchange type.");
+
+        ValidatePermissions(exchangeUpdateOptions.Permissions, ExchangePermission.Read | ExchangePermission.Write | ExchangePermission.Delete, nameof(exchangeUpdateOptions.Permissions));
     }
 
     private static void ValidateId(Guid id, string parameterName)

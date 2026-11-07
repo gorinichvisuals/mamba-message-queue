@@ -35,7 +35,7 @@ public partial class QueuesViewModel(
     }
 
     [RelayCommand]
-    private async Task CreateQueue(QueueOptions options)
+    private async Task CreateQueue(QueueCreateOptions options)
     {
         try
         {

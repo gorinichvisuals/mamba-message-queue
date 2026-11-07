@@ -32,21 +32,19 @@ internal sealed partial class MambaClient
             : GetQueuesResponseDecoder.Decode(responseFrame.Payload.Span).Queues;
     }
 
-    public async Task<QueueModel> UpdateQueueAsync(Guid queueId, QueueCreateOptions queueCreateOptions, CancellationToken cancellationToken = default)
+    public async Task<QueueModel> UpdateQueueAsync(Guid queueId, QueueUpdateOptions queueUpdateOptions, CancellationToken cancellationToken = default)
     {
         ValidateId(queueId, nameof(queueId));
-        ValidateQueueOptions(queueCreateOptions);
+        ValidateQueueUpdateOptions(queueUpdateOptions);
 
         await EnsureConnectedAsync(cancellationToken);
 
         QueueUpdateCommand command = new(
             queueId,
-            queueCreateOptions.QueueName,
-            queueCreateOptions.IsDurable,
-            queueCreateOptions.LoadBalancingAlgorithm,
-            queueCreateOptions.Permissions,
-            queueCreateOptions.MessageRetention.Enabled,
-            queueCreateOptions.MessageRetention.RetentionPeriod);
+            queueUpdateOptions.QueueName,
+            queueUpdateOptions.LoadBalancingAlgorithm,
+            queueUpdateOptions.Permissions,
+            queueUpdateOptions.MessageRetentionPeriod);
 
         return await SendCommandAsync(command, QueueModelDecoder.Decode, cancellationToken);
     }

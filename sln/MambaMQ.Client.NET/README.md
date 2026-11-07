@@ -19,11 +19,12 @@ services.AddMamba(options =>
     options.Host = "localhost";
     options.Port = 24;
     options.ServiceName = "orders-service";
-    options.Credentials.ServerKey = Environment.GetEnvironmentVariable("MAMBA_SERVER_KEY")!;
+    options.Credentials.Username = Environment.GetEnvironmentVariable("MAMBA_USERNAME")!;
+    options.Credentials.Password = Environment.GetEnvironmentVariable("MAMBA_PASSWORD")!;
 });
 ```
 
-`ServerKey` must match the key configured on the server. Keep it in a secret store or environment variable rather than source code.
+The credentials must match a user configured on the server. Keep them in a secret store or environment variables rather than source code.
 
 ## Use `IMamba`
 
@@ -45,6 +46,27 @@ The interface provides these operations:
 
 Each method is documented in the IDE through XML documentation included with the package.
 
+Create and update operations use separate option types. Update types expose only settings that can be changed:
+
+```csharp
+await mamba.UpdateQueueAsync(queueId, new QueueUpdateOptions
+{
+    QueueName = "orders",
+    LoadBalancingAlgorithm = LoadBalancingAlgorithm.RoundRobin,
+    Permissions = permissions,
+    MessageRetentionPeriod = TimeSpan.FromMinutes(15)
+}, cancellationToken);
+
+await mamba.UpdateExchangeAsync(exchangeId, new ExchangeUpdateOptions
+{
+    Name = "orders",
+    Type = ExchangeType.Direct,
+    Permissions = exchangePermissions
+}, cancellationToken);
+```
+
+Queue update can change the retention period, but cannot change durability or whether message persistence is enabled. The period controls cleanup timing for storage segments whose messages have already been deleted; it is not a message expiration time.
+
 ## Options reference
 
 ### `MambaClientOptions`
@@ -61,7 +83,8 @@ Each method is documented in the IDE through XML documentation included with the
 
 | Property | Description |
 | --- | --- |
-| `ServerKey` | Key used to authenticate the service client with the server. |
+| `Username` | Username configured on the server. |
+| `Password` | Password for the configured user. |
 
 ### `QueueCreateOptions`
 
@@ -71,14 +94,23 @@ Each method is documented in the IDE through XML documentation included with the
 | `IsDurable` | Whether the queue survives server restarts. Defaults to `true`. |
 | `LoadBalancingAlgorithm` | How messages are distributed among consumers. Defaults to `RoundRobin`. |
 | `Permissions` | User permissions assigned to the queue. |
-| `MessageRetention` | Settings for optional message expiration. |
+| `MessageRetention` | Settings for saving messages to disk and cleaning up storage after messages are deleted. |
+
+### `QueueUpdateOptions`
+
+| Property | Description |
+| --- | --- |
+| `QueueName` | Required queue name. |
+| `LoadBalancingAlgorithm` | How messages are distributed among consumers. Defaults to `RoundRobin`. |
+| `Permissions` | User permissions assigned to the queue. |
+| `MessageRetentionPeriod` | Retention period used for storage cleanup. |
 
 ### `MessageRetentionOptions`
 
 | Property | Description |
 | --- | --- |
-| `Enabled` | Whether expiration cleanup is enabled. Defaults to `false`. |
-| `RetentionPeriod` | How long messages are retained when enabled. Defaults to 10 minutes. |
+| `Enabled` | Whether messages are saved to disk. Defaults to `false`; message persistence requires a durable queue. |
+| `RetentionPeriod` | Age threshold used to clean up storage segments after all their messages have been deleted. Defaults to 10 minutes. This does not expire active messages. |
 
 ### `ExchangeCreateOptions`
 
@@ -86,6 +118,14 @@ Each method is documented in the IDE through XML documentation included with the
 | --- | --- |
 | `Name` | Required exchange name. |
 | `IsDurable` | Whether the exchange survives server restarts. Defaults to `true`. |
+| `Type` | Routing type. Defaults to `Direct`. |
+| `Permissions` | User permissions assigned to the exchange. |
+
+### `ExchangeUpdateOptions`
+
+| Property | Description |
+| --- | --- |
+| `Name` | Required exchange name. |
 | `Type` | Routing type. Defaults to `Direct`. |
 | `Permissions` | User permissions assigned to the exchange. |
 
@@ -101,3 +141,4 @@ Each method is documented in the IDE through XML documentation included with the
 ## Compatibility
 
 The client connects to MambaMQ Server over TCP using the MambaMQ protocol. The default server port is `24`.
+The package targets .NET 10.
