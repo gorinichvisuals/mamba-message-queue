@@ -1,11 +1,10 @@
-﻿namespace MambaMQ.Studio.Infrastructure.Options;
+namespace MambaMQ.Studio.Infrastructure.Options;
 
-public sealed class QueueOptions
+public sealed class QueueCreateOptions
 {
     public required string QueueName { get; init; }
     public bool IsDurable { get; init; } = true;
     public LoadBalancingAlgorithm LoadBalancingAlgorithm { get; init; } = LoadBalancingAlgorithm.RoundRobin;
     public Dictionary<string, QueuePermission> Permissions { get; init; } = [];
-    
     public MessageRetentionOptions MessageRetention { get; init; } = new();
 }

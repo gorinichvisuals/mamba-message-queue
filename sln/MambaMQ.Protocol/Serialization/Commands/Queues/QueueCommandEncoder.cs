@@ -148,10 +148,8 @@ internal static class QueueCommandEncoder
             CommandConstants.QueueIdSize +
             CommandConstants.QueueNameLengthSize +
             queueName.Length +
-            CommandConstants.IsDurableSize +
             CommandConstants.LoadBalancingAlgorithmSize +
             permissionsSize +
-            CommandConstants.MessageRetentionEnabledSize +
             CommandConstants.MessageRetentionPeriodSize;
 
         byte[] buffer = new byte[payloadSize];
@@ -165,12 +163,6 @@ internal static class QueueCommandEncoder
         offset += CommandConstants.QueueIdSize;
 
         offset = ProtocolWriter.WriteString(span, offset, command.QueueName);
-
-        span[offset] = command.IsDurable
-            ? (byte)1
-            : (byte)0;
-
-        offset += CommandConstants.IsDurableSize;
 
         span[offset] = (byte)command.LoadBalancingAlgorithm;
 
@@ -188,12 +180,6 @@ internal static class QueueCommandEncoder
 
             offset += CommandConstants.PermissionSize;
         }
-
-        span[offset] = command.MessageRetentionEnabled
-            ? (byte)1
-            : (byte)0;
-
-        offset += CommandConstants.MessageRetentionEnabledSize;
 
         BinaryPrimitives.WriteInt64BigEndian(span[offset..], command.MessageRetentionPeriod.Ticks);
 

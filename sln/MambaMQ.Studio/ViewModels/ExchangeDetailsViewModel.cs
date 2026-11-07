@@ -140,7 +140,7 @@ public partial class ExchangeDetailsViewModel(
         }
     }
 
-    public async Task<bool> UpdateExchange(ExchangeOptions options)
+    public async Task<bool> UpdateExchange(ExchangeUpdateOptions options)
     {
         try
         {

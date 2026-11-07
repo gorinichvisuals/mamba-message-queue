@@ -126,10 +126,8 @@ public sealed class MambaQueue(
     internal void Update(QueueUpdateDto dto)
     {
         Name = dto.QueueName;
-        IsDurable = dto.IsDurable;
         LoadBalancingAlgorithm = dto.LoadBalancingAlgorithm;
         Permissions = dto.Permissions;
-        MessageRetentionEnabled = dto.MessageRetentionEnabled;
         MessageRetentionPeriod = dto.MessageRetentionPeriod;
     }
     

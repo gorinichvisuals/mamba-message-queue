@@ -20,7 +20,7 @@ public partial class CreateExchangeWindow : Window
             string.IsNullOrWhiteSpace(viewModel.ExchangeName))
             return;
 
-        ExchangeOptions options = new()
+        ExchangeCreateOptions options = new()
         {
             Name = viewModel.ExchangeName.Trim(),
             IsDurable = viewModel.IsDurable,

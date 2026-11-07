@@ -78,7 +78,9 @@
                                       Height="38" />
                         </StackPanel>
 
-                        <CheckBox Content="Durable" IsChecked="{Binding IsDurable}" />
+                        <CheckBox Content="Durable"
+                                  IsChecked="{Binding IsDurable}"
+                                  IsEnabled="False" />
 
                         <TextBlock Classes="description"
                                    Text="Durable exchanges survive server restart." />

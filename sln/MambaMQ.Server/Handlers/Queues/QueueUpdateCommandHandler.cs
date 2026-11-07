@@ -20,10 +20,8 @@ public sealed class QueueUpdateCommandHandler(IQueueManager queueManager) : ICom
         return new QueueUpdateDto(
             command.QueueId,
             command.QueueName,
-            command.IsDurable,
             command.LoadBalancingAlgorithm,
             command.Permissions,
-            command.MessageRetentionEnabled,
             command.MessageRetentionPeriod);
     }
 }

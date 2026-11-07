@@ -239,7 +239,7 @@ public partial class QueueDetailsViewModel(
         return mambaClient.GetMessagesAsync(Queue.Name, skip, PageSize);
     }
 
-    public async Task<QueueOperationResultModel> UpdateQueue(QueueOptions options)
+    public async Task<QueueOperationResultModel> UpdateQueue(QueueUpdateOptions options)
     {
         try
         {

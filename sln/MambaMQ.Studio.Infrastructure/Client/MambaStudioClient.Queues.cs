@@ -17,7 +17,7 @@ internal sealed partial class MambaStudioClient
             : GetQueuesResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
-    public async Task<CommandResponse<QueueModel>> CreateQueueAsync(QueueOptions options, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<QueueModel>> CreateQueueAsync(QueueCreateOptions options, CancellationToken cancellationToken = default)
     {
         QueueCreateCommand command = new(
             options.QueueName,
@@ -53,16 +53,14 @@ internal sealed partial class MambaStudioClient
             : CommandResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
-    public async Task<CommandResponse<QueueModel>> UpdateQueueAsync(Guid queueId, QueueOptions options, CancellationToken cancellationToken = default)
+    public async Task<CommandResponse<QueueModel>> UpdateQueueAsync(Guid queueId, QueueUpdateOptions options, CancellationToken cancellationToken = default)
     {
         QueueUpdateCommand command = new(
             queueId,
             options.QueueName,
-            options.IsDurable,
             options.LoadBalancingAlgorithm,
             options.Permissions,
-            options.MessageRetention.Enabled,
-            options.MessageRetention.RetentionPeriod);
+            options.MessageRetentionPeriod);
 
         byte[] payload = CommandEncoder.Encode(command);
 

@@ -30,7 +30,7 @@ public partial class CreateQueueWindow : Window
                 x => x.ServiceName,
                 x => x.Permissions);
 
-        QueueOptions options = new()
+        QueueCreateOptions options = new()
         {
             QueueName = viewModel.QueueName.Trim(),
             IsDurable = viewModel.IsDurable,

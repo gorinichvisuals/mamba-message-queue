@@ -73,7 +73,7 @@ internal sealed partial class ExchangeManager(
         MambaExchange updated = new(
             current.Id,
             dto.Name,
-            dto.IsDurable,
+            current.IsDurable,
             current.CreatedAt,
             dto.Type,
             new Dictionary<string, ExchangePermission>(dto.Permissions));

@@ -25,18 +25,17 @@ internal sealed partial class MambaClient
             : GetExchangesResponseDecoder.Decode(responseFrame.Payload.Span).Exchanges;
     }
 
-    public async Task<ExchangeModel> UpdateExchangeAsync(Guid exchangeId, ExchangeCreateOptions exchangeCreateOptions, CancellationToken cancellationToken = default)
+    public async Task<ExchangeModel> UpdateExchangeAsync(Guid exchangeId, ExchangeUpdateOptions exchangeUpdateOptions, CancellationToken cancellationToken = default)
     {
         ValidateId(exchangeId, nameof(exchangeId));
-        ValidateExchangeOptions(exchangeCreateOptions);
+        ValidateExchangeUpdateOptions(exchangeUpdateOptions);
         await EnsureConnectedAsync(cancellationToken);
 
         ExchangeUpdateCommand command = new(
             exchangeId,
-            exchangeCreateOptions.Name,
-            exchangeCreateOptions.IsDurable,
-            exchangeCreateOptions.Type,
-            exchangeCreateOptions.Permissions);
+            exchangeUpdateOptions.Name,
+            exchangeUpdateOptions.Type,
+            exchangeUpdateOptions.Permissions);
 
         return await SendCommandAsync(command, DecodeExchangeModel, cancellationToken);
     }

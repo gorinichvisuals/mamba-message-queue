@@ -1,6 +1,6 @@
 services:
   mambamq-server:
-    image: gorinichvisuals/mambamq-server:0.1.0
+    image: gorinichvisuals/mambamq-server:0.1.1
     container_name: mambamq-server
     restart: unless-stopped
     ports:

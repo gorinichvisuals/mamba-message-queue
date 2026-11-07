@@ -34,7 +34,7 @@ Studio is the desktop management interface. It supports saved connection profile
 After the first NuGet release, install the client package in your .NET project (replace the version with the release you need):
 
 ```bash
-dotnet add package MambaMQ.Client.NET --version 0.1.0
+dotnet add package MambaMQ.Client.NET --version 0.1.1
 ```
 Or you can download this repository and use this command:
 ```bash
@@ -61,7 +61,7 @@ services.AddMamba(options =>
 
 Inject `IMamba` into your application services to use the broker.
 ```bash
-dotnet add package MambaMQ.Client.NET --version 0.1.0
+dotnet add package MambaMQ.Client.NET --version 0.1.1
 ```
 
 Publisher example:
@@ -145,7 +145,7 @@ Exchanges
 MambaMQ Server is available as a public Docker image on Docker Hub.
 
 - **Docker Hub:** [gorinichvisuals/mambamq-server](https://hub.docker.com/r/gorinichvisuals/mambamq-server)
-- **Current version:** `0.1.0`
+- **Current version:** `0.1.1`
 - **Latest image:** `gorinichvisuals/mambamq-server:latest`
 
 ### Configuration
@@ -245,7 +245,7 @@ You can also run MambaMQ Server directly without Docker Compose.
 Pull the image:
 
 ```bash
-docker pull gorinichvisuals/mambamq-server:0.1.0
+docker pull gorinichvisuals/mambamq-server:0.1.1
 ```
 
 Run the container:
@@ -257,7 +257,7 @@ docker run -d \
   -p 8024:8024 \
   --env-file .env \
   -v mambamq-data:/app/data \
-  gorinichvisuals/mambamq-server:0.1.0
+  gorinichvisuals/mambamq-server:0.1.1
 ```
 
 The `-p` option uses the `host-port:container-port` format. The container port must match `MambaServerOptions__Port`.
@@ -312,10 +312,10 @@ To publish a new MambaMQ Server release, build the image with a version-specific
 docker login
 
 docker build \
-  -t gorinichvisuals/mambamq-server:0.1.0 \
+  -t gorinichvisuals/mambamq-server:0.1.1 \
   -t gorinichvisuals/mambamq-server:latest .
 
-docker push gorinichvisuals/mambamq-server:0.1.0
+docker push gorinichvisuals/mambamq-server:0.1.1
 docker push gorinichvisuals/mambamq-server:latest
 ```
 

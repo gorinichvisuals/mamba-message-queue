@@ -1,6 +1,6 @@
 namespace MambaMQ.Client.NET.Options;
 
-/// <summary>Specifies the settings used to create or update a queue.</summary>
+/// <summary>Specifies the settings used to create a queue.</summary>
 public sealed class QueueCreateOptions
 {
     /// <summary>The required queue name.</summary>

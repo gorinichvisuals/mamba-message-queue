@@ -122,7 +122,9 @@
 
                         </StackPanel>
 
-                        <CheckBox Content="Durable" IsChecked="{Binding IsDurable}" />
+                        <CheckBox Content="Durable"
+                                  IsChecked="{Binding IsDurable}"
+                                  IsEnabled="False" />
 
                         <TextBlock
                             Classes="description"
@@ -163,7 +165,9 @@
                             Classes="section-title"
                             Text="Message retention" />
 
-                        <CheckBox Content="Save messages" IsChecked="{Binding MessageRetentionEnabled}" />
+                        <CheckBox Content="Save messages"
+                                  IsChecked="{Binding MessageRetentionEnabled}"
+                                  IsEnabled="False" />
 
                         <Grid
                             ColumnDefinitions="*,120"

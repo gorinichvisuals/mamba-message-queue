@@ -83,13 +83,9 @@ internal static class QueueCommandDecoder
 
         string queueName = ProtocolReader.ReadString(buffer, ref offset, "queue name", "Update queue command");
 
-        bool isDurable = ReadBoolean(buffer, ref offset, "IsDurable", "Update queue command");
-
         LoadBalancingAlgorithm algorithm = ReadLoadBalancingAlgorithm(buffer, ref offset);
 
         Dictionary<string, QueuePermission> permissions = ReadQueuePermissions(buffer, ref offset, "Update queue command");
-
-        bool retentionEnabled = ReadBoolean(buffer, ref offset, "MessageRetentionEnabled", "Update queue command");
 
         TimeSpan retentionPeriod = ReadTimeSpan(
             buffer, ref offset,
@@ -100,10 +96,8 @@ internal static class QueueCommandDecoder
         return new QueueUpdateCommand(
             queueId,
             queueName,
-            isDurable,
             algorithm,
             permissions,
-            retentionEnabled,
             retentionPeriod);
     }
 

@@ -19,8 +19,6 @@ internal static class ExchangeCommandDecoder
         Guid exchangeId = new(buffer[..CommandConstants.ExchangeIdSize]);
         offset += CommandConstants.ExchangeIdSize;
         string exchangeName = ProtocolReader.ReadString(buffer, ref offset, "exchange name", "Update exchange command");
-        ValidateIsDurable(buffer, offset);
-        bool isDurable = DecodeBoolean(buffer[offset++], "Update exchange command contains invalid IsDurable value.");
         ValidateExchangeType(buffer, offset);
         ExchangeType exchangeType = (ExchangeType)buffer[offset++];
         int permissionsCount = ReadPermissionsCount(buffer, offset);
@@ -38,7 +36,7 @@ internal static class ExchangeCommandDecoder
             permissions.Add(serviceName, (ExchangePermission)buffer[offset++]);
         }
 
-        return new ExchangeUpdateCommand(exchangeId, exchangeName, isDurable, exchangeType, permissions);
+        return new ExchangeUpdateCommand(exchangeId, exchangeName, exchangeType, permissions);
     }
 
     internal static ExchangeGetListCommand DecodeGetExchanges()

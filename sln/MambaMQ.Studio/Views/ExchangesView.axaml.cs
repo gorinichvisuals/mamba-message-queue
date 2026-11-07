@@ -20,7 +20,7 @@ public partial class ExchangesView : UserControl
             return;
 
         CreateExchangeWindow window = new();
-        ExchangeOptions? options = await window.ShowDialog<ExchangeOptions?>(owner);
+        ExchangeCreateOptions? options = await window.ShowDialog<ExchangeCreateOptions?>(owner);
         if (options is not null)
             await viewModel.CreateExchangeCommand.ExecuteAsync(options);
     }
