@@ -8,6 +8,15 @@ public partial class QueueDetailsViewModel(
     [ObservableProperty]
     private QueueModel _queue = queue;
 
+    public string MessageRetentionPeriodDisplay => Queue.MessageRetentionEnabled
+        ? Queue.MessageRetentionPeriod.ToString()
+        : "—";
+
+    partial void OnQueueChanged(QueueModel value)
+    {
+        OnPropertyChanged(nameof(MessageRetentionPeriodDisplay));
+    }
+
     [ObservableProperty]
     private string? _errorMessage;
 
@@ -87,6 +96,27 @@ public partial class QueueDetailsViewModel(
     private async Task RefreshMessages()
     {
         await LoadMessagesAsync();
+    }
+
+    [RelayCommand]
+    private async Task RefreshQueue()
+    {
+        try
+        {
+            ErrorMessage = null;
+
+            GetQueuesResponse response = await mambaClient.GetQueuesAsync();
+            QueueModel? updatedQueue = response.Queues.FirstOrDefault(item => item.Id == Queue.Id);
+
+            if (updatedQueue is not null)
+                Queue = updatedQueue;
+
+            await LoadMessagesAsync();
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = exception.Message;
+        }
     }
 
     [RelayCommand]

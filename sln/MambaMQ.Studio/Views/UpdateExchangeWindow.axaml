@@ -1,7 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MambaMQ.Studio.ViewModels"
-        xmlns:converters="using:MambaMQ.Studio.Converters"
         xmlns:models="using:MambaMQ.Studio.Models"
         x:Class="MambaMQ.Studio.Views.UpdateExchangeWindow"
         x:DataType="vm:UpdateExchangeViewModel"
@@ -13,11 +12,6 @@
         MinHeight="700"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource StudioBackgroundBrush}">
-
-    <Window.Resources>
-        <converters:BooleanToColorConverter x:Key="BooleanToColorConverter" />
-        <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
-    </Window.Resources>
 
     <Window.Styles>
         <Style Selector="TextBlock.section-title">
@@ -84,16 +78,7 @@
                                       Height="38" />
                         </StackPanel>
 
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                            <CheckBox IsChecked="{Binding IsDurable}"
-                                      VerticalAlignment="Center">
-                                <TextBlock Text="Durable" />
-                            </CheckBox>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding IsDurable, Converter={StaticResource BooleanToIconConverter}}"
-                                       Foreground="{Binding IsDurable, Converter={StaticResource BooleanToColorConverter}}"
-                                       VerticalAlignment="Center" />
-                        </Grid>
+                        <CheckBox Content="Durable" IsChecked="{Binding IsDurable}" />
 
                         <TextBlock Classes="description"
                                    Text="Durable exchanges survive server restart." />

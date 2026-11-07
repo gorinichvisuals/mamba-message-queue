@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -122,27 +122,7 @@
 
                         </StackPanel>
 
-                        <Grid
-                            ColumnDefinitions="Auto,*"
-                            ColumnSpacing="12">
-
-                            <CheckBox
-                                IsChecked="{Binding IsDurable}"
-                                VerticalAlignment="Center">
-
-                                <TextBlock Text="Durable" />
-
-                            </CheckBox>
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="{Binding IsDurable,
-                                    Converter={StaticResource BooleanToIconConverter}}"
-                                Foreground="{Binding IsDurable,
-                                    Converter={StaticResource BooleanToColorConverter}}"
-                                VerticalAlignment="Center" />
-
-                        </Grid>
+                        <CheckBox Content="Durable" IsChecked="{Binding IsDurable}" />
 
                         <TextBlock
                             Classes="description"
@@ -183,27 +163,7 @@
                             Classes="section-title"
                             Text="Message retention" />
 
-                        <Grid
-                            ColumnDefinitions="Auto,*"
-                            ColumnSpacing="12">
-
-                            <CheckBox
-                                IsChecked="{Binding MessageRetentionEnabled}"
-                                VerticalAlignment="Center">
-
-                                <TextBlock Text="Enable message retention" />
-
-                            </CheckBox>
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="{Binding MessageRetentionEnabled,
-                                    Converter={StaticResource BooleanToIconConverter}}"
-                                Foreground="{Binding MessageRetentionEnabled,
-                                    Converter={StaticResource BooleanToColorConverter}}"
-                                VerticalAlignment="Center" />
-
-                        </Grid>
+                        <CheckBox Content="Save messages" IsChecked="{Binding MessageRetentionEnabled}" />
 
                         <Grid
                             ColumnDefinitions="*,120"

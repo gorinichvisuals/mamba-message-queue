@@ -51,6 +51,9 @@
                             Spacing="8"
                             VerticalAlignment="Center">
 
+                    <Button Content="Refresh"
+                            Command="{Binding RefreshQueueCommand}" />
+
                     <Button Content="Update"
                             Click="UpdateQueue_Click" />
 
@@ -177,7 +180,7 @@
 
                         <TextBlock Grid.Row="4"
                                    Grid.Column="1"
-                                   Text="{Binding Queue.MessageRetentionPeriod}" />
+                                   Text="{Binding MessageRetentionPeriodDisplay}" />
 
                         <TextBlock Grid.Row="5"
                                    Text="Created at"
