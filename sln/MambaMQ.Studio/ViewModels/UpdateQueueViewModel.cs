@@ -41,7 +41,7 @@ public partial class UpdateQueueViewModel : ViewModelBase
         QueueName = queue.Name;
         IsDurable = queue.IsDurable;
         LoadBalancingAlgorithm = queue.LoadBalancingAlgorithm;
-        MessageRetentionEnabled = queue.MessageRetentionEnabled;
+        MessageRetentionEnabled = queue.MessageRetentionEnabled || queue.IsDurable;
 
         RetentionPeriod = queue.MessageRetentionPeriod.TotalMinutes;
 
@@ -58,6 +58,11 @@ public partial class UpdateQueueViewModel : ViewModelBase
     partial void OnMessageRetentionEnabledChanged(bool value)
     {
         OnPropertyChanged(nameof(IsRetentionPeriodEnabled));
+    }
+
+    partial void OnIsDurableChanged(bool value)
+    {
+        MessageRetentionEnabled = value;
     }
 
     [RelayCommand]

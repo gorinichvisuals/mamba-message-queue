@@ -14,13 +14,13 @@ public partial class CreateQueueViewModel : ViewModelBase
     private string _queueName = string.Empty;
 
     [ObservableProperty]
-    private bool _isDurable = true;
+    private bool _isDurable = false;
 
     [ObservableProperty]
     private LoadBalancingAlgorithm _loadBalancingAlgorithm = LoadBalancingAlgorithm.RoundRobin;
 
     [ObservableProperty]
-    private bool _messageRetentionEnabled;
+    private bool _messageRetentionEnabled = false;
 
     [ObservableProperty]
     private double _retentionPeriod = 10;
@@ -44,6 +44,11 @@ public partial class CreateQueueViewModel : ViewModelBase
     partial void OnMessageRetentionEnabledChanged(bool value)
     {
         OnPropertyChanged(nameof(IsRetentionPeriodEnabled));
+    }
+
+    partial void OnIsDurableChanged(bool value)
+    {
+        MessageRetentionEnabled = value;
     }
 
     [RelayCommand]
