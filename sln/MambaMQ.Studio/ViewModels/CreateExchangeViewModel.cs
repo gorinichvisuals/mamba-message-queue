@@ -8,7 +8,7 @@ public partial class CreateExchangeViewModel : ViewModelBase
     private string _exchangeName = string.Empty;
 
     [ObservableProperty]
-    private bool _isDurable = true;
+    private bool _isDurable = false;
 
     [ObservableProperty]
     private ExchangeType _exchangeType = ExchangeType.Direct;
