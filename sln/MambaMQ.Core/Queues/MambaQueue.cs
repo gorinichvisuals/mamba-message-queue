@@ -91,6 +91,23 @@ public sealed class MambaQueue(
                 _available.Enqueue(messageId);
         }
     }
+
+    internal void RequeueInFlight(Guid connectionId)
+    {
+        foreach ((DeliveryId deliveryId, Delivery delivery) in _inFlight)
+        {
+            if (delivery.ConsumerId != connectionId || !_inFlight.TryRemove(deliveryId, out _))
+                continue;
+
+            _deliveryByMessage.TryRemove(delivery.MessageId, out _);
+
+            if (!_messages.ContainsKey(delivery.MessageId))
+                continue;
+
+            _available.Enqueue(delivery.MessageId);
+            _messageAvailable.Release();
+        }
+    }
     
     internal async ValueTask<MessageDelivery?> DequeueAsync(Guid connectionId, CancellationToken cancellationToken = default)
     {

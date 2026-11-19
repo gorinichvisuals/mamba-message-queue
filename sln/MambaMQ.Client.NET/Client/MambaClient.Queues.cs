@@ -84,7 +84,7 @@ internal sealed partial class MambaClient
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
+            Frame frame = await ReadSubscriptionFrameAsync(cancellationToken);
 
             if (frame.Type is not FrameType.QueueMessageDeliverResponse)
                 throw new InvalidDataException($"Expected {FrameType.QueueMessageDeliverResponse} frame, but received {frame.Type}.");
@@ -113,7 +113,7 @@ internal sealed partial class MambaClient
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
+            Frame frame = await ReadSubscriptionFrameAsync(cancellationToken);
 
             if (frame.Type is not FrameType.QueueMessagesBatchResponse)
             {

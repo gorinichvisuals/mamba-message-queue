@@ -10,10 +10,10 @@ services:
       MambaServerOptions__MaxMessageSizeInBytes: "${MambaServerOptions__MaxMessageSizeInBytes:-1048576}"
       MambaServerOptions__AuthorizationEnabled: "${MambaServerOptions__AuthorizationEnabled:-false}"
       QueueStorageOptions__Path: /app/data
-      QueueStorageOptions__MessageCleanupEnabled: "${QueueStorageOptions__MessageCleanupEnabled:-false}"
-      QueueStorageOptions__MessageSegmentSizeInBytes: "${QueueStorageOptions__MessageSegmentSizeInBytes:-16777216}"
+      QueueStorageOptions__MessageCleanupEnabled: "${QueueStorageOptions__MessageCleanupEnabled:-true}"
+      QueueStorageOptions__MessageSegmentSizeInBytes: "${QueueStorageOptions__MessageSegmentSizeInBytes:-33554432}"
       QueueStorageOptions__MaxMessageSegments: "${QueueStorageOptions__MaxMessageSegments:-2}"
-      QueueStorageOptions__CleanupMessageInterval: "${QueueStorageOptions__CleanupMessageInterval:-00:10:00}"
+      QueueStorageOptions__CleanupMessageInterval: "${QueueStorageOptions__CleanupMessageInterval:-00:05:00}"
       ServerLoggingOptions__MinimumLevel: "${ServerLoggingOptions__MinimumLevel:-Information}"
       ServerLoggingOptions__ConsoleEnabled: "${ServerLoggingOptions__ConsoleEnabled:-true}"
       AuthenticationOptions__Username: "${AuthenticationOptions__Username:?Set AuthenticationOptions__Username in .env}"

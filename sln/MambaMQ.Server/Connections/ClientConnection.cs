@@ -16,6 +16,9 @@ internal sealed class ClientConnection(
 
     private NetworkStream? _stream;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private readonly CancellationTokenSource _disconnectedCts = new();
+
+    public CancellationToken DisconnectedToken => _disconnectedCts.Token;
 
     private readonly List<Task> _tasks = [];
 
@@ -65,6 +68,7 @@ internal sealed class ClientConnection(
         }
         finally
         {
+            _disconnectedCts.Cancel();
             await StopAsync();
             await DisposeAsync();
         }
@@ -120,6 +124,8 @@ internal sealed class ClientConnection(
 
         if (_stream is not null)
             await _stream.DisposeAsync();
+
+        _disconnectedCts.Dispose();
 
         client.Dispose();
 

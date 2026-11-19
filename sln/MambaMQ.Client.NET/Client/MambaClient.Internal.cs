@@ -15,7 +15,7 @@ internal sealed partial class MambaClient
 
         await _connection.SendAsync(buffer, cancellationToken);
 
-        Frame responseFrame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
+        Frame responseFrame = await ReadCommandResponseAsync(cancellationToken);
 
         if (responseFrame.Type == expectedResponseType && expectedResponseType is not FrameType.CommandResultResponse)
             return responseFrame;
@@ -43,7 +43,7 @@ internal sealed partial class MambaClient
 
         await _connection.SendAsync(buffer, cancellationToken);
 
-        Frame responseFrame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
+        Frame responseFrame = await ReadCommandResponseAsync(cancellationToken);
 
         if (responseFrame.Type is not FrameType.CommandResultResponse)
             throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.");
@@ -55,6 +55,30 @@ internal sealed partial class MambaClient
 
         return response.Data
             ?? throw new InvalidDataException("Command response did not contain data.");
+    }
+
+    private async Task<Frame> ReadCommandResponseAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            Frame frame = await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
+
+            if (frame.Type is FrameType.QueueMessageDeliverResponse or FrameType.QueueMessagesBatchResponse)
+            {
+                await _subscriptionFrames.Writer.WriteAsync(frame, cancellationToken);
+                continue;
+            }
+
+            return frame;
+        }
+    }
+
+    private async Task<Frame> ReadSubscriptionFrameAsync(CancellationToken cancellationToken)
+    {
+        if (_subscriptionFrames.Reader.TryRead(out Frame queuedFrame))
+            return queuedFrame;
+
+        return await FrameReader.ReadAsync(_connection, _options.MaxMessageSizeInBytes, cancellationToken);
     }
 
     private static ExchangeModel DecodeExchangeModel(ReadOnlySpan<byte> buffer)

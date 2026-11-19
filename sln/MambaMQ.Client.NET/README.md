@@ -17,7 +17,7 @@ using MambaMQ.Client.NET.Configure;
 services.AddMamba(options =>
 {
     options.Host = "localhost";
-    options.Port = 24;
+    options.Port = 8024;
     options.ServiceName = "orders-service";
     options.Credentials.Username = Environment.GetEnvironmentVariable("MAMBA_USERNAME")!;
     options.Credentials.Password = Environment.GetEnvironmentVariable("MAMBA_PASSWORD")!;
@@ -25,6 +25,7 @@ services.AddMamba(options =>
 ```
 
 The credentials must match a user configured on the server. Keep them in a secret store or environment variables rather than source code.
+The server configuration in this repository listens on port `8024` by default. Set the client port to the server's configured port; the client option itself falls back to `24` when omitted.
 
 ## Use `IMamba`
 
@@ -45,6 +46,20 @@ The interface provides these operations:
 - **Messages:** publish to a queue, subscribe one at a time or in batches, read a page, and delete one or many.
 
 Each method is documented in the IDE through XML documentation included with the package.
+
+### Consume and acknowledge messages
+
+`SubscribeQueueAsync` delivers a message but does not acknowledge or remove it. Call `DeleteMessageAsync` after processing succeeds:
+
+```csharp
+await foreach (MambaMessage message in mamba.SubscribeQueueAsync("orders", cancellationToken))
+{
+    await ProcessAsync(message, cancellationToken);
+    await mamba.DeleteMessageAsync("orders", message.MessageId, cancellationToken);
+}
+```
+
+Messages not deleted remain in flight until the subscriber connection closes. The server then makes them available for redelivery; a processing failure alone does not requeue a message. For a batch, process the messages and then use `DeleteMessagesAsync` with their IDs, or delete them individually. Auto-ack is not currently provided. Canceling or ending local enumeration stops the local reader but does not unsubscribe the server side; close the client connection to stop delivery.
 
 Create and update operations use separate option types. Update types expose only settings that can be changed:
 
@@ -140,5 +155,5 @@ Queue update can change the retention period, but cannot change durability or wh
 
 ## Compatibility
 
-The client connects to MambaMQ Server over TCP using the MambaMQ protocol. The default server port is `24`.
+The client connects to MambaMQ Server over TCP using the MambaMQ protocol. In this repository the server configuration defaults to port `8024`; configure the client to use the same port. The client's own `Port` option falls back to `24` if it is omitted.
 The package targets .NET 10.

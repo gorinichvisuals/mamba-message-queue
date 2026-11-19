@@ -21,7 +21,7 @@ flowchart LR
 | **MambaMQ.Client.NET** | .NET library for connecting to a server and working with queues, exchanges, and messages through `IMamba`. |
 | **MambaMQ.Studio** | Desktop application for connecting to servers and managing them through a graphical interface. |
 
-Applications register the client with `services.AddMamba(...)` and use the `IMamba` interface to create and manage queues and exchanges, publish messages, and consume messages. The client and Studio communicate with the server over the MambaMQ protocol using TCP (default port **24**).
+Applications register the client with `services.AddMamba(...)` and use the `IMamba` interface to create and manage queues and exchanges, publish messages, and consume messages. The client and Studio communicate with the server over the MambaMQ protocol using TCP (server configuration defaults to port **8024**).
 
 ### MambaMQ Studio
 
@@ -108,13 +108,16 @@ public class ConsumerExample(IMamba mamba)
 {
     public async Task ProcessMessage(CancellationToken cancellationToken)
     {
-        await foreach(MambaMessage message in mamba.SubscribeQueueAsync("queue-name")
+        await foreach (MambaMessage message in mamba.SubscribeQueueAsync("queue-name", cancellationToken))
         {
-            //Your implementation
+            // Process the message successfully before deleting it.
+            await mamba.DeleteMessageAsync("queue-name", message.MessageId, cancellationToken);
         }
     }
 }
 ```
+
+Messages delivered by a subscription remain **in flight** until the consumer explicitly calls `DeleteMessageAsync` (or `DeleteMessagesAsync` for a batch). Delete them only after processing succeeds. A message left undeleted stays in flight until the subscriber connection closes; the server then makes it available for redelivery. A processing failure alone does not requeue it. The current client API uses deletion as its explicit acknowledgement mechanism and does not provide auto-ack. Canceling or ending local enumeration does not unsubscribe the server side; close the client connection to stop delivery.
 
 ### MambaMQ Features:
 
@@ -157,10 +160,10 @@ MambaServerOptions__Port=8024
 MambaServerOptions__MaxMessageSizeInBytes=1048576
 MambaServerOptions__AuthorizationEnabled=false
 
-QueueStorageOptions__MessageCleanupEnabled=false
-QueueStorageOptions__MessageSegmentSizeInBytes=16777216
+QueueStorageOptions__MessageCleanupEnabled=true
+QueueStorageOptions__MessageSegmentSizeInBytes=33554432
 QueueStorageOptions__MaxMessageSegments=2
-QueueStorageOptions__CleanupMessageInterval=00:10:00
+QueueStorageOptions__CleanupMessageInterval=00:05:00
 
 ServerLoggingOptions__MinimumLevel=Information
 ServerLoggingOptions__ConsoleEnabled=true

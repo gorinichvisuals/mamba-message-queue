@@ -103,7 +103,33 @@ internal sealed partial class QueueManager
         }
         finally
         {
+            queue.RequeueInFlight(connection.Id);
             mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ConnectionId}' unsubscribed from queue.", connection.Id);
+        }
+    }
+
+    private async Task ConsumeForConnection(MambaQueue queue, IClientConnection connection, CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            connection.DisconnectedToken);
+
+        try
+        {
+            await Consume(queue, connection, linkedCts.Token);
+        }
+        catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
+        {
+        }
+        catch (IOException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (Exception exception)
+        {
+            mambaLogger.Queue(queue.Name).LogError(exception, "Queue consumer for connection {ConnectionId} stopped unexpectedly.", connection.Id);
         }
     }
 
@@ -142,8 +168,37 @@ internal sealed partial class QueueManager
         finally
         {
             RemoveSubscriber(queue.Id, subscriber);
+            queue.RequeueInFlight(connection.Id);
 
             mambaLogger.Queue(queue.Name).LogInformation("Subscriber '{ConnectionId}' unsubscribed from queue.", connection.Id);
+        }
+    }
+
+    private async Task ConsumeBatchForConnection(
+        MambaQueue queue,
+        Subscriber subscriber,
+        CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            subscriber.Connection.DisconnectedToken);
+
+        try
+        {
+            await ConsumeWithBatch(queue, subscriber, linkedCts.Token);
+        }
+        catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
+        {
+        }
+        catch (IOException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (Exception exception)
+        {
+            mambaLogger.Queue(queue.Name).LogError(exception, "Batch consumer for connection {ConnectionId} stopped unexpectedly.", subscriber.Connection.Id);
         }
     }
 
