@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:MambaMQ.Studio.ViewModels"
@@ -50,9 +50,6 @@
                             Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-
-                    <Button Content="Refresh"
-                            Command="{Binding RefreshQueueCommand}" />
 
                     <Button Content="Update"
                             Click="UpdateQueue_Click" />
@@ -225,10 +222,6 @@
 
                         <Button Content="Create Message"
                                 Click="CreateMessage_Click"
-                                Padding="16,8" />
-
-                        <Button Content="Refresh"
-                                Command="{Binding RefreshMessagesCommand}"
                                 Padding="16,8" />
 
                         <Button Content="Delete Selected"

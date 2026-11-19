@@ -24,10 +24,6 @@
                         Click="CreateQueueButton_OnClick"
                         Padding="16,8" />
 
-                <Button Content="Refresh"
-                        Command="{Binding LoadCommand}"
-                        Padding="16,8" />
-
             </StackPanel>
         </Grid>
 

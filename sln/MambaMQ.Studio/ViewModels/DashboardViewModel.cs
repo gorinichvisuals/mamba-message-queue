@@ -10,6 +10,7 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly SemaphoreSlim _reconnectLock = new(1, 1);
     private readonly SemaphoreSlim _navigationLock = new(1, 1);
     private readonly Task _connectionMonitorTask;
+    private CancellationTokenSource? _statisticsRefreshCts;
 
     private string Host { get; }
     private int Port { get; }
@@ -102,6 +103,7 @@ public partial class DashboardViewModel : ViewModelBase
     [RelayCommand]
     private void ShowExchanges() => _ = NavigateAsync(async () =>
     {
+        StopStatisticsRefresh();
         _exchangesViewModel ??= CurrentViewModel as ExchangesViewModel
             ?? new ExchangesViewModel(_mambaClient, ShowExchangeDetails);
         CurrentViewModel = _exchangesViewModel;
@@ -114,17 +116,21 @@ public partial class DashboardViewModel : ViewModelBase
     [RelayCommand]
     private void ShowQueues() => _ = NavigateAsync(async () =>
     {
+        StopStatisticsRefresh();
         _queuesViewModel ??= new QueuesViewModel(_mambaClient, ShowQueueDetails);
         CurrentViewModel = _queuesViewModel;
         await _queuesViewModel.LoadCommand.ExecuteAsync(null);
+        StartStatisticsRefresh(_queuesViewModel);
     });
 
     private void ShowQueueDetails(QueueModel queue) => _ = NavigateAsync(async () =>
     {
+        StopStatisticsRefresh();
         _queuesViewModel ??= new QueuesViewModel(_mambaClient, ShowQueueDetails);
         QueueDetailsViewModel viewModel = new(_mambaClient, queue, ShowQueues);
         CurrentViewModel = viewModel;
         await viewModel.LoadMessagesAsync();
+        StartStatisticsRefresh(viewModel);
     });
 
     private void ShowExchangeDetails(ExchangeModel exchange) => _ = NavigateAsync(async () =>
@@ -137,12 +143,71 @@ public partial class DashboardViewModel : ViewModelBase
     [RelayCommand]
     public async Task DisconnectAsync()
     {
+        StopStatisticsRefresh();
         await _connectionMonitorCts.CancelAsync();
 
         await _connectionMonitorTask;
         await _mambaClient.DisconnectAsync();
 
         _onDisconnected(this);
+    }
+
+    private void StartStatisticsRefresh(ViewModelBase viewModel)
+    {
+        StopStatisticsRefresh();
+        CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(_connectionMonitorCts.Token);
+        _statisticsRefreshCts = cts;
+        _ = RefreshStatisticsPeriodicallyAsync(viewModel, cts);
+    }
+
+    private void StopStatisticsRefresh()
+    {
+        CancellationTokenSource? cts = _statisticsRefreshCts;
+        _statisticsRefreshCts = null;
+        if (cts is not null)
+            cts.Cancel();
+    }
+
+    private async Task RefreshStatisticsPeriodicallyAsync(ViewModelBase viewModel, CancellationTokenSource refreshCts)
+    {
+        CancellationToken cancellationToken = refreshCts.Token;
+        using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(500));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (!IsConnected)
+                    continue;
+
+                try
+                {
+                    if (viewModel is QueuesViewModel queuesViewModel)
+                        await queuesViewModel.RefreshStatisticsAsync(cancellationToken);
+                    else if (viewModel is QueueDetailsViewModel queueDetailsViewModel)
+                        await queueDetailsViewModel.RefreshStatisticsAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception)
+                {
+                    // Keep the timer alive; the next tick can recover after a transient request failure.
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_statisticsRefreshCts, refreshCts))
+                _statisticsRefreshCts = null;
+            refreshCts.Dispose();
+        }
     }
 
     private async Task NavigateAsync(Func<Task> navigation)

@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Studio.Infrastructure.Client;
+namespace MambaMQ.Studio.Infrastructure.Client;
 
 internal sealed partial class MambaStudioClient
 {
@@ -15,6 +15,16 @@ internal sealed partial class MambaStudioClient
         return responseFrame.Type is not FrameType.QueueGetListResponse
             ? throw new InvalidDataException($"Expected {FrameType.QueueGetListResponse} frame, but received {responseFrame.Type}.")
             : GetQueuesResponseDecoder.Decode(responseFrame.Payload.Span);
+    }
+
+    public async Task<IReadOnlyList<QueueStatisticsModel>> GetQueueStatisticsAsync(Guid? queueId = null, CancellationToken cancellationToken = default)
+    {
+        QueueStatisticsGetCommand command = new(queueId);
+        Frame frame = new(FrameType.QueueStatisticsGetCommand, CommandEncoder.Encode(command));
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
+        return responseFrame.Type is not FrameType.QueueStatisticsGetResponse
+            ? throw new InvalidDataException($"Expected {FrameType.QueueStatisticsGetResponse} frame, but received {responseFrame.Type}.")
+            : QueueStatisticsResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
     public async Task<CommandResponse<QueueModel>> CreateQueueAsync(QueueCreateOptions options, CancellationToken cancellationToken = default)

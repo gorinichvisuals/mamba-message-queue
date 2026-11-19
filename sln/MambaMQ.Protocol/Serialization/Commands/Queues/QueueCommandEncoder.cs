@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Protocol.Serialization.Commands.Queues;
+namespace MambaMQ.Protocol.Serialization.Commands.Queues;
 
 internal static class QueueCommandEncoder
 {
@@ -124,6 +124,15 @@ internal static class QueueCommandEncoder
     internal static byte[] EncodeGetQueues()
     {
         return [];
+    }
+
+    internal static byte[] EncodeGetQueueStatistics(QueueStatisticsGetCommand command)
+    {
+        byte[] buffer = new byte[1 + (command.QueueId.HasValue ? CommandConstants.QueueIdSize : 0)];
+        buffer[0] = command.QueueId.HasValue ? (byte)1 : (byte)0;
+        if (command.QueueId is Guid queueId)
+            queueId.TryWriteBytes(buffer.AsSpan(1));
+        return buffer;
     }
 
     internal static byte[] EncodeDeleteQueue(QueueDeleteCommand command)

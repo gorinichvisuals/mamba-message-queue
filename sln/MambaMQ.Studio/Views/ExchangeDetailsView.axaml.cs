@@ -61,12 +61,6 @@ public partial class ExchangeDetailsView : UserControl
             await viewModel.OpenQueue(queueName);
     }
 
-    private async void Refresh_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is ExchangeDetailsViewModel viewModel)
-            await viewModel.LoadAsync();
-    }
-
     private async void SendMessage_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ExchangeDetailsViewModel viewModel || TopLevel.GetTopLevel(this) is not Window owner)

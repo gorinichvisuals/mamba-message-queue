@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Studio.ViewModels;
+namespace MambaMQ.Studio.ViewModels;
 
 public partial class QueueDetailsViewModel(
     IMambaStudioClient mambaClient,
@@ -90,33 +90,6 @@ public partial class QueueDetailsViewModel(
     private void GoBack()
     {
         onBack();
-    }
-
-    [RelayCommand]
-    private async Task RefreshMessages()
-    {
-        await LoadMessagesAsync();
-    }
-
-    [RelayCommand]
-    private async Task RefreshQueue()
-    {
-        try
-        {
-            ErrorMessage = null;
-
-            GetQueuesResponse response = await mambaClient.GetQueuesAsync();
-            QueueModel? updatedQueue = response.Queues.FirstOrDefault(item => item.Id == Queue.Id);
-
-            if (updatedQueue is not null)
-                Queue = updatedQueue;
-
-            await LoadMessagesAsync();
-        }
-        catch (Exception exception)
-        {
-            ErrorMessage = exception.Message;
-        }
     }
 
     [RelayCommand]
@@ -237,6 +210,14 @@ public partial class QueueDetailsViewModel(
         int skip = PageIndex * PageSize;
 
         return mambaClient.GetMessagesAsync(Queue.Name, skip, PageSize);
+    }
+
+    public async Task RefreshStatisticsAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<QueueStatisticsModel> statistics = await mambaClient.GetQueueStatisticsAsync(Queue.Id, cancellationToken);
+        QueueStatisticsModel? item = statistics.FirstOrDefault();
+        if (item is not null)
+            Queue.UpdateStatistics(item.AvailableMessageCount, item.InFlightMessageCount);
     }
 
     public async Task<QueueOperationResultModel> UpdateQueue(QueueUpdateOptions options)

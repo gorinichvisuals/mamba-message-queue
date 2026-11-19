@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Studio.Infrastructure.Client;
+namespace MambaMQ.Studio.Infrastructure.Client;
 
 public interface IMambaStudioClient
 {
@@ -14,6 +14,7 @@ public interface IMambaStudioClient
     Task<CommandResponse<ExchangeModel>> UpdateExchangeAsync(Guid exchangeId, ExchangeUpdateOptions options, CancellationToken cancellationToken = default);
     
     Task<GetQueuesResponse> GetQueuesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<QueueStatisticsModel>> GetQueueStatisticsAsync(Guid? queueId = null, CancellationToken cancellationToken = default);
     Task<CommandResponse<QueueModel>> CreateQueueAsync(QueueCreateOptions options, CancellationToken cancellationToken = default);
     Task<CommandResponse> DeleteQueueAsync(Guid queueId, CancellationToken cancellationToken = default);
     Task<CommandResponse<QueueModel>> UpdateQueueAsync(Guid queueId, QueueUpdateOptions options, CancellationToken cancellationToken = default);
