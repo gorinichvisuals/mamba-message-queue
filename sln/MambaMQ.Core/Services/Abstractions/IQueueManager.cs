@@ -1,8 +1,9 @@
-﻿namespace MambaMQ.Core.Services.Abstractions;
+namespace MambaMQ.Core.Services.Abstractions;
 
 public interface IQueueManager
 {
     public IReadOnlyList<QueueModel> GetQueues();
+    public IReadOnlyList<QueueStatisticsModel> GetQueueStatistics(Guid? queueId = null);
     Task<CommandResponse<QueueModel>> CreateQueue(QueueCreateDto dto);
     Task<CommandResponse<QueueModel>> UpdateQueue(QueueUpdateDto dto, CancellationToken cancellationToken = default);
     Task<CommandResponse> DeleteQueue(Guid queueId, IClientConnection connection, CancellationToken cancellationToken = default);

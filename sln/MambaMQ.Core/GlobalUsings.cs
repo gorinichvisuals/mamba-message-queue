@@ -1,4 +1,4 @@
-﻿global using System.Net.Sockets;
+global using System.Net.Sockets;
 global using System.Buffers.Binary;
 global using System.Collections.Concurrent;
 global using System.Runtime.CompilerServices;

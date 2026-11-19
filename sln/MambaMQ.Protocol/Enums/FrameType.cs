@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Protocol.Enums;
+namespace MambaMQ.Protocol.Enums;
 
 public enum FrameType : byte
 {
@@ -32,4 +32,7 @@ public enum FrameType : byte
     ExchangeBindCommand = 25,
     ExchangeUnbindCommand = 26,
     ExchangeMessagePublishCommand = 27,
+
+    QueueStatisticsGetCommand = 28,
+    QueueStatisticsGetResponse = 29,
 }

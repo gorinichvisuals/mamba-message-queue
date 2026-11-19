@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Protocol.Serialization.Commands;
+namespace MambaMQ.Protocol.Serialization.Commands;
 
 public static class CommandDecoder
 {
@@ -19,6 +19,7 @@ public static class CommandDecoder
             FrameType.QueueSubscribeCommand => QueueCommandDecoder.DecodeSubscribeQueue(buffer),
             FrameType.QueueSubscribeBatchCommand => QueueCommandDecoder.DecodeSubscribeQueueWithBatch(buffer),
             FrameType.QueueGetListCommand => QueueCommandDecoder.DecodeGetQueues(),
+            FrameType.QueueStatisticsGetCommand => QueueCommandDecoder.DecodeGetQueueStatistics(buffer),
             FrameType.QueueDeleteCommand => QueueCommandDecoder.DecodeDeleteQueue(buffer),
             FrameType.QueueUpdateCommand => QueueCommandDecoder.DecodeUpdateQueue(buffer),
 

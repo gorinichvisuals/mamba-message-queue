@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Studio.ViewModels;
+namespace MambaMQ.Studio.ViewModels;
 
 public partial class QueuesViewModel(
     IMambaStudioClient mambaClient,
@@ -80,5 +80,14 @@ public partial class QueuesViewModel(
         {
             IsLoading = false;
         }
+    }
+
+    public async Task RefreshStatisticsAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<QueueStatisticsModel> statistics = await mambaClient.GetQueueStatisticsAsync(cancellationToken: cancellationToken);
+        Dictionary<Guid, QueueStatisticsModel> byId = statistics.ToDictionary(item => item.QueueId);
+        foreach (QueueModel queue in Queues)
+            if (byId.TryGetValue(queue.Id, out QueueStatisticsModel? item))
+                queue.UpdateStatistics(item.AvailableMessageCount, item.InFlightMessageCount);
     }
 }

@@ -1,4 +1,4 @@
-﻿global using System.Text;
+global using System.Text;
 global using System.Buffers.Binary;
 
 global using MambaMQ.Protocol.Enums;

@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Core.Services.Implementations;
+namespace MambaMQ.Core.Services.Implementations;
 
 internal sealed partial class QueueManager
 {
@@ -20,6 +20,20 @@ internal sealed partial class QueueManager
                 InFlightMessageCount = queue.InFlightMessageCount
             })
             .ToList();
+    }
+
+    public IReadOnlyList<QueueStatisticsModel> GetQueueStatistics(Guid? queueId = null)
+    {
+        IEnumerable<MambaQueue> queues = queueId is Guid id
+            ? _queues.TryGetValue(id, out MambaQueue? queue) ? [queue] : []
+            : _queues.Values;
+
+        return queues.Select(queue => new QueueStatisticsModel
+        {
+            QueueId = queue.Id,
+            AvailableMessageCount = queue.AvailableMessageCount,
+            InFlightMessageCount = queue.InFlightMessageCount
+        }).ToList();
     }
     
     public async Task<CommandResponse<QueueModel>> CreateQueue(QueueCreateDto? dto)

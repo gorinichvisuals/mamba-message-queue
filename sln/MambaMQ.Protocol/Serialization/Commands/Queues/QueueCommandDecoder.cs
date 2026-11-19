@@ -1,4 +1,4 @@
-﻿namespace MambaMQ.Protocol.Serialization.Commands.Queues;
+namespace MambaMQ.Protocol.Serialization.Commands.Queues;
 
 internal static class QueueCommandDecoder
 {
@@ -61,6 +61,16 @@ internal static class QueueCommandDecoder
     internal static QueueGetListCommand DecodeGetQueues()
     {
         return new QueueGetListCommand();
+    }
+
+    internal static QueueStatisticsGetCommand DecodeGetQueueStatistics(ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.Length < 1 || buffer[0] > 1)
+            throw new InvalidDataException("Queue statistics command has an invalid scope.");
+        bool singleQueue = buffer[0] == 1;
+        if (buffer.Length != 1 + (singleQueue ? CommandConstants.QueueIdSize : 0))
+            throw new InvalidDataException("Queue statistics command has an invalid length.");
+        return new QueueStatisticsGetCommand(singleQueue ? new Guid(buffer[1..]) : null);
     }
 
     internal static QueueDeleteCommand DecodeDeleteQueue(ReadOnlySpan<byte> buffer)

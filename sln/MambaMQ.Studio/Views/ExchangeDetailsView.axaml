@@ -182,9 +182,6 @@
                                 Click="SendMessage_Click"
                                 Padding="16,8" />
 
-                        <Button Content="Refresh"
-                                Click="Refresh_Click"
-                                Padding="16,8" />
                     </StackPanel>
                 </Grid>
 
