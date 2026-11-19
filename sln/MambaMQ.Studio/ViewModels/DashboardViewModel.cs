@@ -171,6 +171,25 @@ public partial class DashboardViewModel : ViewModelBase
     private async Task RefreshStatisticsPeriodicallyAsync(ViewModelBase viewModel, CancellationTokenSource refreshCts)
     {
         CancellationToken cancellationToken = refreshCts.Token;
+        try
+        {
+            Task statisticsTask = RefreshQueueStatisticsPeriodicallyAsync(viewModel, cancellationToken);
+            Task messagesTask = viewModel is QueueDetailsViewModel queueDetailsViewModel
+                ? RefreshMessagesPeriodicallyAsync(queueDetailsViewModel, cancellationToken)
+                : Task.CompletedTask;
+
+            await Task.WhenAll(statisticsTask, messagesTask);
+        }
+        finally
+        {
+            if (ReferenceEquals(_statisticsRefreshCts, refreshCts))
+                _statisticsRefreshCts = null;
+            refreshCts.Dispose();
+        }
+    }
+
+    private async Task RefreshQueueStatisticsPeriodicallyAsync(ViewModelBase viewModel, CancellationToken cancellationToken)
+    {
         using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(500));
         try
         {
@@ -202,11 +221,37 @@ public partial class DashboardViewModel : ViewModelBase
         catch (Exception)
         {
         }
-        finally
+    }
+
+    private async Task RefreshMessagesPeriodicallyAsync(QueueDetailsViewModel viewModel, CancellationToken cancellationToken)
+    {
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(2));
+        try
         {
-            if (ReferenceEquals(_statisticsRefreshCts, refreshCts))
-                _statisticsRefreshCts = null;
-            refreshCts.Dispose();
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (!IsConnected)
+                    continue;
+
+                try
+                {
+                    await viewModel.RefreshMessagesQuietlyAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception)
+                {
+                    // Keep the timer alive; the next tick can recover after a transient request failure.
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
         }
     }
 

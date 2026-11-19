@@ -62,6 +62,7 @@ public partial class QueueDetailsViewModel(
     private bool _isDeletingMessages;
 
     private ObservableCollection<MessageListItemModel>? _observedMessages;
+    private readonly SemaphoreSlim _messagesRequestLock = new(1, 1);
 
     partial void OnTotalMessageCountChanged(int value)
     {
@@ -158,12 +159,13 @@ public partial class QueueDetailsViewModel(
 
     public async Task LoadMessagesAsync()
     {
+        await _messagesRequestLock.WaitAsync();
         try
         {
             IsLoadingMessages = true;
             MessagesError = null;
 
-            CommandResponse<GetMessagesResponse> response = await FetchMessagesAsync();
+            CommandResponse<GetMessagesResponse> response = await FetchMessagesAsync(PageIndex, PageSize);
 
             if (!response.IsSucceed || response.Data is null)
             {
@@ -177,7 +179,7 @@ public partial class QueueDetailsViewModel(
             if (PageIndex > 0 && PageIndex * PageSize >= TotalMessageCount)
             {
                 PageIndex = TotalMessageCount == 0 ? 0 : (TotalMessageCount - 1) / PageSize;
-                response = await FetchMessagesAsync();
+                response = await FetchMessagesAsync(PageIndex, PageSize);
 
                 if (!response.IsSucceed || response.Data is null)
                 {
@@ -189,11 +191,7 @@ public partial class QueueDetailsViewModel(
                 TotalMessageCount = response.Data.TotalCount;
             }
 
-            Messages = new ObservableCollection<MessageListItemModel>(
-                response.Data.Messages.Select(message => new MessageListItemModel
-                {
-                    Message = message
-                }));
+            ApplyMessages(response.Data.Messages);
         }
         catch (Exception exception)
         {
@@ -202,14 +200,75 @@ public partial class QueueDetailsViewModel(
         finally
         {
             IsLoadingMessages = false;
+            _messagesRequestLock.Release();
         }
     }
 
-    private Task<CommandResponse<GetMessagesResponse>> FetchMessagesAsync()
+    public async Task RefreshMessagesQuietlyAsync(CancellationToken cancellationToken = default)
     {
-        int skip = PageIndex * PageSize;
+        if (IsLoadingMessages || IsDeletingMessages || !await _messagesRequestLock.WaitAsync(0, cancellationToken))
+            return;
 
-        return mambaClient.GetMessagesAsync(Queue.Name, skip, PageSize);
+        try
+        {
+            int requestedPageIndex = PageIndex;
+            int requestedPageSize = PageSize;
+            CommandResponse<GetMessagesResponse> response = await FetchMessagesAsync(requestedPageIndex, requestedPageSize, cancellationToken);
+
+            if (!response.IsSucceed || response.Data is null ||
+                requestedPageIndex != PageIndex || requestedPageSize != PageSize)
+                return;
+
+            TotalMessageCount = response.Data.TotalCount;
+
+            if (requestedPageIndex > 0 && requestedPageIndex * requestedPageSize >= TotalMessageCount)
+            {
+                PageIndex = TotalMessageCount == 0 ? 0 : (TotalMessageCount - 1) / requestedPageSize;
+                response = await FetchMessagesAsync(PageIndex, requestedPageSize, cancellationToken);
+
+                if (!response.IsSucceed || response.Data is null)
+                    return;
+
+                TotalMessageCount = response.Data.TotalCount;
+            }
+
+            MessagesError = null;
+            ApplyMessages(response.Data.Messages);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Retain the last successful message list during transient polling failures.
+        }
+        finally
+        {
+            _messagesRequestLock.Release();
+        }
+    }
+
+    private Task<CommandResponse<GetMessagesResponse>> FetchMessagesAsync(
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+        => mambaClient.GetMessagesAsync(Queue.Name, pageIndex * pageSize, pageSize, cancellationToken);
+
+    private void ApplyMessages(IReadOnlyList<QueueMessageModel> messages)
+    {
+        Dictionary<Guid, MessageListItemModel> currentItems = Messages.ToDictionary(item => item.MessageId);
+        List<MessageListItemModel> updatedItems = messages
+            .Select(message => currentItems.TryGetValue(message.MessageId, out MessageListItemModel? item)
+                ? item
+                : new MessageListItemModel { Message = message })
+            .ToList();
+
+        bool sameItems = Messages.Count == updatedItems.Count &&
+                         Messages.Select((item, index) => item.MessageId == updatedItems[index].MessageId).All(static same => same);
+
+        if (!sameItems)
+            Messages = new ObservableCollection<MessageListItemModel>(updatedItems);
     }
 
     public async Task RefreshStatisticsAsync(CancellationToken cancellationToken = default)
