@@ -13,5 +13,8 @@ internal sealed class QueueSubscribeCommandHandler(IQueueManager queueManager) :
             payload);
 
         await connection.SendAsync(frame, cancellationToken);
+
+        if (response.IsSucceed)
+            queueManager.StartConsumingQueue(command.QueueName, connection, cancellationToken);
     }
 }

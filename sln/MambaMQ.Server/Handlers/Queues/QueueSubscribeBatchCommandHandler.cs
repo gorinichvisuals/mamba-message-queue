@@ -13,6 +13,9 @@ internal sealed class QueueSubscribeBatchCommandHandler(IQueueManager queueManag
         Frame frame = new(FrameType.CommandResultResponse, payload);
 
         await connection.SendAsync(frame, cancellationToken);
+
+        if (response.IsSucceed)
+            queueManager.StartConsumingQueueWithBatch(newSubscribeWithBatchDto, connection, cancellationToken);
     }
 
     private QueueSubscribeWithBatchDto MapToSubscribeWithBatchDto(QueueSubscribeBatchCommand command)

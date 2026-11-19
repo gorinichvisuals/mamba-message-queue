@@ -26,9 +26,17 @@ internal sealed partial class QueueManager
             return Task.FromResult(CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Read permission for queue '{queue.Name}'."));
         }
 
-        _ = Consume(queue, connection, cancellationToken);
-
         return Task.FromResult(CommandResponse.Success());
+    }
+
+    public void StartConsumingQueue(string queueName, IClientConnection connection, CancellationToken cancellationToken = default)
+    {
+        MambaQueue? queue = GetQueueByName(queueName);
+
+        if (queue is null)
+            return;
+
+        _ = ConsumeForConnection(queue, connection, cancellationToken);
     }
 
     public Task<CommandResponse> SubscribeQueueWithBatch(QueueSubscribeWithBatchDto? dto, IClientConnection connection, CancellationToken cancellationToken = default)
@@ -67,17 +75,28 @@ internal sealed partial class QueueManager
             return Task.FromResult(CommandResponse.Fail(ErrorCode.PermissionDenied, $"Service '{connection.ServiceName}' has no Read permission for queue '{queue.Name}'."));
         }
 
+        return Task.FromResult(CommandResponse.Success());
+    }
+
+    public void StartConsumingQueueWithBatch(
+        QueueSubscribeWithBatchDto dto,
+        IClientConnection connection,
+        CancellationToken cancellationToken = default)
+    {
+        MambaQueue? queue = GetQueueByName(dto.QueueName);
+
+        if (queue is null)
+            return;
+
         Subscriber subscriber = new(connection, dto.MaxMessages, dto.MaxBytes, dto.MaxWaitTime, dto.Weight);
 
         AddSubscriber(queue.Id, subscriber);
 
-        _ = ConsumeWithBatch(queue, subscriber, cancellationToken);
+        _ = ConsumeBatchForConnection(queue, subscriber, cancellationToken);
 
         StartNextBatch(queue);
 
         mambaLogger.Queue(queue.Name).LogInformation("Subscriber {ConnectionId} is subscribed.", subscriber.Connection.Id);
-
-        return Task.FromResult(CommandResponse.Success());
     }
     
     public async Task RestoreQueues(CancellationToken cancellationToken = default)

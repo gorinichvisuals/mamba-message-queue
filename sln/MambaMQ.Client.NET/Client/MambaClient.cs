@@ -4,6 +4,7 @@ internal sealed partial class MambaClient : IMamba, IAsyncDisposable
 {
     private readonly IConnection _connection;
     private readonly MambaClientOptions _options;
+    private readonly Channel<Frame> _subscriptionFrames = Channel.CreateUnbounded<Frame>();
 
     private Task? _connectTask;
 

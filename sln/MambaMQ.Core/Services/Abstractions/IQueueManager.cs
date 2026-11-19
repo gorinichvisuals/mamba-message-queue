@@ -8,7 +8,9 @@ public interface IQueueManager
     Task<CommandResponse> DeleteQueue(Guid queueId, IClientConnection connection, CancellationToken cancellationToken = default);
     
     Task<CommandResponse> SubscribeQueue(string queueName, IClientConnection connection, CancellationToken cancellationToken = default);
+    void StartConsumingQueue(string queueName, IClientConnection connection, CancellationToken cancellationToken = default);
     Task<CommandResponse> SubscribeQueueWithBatch(QueueSubscribeWithBatchDto queueSubscribeWithBatchDto, IClientConnection connection, CancellationToken cancellationToken = default);
+    void StartConsumingQueueWithBatch(QueueSubscribeWithBatchDto queueSubscribeWithBatchDto, IClientConnection connection, CancellationToken cancellationToken = default);
     
     Task RestoreQueues(CancellationToken cancellationToken = default);
     
