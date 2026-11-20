@@ -150,8 +150,9 @@ Exchanges
 MambaMQ Server is available as a public Docker image on Docker Hub.
 
 - **Docker Hub:** [gorinichvisuals/mambamq-server](https://hub.docker.com/r/gorinichvisuals/mambamq-server)
-- **Current version:** `0.2.0`
-- **Latest image:** `gorinichvisuals/mambamq-server:latest`
+- **Current release:** `0.2.0`, available as both `gorinichvisuals/mambamq-server:0.2.0` and `gorinichvisuals/mambamq-server:latest`.
+
+The image is public, so anyone can pull and run it with their own configuration; Docker Hub credentials are not required to download it. Publishing images to `gorinichvisuals/mambamq-server` is restricted to the repository owner and users who have been granted write access. Running the image with your own settings does not publish or change the shared image.
 
 ### Configuration
 
@@ -307,6 +308,4 @@ Stop the server:
 docker compose down
 ```
 
-The `mambamq-data` volume is preserved when the service is stopped or removed.
-
-Each release should have its own version-specific tag. The `latest` tag should point to the most recently published release.
+The `mambamq-data` volume is preserved when the service is stopped or removed. Building from source creates a local image; it does not publish that image to Docker Hub.
