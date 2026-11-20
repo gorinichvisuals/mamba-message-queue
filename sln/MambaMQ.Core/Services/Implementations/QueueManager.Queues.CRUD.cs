@@ -35,6 +35,22 @@ internal sealed partial class QueueManager
             InFlightMessageCount = queue.InFlightMessageCount
         }).ToList();
     }
+
+    public CommandResponse<QueueRateStatisticsModel> GetQueueRates(Guid queueId)
+    {
+        if (queueId == Guid.Empty)
+            return CommandResponse<QueueRateStatisticsModel>.Fail(ErrorCode.InvalidArgument, "Queue ID cannot be empty.");
+
+        if (!_queues.TryGetValue(queueId, out MambaQueue? queue))
+            return CommandResponse<QueueRateStatisticsModel>.Fail(ErrorCode.QueueNotFound, $"Queue '{queueId}' does not exist.");
+
+        return CommandResponse<QueueRateStatisticsModel>.Success(new QueueRateStatisticsModel
+        {
+            QueueId = queue.Id,
+            PublishedMessagesPerSecond = queue.PublishedMessagesPerSecond,
+            DeliveredMessagesPerSecond = queue.DeliveredMessagesPerSecond
+        });
+    }
     
     public async Task<CommandResponse<QueueModel>> CreateQueue(QueueCreateDto? dto)
     {

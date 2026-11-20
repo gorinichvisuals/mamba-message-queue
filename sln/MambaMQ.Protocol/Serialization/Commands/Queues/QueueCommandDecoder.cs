@@ -73,6 +73,14 @@ internal static class QueueCommandDecoder
         return new QueueStatisticsGetCommand(singleQueue ? new Guid(buffer[1..]) : null);
     }
 
+    internal static QueueRatesGetCommand DecodeGetQueueRates(ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.Length != CommandConstants.QueueIdSize)
+            throw new InvalidDataException($"Invalid QueueRatesGetCommand payload length: {buffer.Length}.");
+
+        return new QueueRatesGetCommand(new Guid(buffer));
+    }
+
     internal static QueueDeleteCommand DecodeDeleteQueue(ReadOnlySpan<byte> buffer)
     {
         return buffer.Length != CommandConstants.QueueIdSize

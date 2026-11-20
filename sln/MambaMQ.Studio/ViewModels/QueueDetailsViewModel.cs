@@ -30,6 +30,12 @@ public partial class QueueDetailsViewModel(
     private int _totalMessageCount;
 
     [ObservableProperty]
+    private long _publishedMessagesPerSecond;
+
+    [ObservableProperty]
+    private long _deliveredMessagesPerSecond;
+
+    [ObservableProperty]
     private int _pageSize = 10;
 
     [ObservableProperty]
@@ -277,6 +283,16 @@ public partial class QueueDetailsViewModel(
         QueueStatisticsModel? item = statistics.FirstOrDefault();
         if (item is not null)
             Queue.UpdateStatistics(item.AvailableMessageCount, item.InFlightMessageCount);
+    }
+
+    public async Task RefreshRatesAsync(CancellationToken cancellationToken = default)
+    {
+        CommandResponse<QueueRateStatisticsModel> response = await mambaClient.GetQueueRatesAsync(Queue.Id, cancellationToken);
+        if (!response.IsSucceed || response.Data is null)
+            return;
+
+        PublishedMessagesPerSecond = response.Data.PublishedMessagesPerSecond;
+        DeliveredMessagesPerSecond = response.Data.DeliveredMessagesPerSecond;
     }
 
     public async Task<QueueOperationResultModel> UpdateQueue(QueueUpdateOptions options)

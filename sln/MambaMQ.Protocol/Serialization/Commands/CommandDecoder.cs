@@ -20,6 +20,7 @@ public static class CommandDecoder
             FrameType.QueueSubscribeBatchCommand => QueueCommandDecoder.DecodeSubscribeQueueWithBatch(buffer),
             FrameType.QueueGetListCommand => QueueCommandDecoder.DecodeGetQueues(),
             FrameType.QueueStatisticsGetCommand => QueueCommandDecoder.DecodeGetQueueStatistics(buffer),
+            FrameType.QueueRatesGetCommand => QueueCommandDecoder.DecodeGetQueueRates(buffer),
             FrameType.QueueDeleteCommand => QueueCommandDecoder.DecodeDeleteQueue(buffer),
             FrameType.QueueUpdateCommand => QueueCommandDecoder.DecodeUpdateQueue(buffer),
 

@@ -86,6 +86,7 @@ public partial class QueuesViewModel(
     {
         IReadOnlyList<QueueStatisticsModel> statistics = await mambaClient.GetQueueStatisticsAsync(cancellationToken: cancellationToken);
         Dictionary<Guid, QueueStatisticsModel> byId = statistics.ToDictionary(item => item.QueueId);
+
         foreach (QueueModel queue in Queues)
             if (byId.TryGetValue(queue.Id, out QueueStatisticsModel? item))
                 queue.UpdateStatistics(item.AvailableMessageCount, item.InFlightMessageCount);

@@ -27,6 +27,16 @@ internal sealed partial class MambaStudioClient
             : QueueStatisticsResponseDecoder.Decode(responseFrame.Payload.Span);
     }
 
+    public async Task<CommandResponse<QueueRateStatisticsModel>> GetQueueRatesAsync(Guid queueId, CancellationToken cancellationToken = default)
+    {
+        QueueRatesGetCommand command = new(queueId);
+        Frame frame = new(FrameType.QueueRatesGetCommand, CommandEncoder.Encode(command));
+        Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
+        return responseFrame.Type is not FrameType.CommandResultResponse
+            ? throw new InvalidDataException($"Expected {FrameType.CommandResultResponse} frame, but received {responseFrame.Type}.")
+            : CommandResponseDecoder.Decode(responseFrame.Payload.Span, QueueRateStatisticsModelDecoder.Decode);
+    }
+
     public async Task<CommandResponse<QueueModel>> CreateQueueAsync(QueueCreateOptions options, CancellationToken cancellationToken = default)
     {
         QueueCreateCommand command = new(

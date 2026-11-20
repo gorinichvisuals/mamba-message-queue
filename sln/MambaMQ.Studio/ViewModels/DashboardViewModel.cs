@@ -177,8 +177,11 @@ public partial class DashboardViewModel : ViewModelBase
             Task messagesTask = viewModel is QueueDetailsViewModel queueDetailsViewModel
                 ? RefreshMessagesPeriodicallyAsync(queueDetailsViewModel, cancellationToken)
                 : Task.CompletedTask;
+            Task ratesTask = viewModel is QueueDetailsViewModel ratesViewModel
+                ? RefreshQueueRatesPeriodicallyAsync(ratesViewModel, cancellationToken)
+                : Task.CompletedTask;
 
-            await Task.WhenAll(statisticsTask, messagesTask);
+            await Task.WhenAll(statisticsTask, messagesTask, ratesTask);
         }
         finally
         {
@@ -236,6 +239,38 @@ public partial class DashboardViewModel : ViewModelBase
                 try
                 {
                     await viewModel.RefreshMessagesQuietlyAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception)
+                {
+                    // Keep the timer alive; the next tick can recover after a transient request failure.
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private async Task RefreshQueueRatesPeriodicallyAsync(QueueDetailsViewModel viewModel, CancellationToken cancellationToken)
+    {
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (!IsConnected)
+                    continue;
+
+                try
+                {
+                    await viewModel.RefreshRatesAsync(cancellationToken);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {

@@ -71,53 +71,6 @@
             <Border Height="1"
                     Background="#505050" />
 
-            <!-- Statistics -->
-            <Grid ColumnDefinitions="Auto,Auto"
-                  ColumnSpacing="12"
-                  HorizontalAlignment="Left">
-
-                <Border Width="260"
-                        Padding="20"
-                        CornerRadius="8"
-                        BorderThickness="1"
-                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
-
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Available messages"
-                                   FontSize="18"
-                                   FontWeight="Medium"
-                                   Foreground="Gray" />
-
-                        <TextBlock Text="{Binding Queue.AvailableMessageCount}"
-                                   FontSize="36"
-                                   FontWeight="Bold" />
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="1"
-                        Padding="20"
-                        CornerRadius="8"
-                        BorderThickness="1"
-                        BorderBrush="{DynamicResource ThemeBorderLowBrush}">
-
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="In-flight messages"
-                                   FontSize="18"
-                                   FontWeight="Medium"
-                                   Foreground="Gray" />
-
-                        <TextBlock Text="{Binding Queue.InFlightMessageCount}"
-                                   FontSize="36"
-                                   FontWeight="Bold" />
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <Border Height="1"
-                    Background="#505050" />
-
-            </StackPanel>
-
             <!-- Configuration -->
             <StackPanel Spacing="16">
 
@@ -199,6 +152,103 @@
 
                     </Grid>
                 </Border>
+            </StackPanel>
+
+            <Border Height="1"
+                    Background="#505050" />
+
+            <!-- Queue statistics -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="Queue statistics"
+                           FontSize="24"
+                           FontWeight="Bold" />
+
+                <TextBlock Text="Current state"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="Gray" />
+
+                <Grid ColumnDefinitions="Auto,Auto"
+                      ColumnSpacing="12"
+                      HorizontalAlignment="Left">
+                    <Border Width="260"
+                            Padding="20"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Available messages"
+                                       FontSize="18"
+                                       FontWeight="Medium"
+                                       Foreground="Gray" />
+                            <TextBlock Text="{Binding Queue.AvailableMessageCount}"
+                                       FontSize="18"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Width="260"
+                            Padding="20"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="In-flight messages"
+                                       FontSize="18"
+                                       FontWeight="Medium"
+                                       Foreground="Gray" />
+                            <TextBlock Text="{Binding Queue.InFlightMessageCount}"
+                                       FontSize="18"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <TextBlock Text="Throughput · last completed second"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="Gray"
+                           Margin="0,8,0,0" />
+
+                <Grid ColumnDefinitions="Auto,Auto"
+                      ColumnSpacing="12"
+                      HorizontalAlignment="Left">
+                    <Border Width="260"
+                            Padding="20"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Published"
+                                       FontSize="18"
+                                       FontWeight="Medium"
+                                       Foreground="Gray" />
+                            <TextBlock Text="{Binding PublishedMessagesPerSecond, StringFormat='{}{0:N0} msg/s'}"
+                                       FontSize="18"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Width="260"
+                            Padding="20"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Delivered to consumers"
+                                       FontSize="18"
+                                       FontWeight="Medium"
+                                       Foreground="Gray" />
+                            <TextBlock Text="{Binding DeliveredMessagesPerSecond, StringFormat='{}{0:N0} msg/s'}"
+                                       FontSize="18"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
             </StackPanel>
 
             <Border Height="1"
