@@ -309,21 +309,4 @@ docker compose down
 
 The `mambamq-data` volume is preserved when the service is stopped or removed.
 
-### Publish a Docker image
-
-To publish a new MambaMQ Server release, build the image with a version-specific tag and the `latest` tag:
-
-```bash
-docker login
-
-docker build \
-  -t gorinichvisuals/mambamq-server:0.2.0 \
-  -t gorinichvisuals/mambamq-server:latest .
-
-docker push gorinichvisuals/mambamq-server:0.2.0
-docker push gorinichvisuals/mambamq-server:latest
-```
-
-Replace `0.2.0` with the version being released.
-
 Each release should have its own version-specific tag. The `latest` tag should point to the most recently published release.
