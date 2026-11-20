@@ -18,7 +18,18 @@ internal sealed class CommandDispatcher(IServiceProvider serviceProvider) : ICom
     private async Task DispatchInternalAsync<TCommand>(IClientConnection connection, TCommand command, CancellationToken cancellationToken)
         where TCommand : ICommand
     {
-        ICommandHandler<TCommand> handler = serviceProvider.GetRequiredService<ICommandHandler<TCommand>>();
+        ICommandHandler<TCommand>? handler = serviceProvider.GetService<ICommandHandler<TCommand>>();
+
+        if (handler is null)
+        {
+            CommandResponse response = CommandResponse.Fail(
+                ErrorCode.UnsupportedCommand,
+                $"No handler is registered for command '{command.Type}'.");
+            await connection.SendAsync(
+                new Frame(FrameType.CommandResultResponse, CommandResponseEncoder.Encode(response)),
+                cancellationToken);
+            return;
+        }
 
         await handler.Handle(command, connection, cancellationToken);
     }

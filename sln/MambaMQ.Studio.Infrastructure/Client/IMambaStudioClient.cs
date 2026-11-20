@@ -2,8 +2,11 @@ namespace MambaMQ.Studio.Infrastructure.Client;
 
 public interface IMambaStudioClient
 {
+    bool IsServerOutdated { get; }
+    event EventHandler? CompatibilityChanged;
     Task ConnectAsync(string host, int port, string username, string password, CancellationToken cancellationToken = default);
     Task PingAsync(CancellationToken cancellationToken = default);
+    bool SupportsCommand(FrameType commandType);
     ValueTask DisconnectAsync(CancellationToken cancellationToken = default);
     
     Task<GetExchangesResponse> GetExchangesAsync(CancellationToken cancellationToken = default);

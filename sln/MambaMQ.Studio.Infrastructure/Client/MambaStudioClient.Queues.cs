@@ -19,6 +19,20 @@ internal sealed partial class MambaStudioClient
 
     public async Task<IReadOnlyList<QueueStatisticsModel>> GetQueueStatisticsAsync(Guid? queueId = null, CancellationToken cancellationToken = default)
     {
+        if (!SupportsCommand(FrameType.QueueStatisticsGetCommand))
+        {
+            GetQueuesResponse legacyResponse = await GetQueuesAsync(cancellationToken);
+            return legacyResponse.Queues
+                .Where(queue => queueId is null || queue.Id == queueId.Value)
+                .Select(queue => new QueueStatisticsModel
+                {
+                    QueueId = queue.Id,
+                    AvailableMessageCount = queue.AvailableMessageCount,
+                    InFlightMessageCount = queue.InFlightMessageCount
+                })
+                .ToArray();
+        }
+
         QueueStatisticsGetCommand command = new(queueId);
         Frame frame = new(FrameType.QueueStatisticsGetCommand, CommandEncoder.Encode(command));
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);
@@ -29,6 +43,9 @@ internal sealed partial class MambaStudioClient
 
     public async Task<CommandResponse<QueueRateStatisticsModel>> GetQueueRatesAsync(Guid queueId, CancellationToken cancellationToken = default)
     {
+        if (!SupportsCommand(FrameType.QueueRatesGetCommand))
+            return CommandResponse<QueueRateStatisticsModel>.Fail(ErrorCode.UnsupportedCommand, "The connected server does not support queue rate statistics.");
+
         QueueRatesGetCommand command = new(queueId);
         Frame frame = new(FrameType.QueueRatesGetCommand, CommandEncoder.Encode(command));
         Frame responseFrame = await SendRequestAsync(frame, cancellationToken);

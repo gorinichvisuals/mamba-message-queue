@@ -32,7 +32,7 @@ public static class CommandDecoder
             FrameType.ExchangeDeleteCommand => ExchangeCommandDecoder.DecodeDeleteExchange(buffer),
             FrameType.ExchangeUpdateCommand => ExchangeCommandDecoder.DecodeUpdateExchange(buffer),
 
-            _ => throw new InvalidDataException($"Unsupported frame type: {type}.")
+            _ => throw new UnsupportedCommandException(type)
         };
     }
 }
