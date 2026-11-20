@@ -34,7 +34,18 @@ internal sealed class ClientConnection(
             {
                 Frame frame = await FrameReader.ReadFrameAsync(_stream, maxMessageSizeInBytes, cancellationToken);
 
-                ICommand command = CommandDecoder.Decode(frame.Type, frame.Payload.Span);
+                ICommand command;
+                try
+                {
+                    command = CommandDecoder.Decode(frame.Type, frame.Payload.Span);
+                }
+                catch (UnsupportedCommandException exception)
+                {
+                    CommandResponse response = CommandResponse.Fail(ErrorCode.UnsupportedCommand, exception.Message);
+                    Frame responseFrame = new(FrameType.CommandResultResponse, CommandResponseEncoder.Encode(response));
+                    await SendAsync(responseFrame, cancellationToken);
+                    continue;
+                }
 
                 if (!_isAuthenticated)
                 {

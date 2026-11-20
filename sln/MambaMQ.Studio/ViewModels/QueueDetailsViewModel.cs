@@ -287,9 +287,23 @@ public partial class QueueDetailsViewModel(
 
     public async Task RefreshRatesAsync(CancellationToken cancellationToken = default)
     {
-        CommandResponse<QueueRateStatisticsModel> response = await mambaClient.GetQueueRatesAsync(Queue.Id, cancellationToken);
-        if (!response.IsSucceed || response.Data is null)
+        if (!mambaClient.SupportsCommand(FrameType.QueueRatesGetCommand))
             return;
+
+        CommandResponse<QueueRateStatisticsModel> response;
+        try
+        {
+            response = await mambaClient.GetQueueRatesAsync(Queue.Id, cancellationToken);
+        }
+        catch (NotSupportedException)
+        {
+            return;
+        }
+
+        if (!response.IsSucceed || response.Data is null)
+        {
+            return;
+        }
 
         PublishedMessagesPerSecond = response.Data.PublishedMessagesPerSecond;
         DeliveredMessagesPerSecond = response.Data.DeliveredMessagesPerSecond;

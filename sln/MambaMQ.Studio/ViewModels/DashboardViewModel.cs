@@ -21,6 +21,25 @@ public partial class DashboardViewModel : ViewModelBase
     private bool _isConnected = true;
 
     [ObservableProperty]
+    private bool _isServerOutdated;
+
+    [ObservableProperty]
+    private bool _isCompatibilityNoticeDismissed;
+
+    public bool IsCompatibilityNoticeVisible => IsServerOutdated && !IsCompatibilityNoticeDismissed;
+
+    partial void OnIsServerOutdatedChanged(bool value)
+    {
+        if (!value)
+            IsCompatibilityNoticeDismissed = false;
+
+        OnPropertyChanged(nameof(IsCompatibilityNoticeVisible));
+    }
+
+    partial void OnIsCompatibilityNoticeDismissedChanged(bool value)
+        => OnPropertyChanged(nameof(IsCompatibilityNoticeVisible));
+
+    [ObservableProperty]
     private bool _isActive;
 
     [ObservableProperty]
@@ -88,6 +107,8 @@ public partial class DashboardViewModel : ViewModelBase
         Action<DashboardViewModel> onSelected)
     {
         _mambaClient = mambaClient;
+        _isServerOutdated = mambaClient.IsServerOutdated;
+        _mambaClient.CompatibilityChanged += OnCompatibilityChanged;
         _onDisconnected = onDisconnected;
         _onSelected = onSelected;
         _password = password;
@@ -99,6 +120,13 @@ public partial class DashboardViewModel : ViewModelBase
         _currentViewModel = _exchangesViewModel;
         _connectionMonitorTask = MonitorConnectionAsync(_connectionMonitorCts.Token);
     }
+
+    private void OnCompatibilityChanged(object? sender, EventArgs args)
+        => Dispatcher.UIThread.Post(() => IsServerOutdated = _mambaClient.IsServerOutdated);
+
+    [RelayCommand]
+    private void DismissCompatibilityNotice()
+        => IsCompatibilityNoticeDismissed = true;
 
     [RelayCommand]
     private void ShowExchanges() => _ = NavigateAsync(async () =>
@@ -193,11 +221,15 @@ public partial class DashboardViewModel : ViewModelBase
 
     private async Task RefreshQueueStatisticsPeriodicallyAsync(ViewModelBase viewModel, CancellationToken cancellationToken)
     {
-        using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(500));
         try
         {
-            while (await timer.WaitForNextTickAsync(cancellationToken))
+            while (!cancellationToken.IsCancellationRequested)
             {
+                TimeSpan interval = _mambaClient.SupportsCommand(FrameType.QueueStatisticsGetCommand)
+                    ? TimeSpan.FromMilliseconds(500)
+                    : TimeSpan.FromSeconds(2);
+                await Task.Delay(interval, cancellationToken);
+
                 if (!IsConnected)
                     continue;
 

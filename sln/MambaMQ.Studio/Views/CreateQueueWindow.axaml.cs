@@ -38,7 +38,7 @@ public partial class CreateQueueWindow : Window
             Permissions = permissions,
             MessageRetention = new MessageRetentionOptions
             {
-                Enabled = viewModel.MessageRetentionEnabled,
+                Enabled = viewModel.IsDurable && viewModel.MessageRetentionEnabled,
                 RetentionPeriod = TimeSpan.FromMinutes(viewModel.RetentionPeriod)
             }
         };

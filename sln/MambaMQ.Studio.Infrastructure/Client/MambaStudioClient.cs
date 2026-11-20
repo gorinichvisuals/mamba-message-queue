@@ -4,6 +4,12 @@ internal sealed partial class MambaStudioClient(IConnection connection, IAuthent
 {
     private const int MaxMessageSizeInBytes = 1048576;
     private readonly SemaphoreSlim _requestLock = new(1, 1);
+    private IReadOnlySet<FrameType> _supportedCommands = ProtocolCapabilities.LegacySupportedCommands;
+    public bool IsServerOutdated { get; private set; }
+    public event EventHandler? CompatibilityChanged;
+
+    public bool SupportsCommand(FrameType commandType)
+        => Volatile.Read(ref _supportedCommands).Contains(commandType);
 
     public async Task ConnectAsync(string host, int port, string username, string password, CancellationToken cancellationToken = default)
     {
@@ -18,6 +24,8 @@ internal sealed partial class MambaStudioClient(IConnection connection, IAuthent
         {
             _requestLock.Release();
         }
+
+        await PingAsync(cancellationToken);
     }
 
     public async Task PingAsync(CancellationToken cancellationToken = default)
@@ -32,6 +40,17 @@ internal sealed partial class MambaStudioClient(IConnection connection, IAuthent
 
         if (responseFrame.Type is not FrameType.ConnectionPongResponse)
             throw new InvalidDataException($"Expected {FrameType.ConnectionPongResponse} frame, but received {responseFrame.Type}.");
+
+        if (ProtocolCapabilities.TryDecode(responseFrame.Payload.Span, out IReadOnlySet<FrameType> supportedCommands))
+        {
+            _supportedCommands = supportedCommands;
+            SetServerOutdated(false);
+        }
+        else
+        {
+            _supportedCommands = ProtocolCapabilities.LegacySupportedCommands;
+            SetServerOutdated(true);
+        }
     }
 
     public ValueTask DisconnectAsync(CancellationToken cancellationToken = default)
@@ -39,16 +58,55 @@ internal sealed partial class MambaStudioClient(IConnection connection, IAuthent
 
     private async Task<Frame> SendRequestAsync(Frame frame, CancellationToken cancellationToken)
     {
+        if (ProtocolCapabilities.IsCommand(frame.Type) && !SupportsCommand(frame.Type))
+            throw new NotSupportedException($"The connected server does not support command '{frame.Type}'.");
+
         await _requestLock.WaitAsync(cancellationToken);
 
         try
         {
             await connection.SendAsync(FrameEncoder.Encode(frame), cancellationToken);
-            return await FrameReader.ReadAsync(connection, MaxMessageSizeInBytes, cancellationToken);
+            Frame response = await FrameReader.ReadAsync(connection, MaxMessageSizeInBytes, cancellationToken);
+
+            if (response.Type is FrameType.CommandResultResponse &&
+                response.Payload.Length >= 2 &&
+                response.Payload.Span[0] is 0 &&
+                response.Payload.Span[1] == (byte)ErrorCode.UnsupportedCommand)
+            {
+                RemoveSupportedCommand(frame.Type);
+                throw new NotSupportedException($"The connected server does not support command '{frame.Type}'.");
+            }
+
+            return response;
         }
         finally
         {
             _requestLock.Release();
         }
+    }
+
+    private void RemoveSupportedCommand(FrameType commandType)
+    {
+        while (true)
+        {
+            IReadOnlySet<FrameType> current = Volatile.Read(ref _supportedCommands);
+            HashSet<FrameType> updated = current.ToHashSet();
+            updated.Remove(commandType);
+
+            if (ReferenceEquals(Interlocked.CompareExchange(ref _supportedCommands, updated, current), current))
+            {
+                SetServerOutdated(true);
+                return;
+            }
+        }
+    }
+
+    private void SetServerOutdated(bool value)
+    {
+        if (IsServerOutdated == value)
+            return;
+
+        IsServerOutdated = value;
+        CompatibilityChanged?.Invoke(this, EventArgs.Empty);
     }
 }

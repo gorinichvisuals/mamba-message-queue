@@ -205,15 +205,16 @@
                     </Border>
                 </Grid>
 
-                <TextBlock Text="Throughput · last completed second"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           Foreground="Gray"
-                           Margin="0,8,0,0" />
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Throughput · last completed second"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="Gray"
+                               Margin="0,8,0,0" />
 
-                <Grid ColumnDefinitions="Auto,Auto"
-                      ColumnSpacing="12"
-                      HorizontalAlignment="Left">
+                    <Grid ColumnDefinitions="Auto,Auto"
+                          ColumnSpacing="12"
+                          HorizontalAlignment="Left">
                     <Border Width="260"
                             Padding="20"
                             CornerRadius="8"
@@ -246,7 +247,8 @@
                                        FontWeight="Bold" />
                         </StackPanel>
                     </Border>
-                </Grid>
+                    </Grid>
+                </StackPanel>
             </StackPanel>
 
             </StackPanel>

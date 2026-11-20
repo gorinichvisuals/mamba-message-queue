@@ -158,7 +158,9 @@
                             Classes="section-title"
                             Text="Message retention" />
 
-                        <CheckBox Content="Save messages" IsChecked="{Binding MessageRetentionEnabled}" />
+                        <CheckBox Content="Save messages"
+                                  IsChecked="{Binding MessageRetentionEnabled}"
+                                  IsEnabled="{Binding IsDurable}" />
 
                         <Grid
                             ColumnDefinitions="*,120"

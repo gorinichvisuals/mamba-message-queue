@@ -48,10 +48,7 @@ public static class FrameDecoder
     private static FrameType ReadFrameType(ReadOnlySpan<byte> buffer)
     {
         byte value = buffer[FrameConstants.FrameTypeOffset];
-        
-        if (!Enum.IsDefined((FrameType)value))
-            throw new InvalidDataException("Unknown frame type.");
-        
+
         return (FrameType)value;
     }
 
