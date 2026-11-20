@@ -33,10 +33,10 @@ Queue statistics, including available and in-flight message counts and publish a
 
 ## Use MambaMQ.Client.NET
 
-After the first NuGet release, install the client package in your .NET project (replace the version with the release you need):
+Install the client package in your .NET project:
 
 ```bash
-dotnet add package MambaMQ.Client.NET --version 0.1.1
+dotnet add package MambaMQ.Client.NET --version 0.2.1
 ```
 Or you can download this repository and use this command:
 ```bash
@@ -63,7 +63,7 @@ services.AddMamba(options =>
 
 Inject `IMamba` into your application services to use the broker.
 ```bash
-dotnet add package MambaMQ.Client.NET --version 0.1.1
+dotnet add package MambaMQ.Client.NET --version 0.2.1
 ```
 
 Publisher example:
@@ -150,7 +150,7 @@ Exchanges
 MambaMQ Server is available as a public Docker image on Docker Hub.
 
 - **Docker Hub:** [gorinichvisuals/mambamq-server](https://hub.docker.com/r/gorinichvisuals/mambamq-server)
-- **Current version:** `0.1.1`
+- **Current version:** `0.2.0`
 - **Latest image:** `gorinichvisuals/mambamq-server:latest`
 
 ### Configuration
@@ -202,7 +202,7 @@ Replace the default authentication credentials with strong, unique values before
 
 ### Start with Docker Compose (recommended)
 
-Download `docker-compose.release.yml` and `.env.example` from the repository.
+Download `docker-compose.release.yaml` and `.env.example` from the repository.
 
 Copy `.env.example` to `.env`:
 
@@ -215,7 +215,7 @@ Edit `.env` and configure your credentials and other settings.
 Start MambaMQ Server:
 
 ```bash
-docker compose -f docker-compose.release.yml up -d
+docker compose -f docker-compose.release.yaml up -d
 ```
 
 Docker Compose automatically pulls the published image from Docker Hub.
@@ -223,20 +223,20 @@ Docker Compose automatically pulls the published image from Docker Hub.
 View server logs:
 
 ```bash
-docker compose -f docker-compose.release.yml logs -f
+docker compose -f docker-compose.release.yaml logs -f
 ```
 
 Update to the latest published image:
 
 ```bash
-docker compose -f docker-compose.release.yml pull
-docker compose -f docker-compose.release.yml up -d
+docker compose -f docker-compose.release.yaml pull
+docker compose -f docker-compose.release.yaml up -d
 ```
 
 Stop the server:
 
 ```bash
-docker compose -f docker-compose.release.yml down
+docker compose -f docker-compose.release.yaml down
 ```
 
 Queue data is stored in a persistent Docker volume named `mambamq-data` and is preserved when the container is stopped, removed, or recreated.
@@ -250,7 +250,7 @@ You can also run MambaMQ Server directly without Docker Compose.
 Pull the image:
 
 ```bash
-docker pull gorinichvisuals/mambamq-server:0.1.1
+docker pull gorinichvisuals/mambamq-server:0.2.0
 ```
 
 Run the container:
@@ -262,7 +262,7 @@ docker run -d \
   -p 8024:8024 \
   --env-file .env \
   -v mambamq-data:/app/data \
-  gorinichvisuals/mambamq-server:0.1.1
+  gorinichvisuals/mambamq-server:0.2.0
 ```
 
 The `-p` option uses the `host-port:container-port` format. The container port must match `MambaServerOptions__Port`.
@@ -317,13 +317,13 @@ To publish a new MambaMQ Server release, build the image with a version-specific
 docker login
 
 docker build \
-  -t gorinichvisuals/mambamq-server:0.1.1 \
+  -t gorinichvisuals/mambamq-server:0.2.0 \
   -t gorinichvisuals/mambamq-server:latest .
 
-docker push gorinichvisuals/mambamq-server:0.1.1
+docker push gorinichvisuals/mambamq-server:0.2.0
 docker push gorinichvisuals/mambamq-server:latest
 ```
 
-Replace `0.1.0` with the version being released.
+Replace `0.2.0` with the version being released.
 
 Each release should have its own version-specific tag. The `latest` tag should point to the most recently published release.

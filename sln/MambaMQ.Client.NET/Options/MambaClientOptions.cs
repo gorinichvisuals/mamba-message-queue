@@ -10,7 +10,7 @@ public sealed class MambaClientOptions
     public string Host { get; set; } = string.Empty;
 
     /// <summary>The server TCP port; defaults to 24.</summary>
-    public int Port { get; set; } = 24;
+    public int Port { get; set; } = 8024;
 
     /// <summary>The maximum accepted frame size in bytes; defaults to 1 MiB.</summary>
     public int MaxMessageSizeInBytes { get; set; } = 1 * 1024 * 1024;

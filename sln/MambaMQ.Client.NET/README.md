@@ -86,13 +86,13 @@ Queue update can change the retention period, but cannot change durability or wh
 
 ### `MambaClientOptions`
 
-| Property | Description |
-| --- | --- |
-| `ServiceName` | Name identifying this service client to the server. |
-| `Host` | Server host name or IP address. |
-| `Port` | Server TCP port. Defaults to `24`. |
+| Property | Description                                                         |
+| --- |---------------------------------------------------------------------|
+| `ServiceName` | Name identifying this service client to the server.                 |
+| `Host` | Server host name or IP address.                                     |
+| `Port` | Server TCP port. Defaults to `8024`.                                 |
 | `MaxMessageSizeInBytes` | Maximum accepted frame size. Defaults to `1,048,576` bytes (1 MiB). |
-| `Credentials` | Authentication settings for the connection. |
+| `Credentials` | Authentication settings for the connection.                         |
 
 ### `AuthenticationOptions`
 
@@ -155,5 +155,5 @@ Queue update can change the retention period, but cannot change durability or wh
 
 ## Compatibility
 
-The client connects to MambaMQ Server over TCP using the MambaMQ protocol. In this repository the server configuration defaults to port `8024`; configure the client to use the same port. The client's own `Port` option falls back to `24` if it is omitted.
+The client connects to MambaMQ Server over TCP using the MambaMQ protocol. In this repository the server configuration defaults to port `8024`; configure the client to use the same port. The client's own `Port` option falls back to `8024` if it is omitted.
 The package targets .NET 10.
