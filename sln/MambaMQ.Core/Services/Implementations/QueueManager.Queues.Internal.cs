@@ -98,6 +98,8 @@ internal sealed partial class QueueManager
 
                 await connection.SendAsync(frame, cancellationToken);
 
+                queue.RecordDeliveredMessages(1);
+
                 mambaLogger.Queue(queue.Name).LogDebug("Message '{MessageMessageId}' was delivered to connection '{ConnectionId}'.", delivery.Message.MessageId, connection.Id);
             }
         }
@@ -217,7 +219,7 @@ internal sealed partial class QueueManager
             storedQueue.Queue.MessageRetention.RetentionPeriod);
 
         foreach (StoredMambaMessage message in storedQueue.Messages)
-            queue.PublishMessage(new MambaMessage(message.Id, message.ReceivedAt, message.Body));
+            queue.PublishMessage(new MambaMessage(message.Id, message.ReceivedAt, message.Body), countForWriteRate: false);
 
         return queue;
     }
@@ -284,6 +286,8 @@ internal sealed partial class QueueManager
         Frame frame = new(FrameType.QueueMessagesBatchResponse, payload);
 
         await subscriber.Connection.SendAsync(frame, cancellationToken);
+
+        queue.RecordDeliveredMessages(deliveries.Count);
 
         subscriber.InFlight += deliveries.Count;
 

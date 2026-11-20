@@ -4,6 +4,7 @@ public interface IQueueManager
 {
     public IReadOnlyList<QueueModel> GetQueues();
     public IReadOnlyList<QueueStatisticsModel> GetQueueStatistics(Guid? queueId = null);
+    public CommandResponse<QueueRateStatisticsModel> GetQueueRates(Guid queueId);
     Task<CommandResponse<QueueModel>> CreateQueue(QueueCreateDto dto);
     Task<CommandResponse<QueueModel>> UpdateQueue(QueueUpdateDto dto, CancellationToken cancellationToken = default);
     Task<CommandResponse> DeleteQueue(Guid queueId, IClientConnection connection, CancellationToken cancellationToken = default);

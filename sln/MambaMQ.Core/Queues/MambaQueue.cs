@@ -11,6 +11,8 @@ public sealed class MambaQueue(
     TimeSpan messageRetentionPeriod)
 {
     private long _nextDeliveryId = 1;
+    private readonly PerSecondRateCounter _publishedMessageRate = new();
+    private readonly PerSecondRateCounter _deliveredMessageRate = new();
     
     public Guid Id { get; private set; } = queueId;
     public string Name { get; private set; } = queueName;
@@ -25,6 +27,9 @@ public sealed class MambaQueue(
     public int AvailableMessageCount => _available.Count;
     public int InFlightMessageCount => _inFlight.Count;
     
+    public long PublishedMessagesPerSecond => _publishedMessageRate.Value;
+    public long DeliveredMessagesPerSecond => _deliveredMessageRate.Value;
+
     private readonly ConcurrentDictionary<Guid, MambaMessage> _messages = [];
     private readonly ConcurrentQueue<Guid> _available = [];
     
@@ -34,7 +39,7 @@ public sealed class MambaQueue(
     
     private readonly SemaphoreSlim _messageAvailable = new(0);
     
-    internal void PublishMessage(MambaMessage message)
+    internal void PublishMessage(MambaMessage message, bool countForWriteRate = true)
     {
         if(!_messages.TryAdd(message.MessageId, message))
             throw new InvalidOperationException($"Message '{message.MessageId}' already exists.");
@@ -42,6 +47,9 @@ public sealed class MambaQueue(
         _available.Enqueue(message.MessageId);
         
         _messageAvailable.Release();
+
+        if (countForWriteRate)
+            _publishedMessageRate.Add(1);
     }
     
     internal async IAsyncEnumerable<MessageDelivery> SubscribeAsync(Guid connectionId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -109,6 +117,12 @@ public sealed class MambaQueue(
         }
     }
     
+    internal void RecordDeliveredMessages(int count)
+    {
+        if (count > 0)
+            _deliveredMessageRate.Add(count);
+    }
+
     internal async ValueTask<MessageDelivery?> DequeueAsync(Guid connectionId, CancellationToken cancellationToken = default)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -185,5 +199,61 @@ public sealed class MambaQueue(
         _inFlight.TryRemove(delivery.DeliveryId, out _);
 
         throw new InvalidOperationException($"Message '{delivery.MessageId}' is already in flight.");
+    }
+
+    private sealed class PerSecondRateCounter
+    {
+        private readonly object _lock = new();
+        private PublishRateBucket _currentBucket = new(GetCurrentSecond());
+        private PublishRateBucket? _previousBucket;
+
+        public long Value
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    AdvanceTo(GetCurrentSecond());
+                    return _previousBucket is null ? 0 : Interlocked.Read(ref _previousBucket.Count);
+                }
+            }
+        }
+
+        public void Add(long count)
+        {
+            long currentSecond = GetCurrentSecond();
+            PublishRateBucket bucket = Volatile.Read(ref _currentBucket);
+
+            if (bucket.Second == currentSecond)
+            {
+                Interlocked.Add(ref bucket.Count, count);
+                return;
+            }
+
+            lock (_lock)
+            {
+                AdvanceTo(currentSecond);
+                Interlocked.Add(ref _currentBucket.Count, count);
+            }
+        }
+
+        private void AdvanceTo(long currentSecond)
+        {
+            PublishRateBucket currentBucket = _currentBucket;
+            if (currentSecond <= currentBucket.Second)
+                return;
+
+            _previousBucket = currentSecond == currentBucket.Second + 1 ? currentBucket : null;
+            Volatile.Write(ref _currentBucket, new PublishRateBucket(currentSecond));
+        }
+
+        private static long GetCurrentSecond()
+            => System.Diagnostics.Stopwatch.GetTimestamp() / System.Diagnostics.Stopwatch.Frequency;
+
+        private sealed class PublishRateBucket(long second)
+        {
+            public long Second { get; } = second;
+            public long Count;
+        }
     }
 }

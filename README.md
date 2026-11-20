@@ -25,7 +25,7 @@ Applications register the client with `services.AddMamba(...)` and use the `IMam
 
 ### MambaMQ Studio
 
-Studio is the desktop management interface. It supports saved connection profiles, multiple server connections, and a dashboard for connection status. From the app you can manage queues and exchanges, configure exchange bindings, inspect queue messages, and publish or delete messages.
+Studio is the desktop management interface. It supports saved connection profiles, multiple server connections, and a dashboard for connection status. From the app you can manage queues and exchanges, configure exchange bindings, monitor each queue's available and in-flight message counts and publish/delivery rates, inspect queue messages, and publish or delete messages.
 
 **Studio has not been publicly released yet.** Once downloads are available, this section will link to the project's GitHub Releases page with versioned installers and portable builds where supported. Until then, there is no public Studio download to install.
 

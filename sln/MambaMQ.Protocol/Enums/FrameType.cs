@@ -35,4 +35,6 @@ public enum FrameType : byte
 
     QueueStatisticsGetCommand = 28,
     QueueStatisticsGetResponse = 29,
+
+    QueueRatesGetCommand = 30,
 }

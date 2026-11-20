@@ -20,6 +20,7 @@ public static class CommandEncoder
             FrameType.QueueSubscribeBatchCommand => QueueCommandEncoder.EncodeSubscribeQueueWithBatch((QueueSubscribeBatchCommand)command),
             FrameType.QueueGetListCommand => QueueCommandEncoder.EncodeGetQueues(),
             FrameType.QueueStatisticsGetCommand => QueueCommandEncoder.EncodeGetQueueStatistics((QueueStatisticsGetCommand)command),
+            FrameType.QueueRatesGetCommand => QueueCommandEncoder.EncodeGetQueueRates((QueueRatesGetCommand)command),
             FrameType.QueueDeleteCommand => QueueCommandEncoder.EncodeDeleteQueue((QueueDeleteCommand)command),
             FrameType.QueueUpdateCommand => QueueCommandEncoder.EncodeUpdateQueue((QueueUpdateCommand)command),
 

@@ -15,6 +15,7 @@ public interface IMambaStudioClient
     
     Task<GetQueuesResponse> GetQueuesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<QueueStatisticsModel>> GetQueueStatisticsAsync(Guid? queueId = null, CancellationToken cancellationToken = default);
+    Task<CommandResponse<QueueRateStatisticsModel>> GetQueueRatesAsync(Guid queueId, CancellationToken cancellationToken = default);
     Task<CommandResponse<QueueModel>> CreateQueueAsync(QueueCreateOptions options, CancellationToken cancellationToken = default);
     Task<CommandResponse> DeleteQueueAsync(Guid queueId, CancellationToken cancellationToken = default);
     Task<CommandResponse<QueueModel>> UpdateQueueAsync(Guid queueId, QueueUpdateOptions options, CancellationToken cancellationToken = default);

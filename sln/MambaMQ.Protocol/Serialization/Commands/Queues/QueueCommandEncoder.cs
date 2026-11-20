@@ -135,6 +135,13 @@ internal static class QueueCommandEncoder
         return buffer;
     }
 
+    internal static byte[] EncodeGetQueueRates(QueueRatesGetCommand command)
+    {
+        byte[] buffer = new byte[CommandConstants.QueueIdSize];
+        command.QueueId.TryWriteBytes(buffer);
+        return buffer;
+    }
+
     internal static byte[] EncodeDeleteQueue(QueueDeleteCommand command)
     {
         byte[] buffer = new byte[16];
